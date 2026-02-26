@@ -6,6 +6,7 @@ import { Layout, type TabId } from "./components/Layout";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
 import { ClausesPanel } from "./components/panels/ClausesPanel";
+import { MammothPanel } from "./components/panels/MammothPanel";
 import { UpgradePrompt } from "./components/UpgradePrompt";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
@@ -52,7 +53,7 @@ function TabContent({ tab }: { tab: TabId }) {
     case "clauses":
       return <ClausesPanel />;
     case "mammoth":
-      return <UpgradePrompt feature="Mammoth" />;
+      return <MammothPanel />;
     case "analysis":
       return <UpgradePrompt feature="Full Analysis" />;
     case "history":
