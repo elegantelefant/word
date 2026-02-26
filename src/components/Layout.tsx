@@ -13,10 +13,10 @@ interface Tab {
 
 const TABS: Tab[] = [
   { id: "review", label: "Review" },
-  { id: "clauses", label: "Clauses", disabled: true },
-  { id: "mammoth", label: "Mammoth", disabled: true },
-  { id: "analysis", label: "Analysis", disabled: true },
-  { id: "history", label: "History", disabled: true },
+  { id: "clauses", label: "Clauses" },
+  { id: "mammoth", label: "Mammoth" },
+  { id: "analysis", label: "Analysis" },
+  { id: "history", label: "History" },
 ];
 
 interface LayoutProps {

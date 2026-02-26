@@ -5,6 +5,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Layout, type TabId } from "./components/Layout";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
+import { ClausesPanel } from "./components/panels/ClausesPanel";
 import { UpgradePrompt } from "./components/UpgradePrompt";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
@@ -49,7 +50,7 @@ function TabContent({ tab }: { tab: TabId }) {
     case "review":
       return <ReviewPanel />;
     case "clauses":
-      return <UpgradePrompt feature="Clause Search" />;
+      return <ClausesPanel />;
     case "mammoth":
       return <UpgradePrompt feature="Mammoth" />;
     case "analysis":
