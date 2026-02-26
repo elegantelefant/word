@@ -7,7 +7,8 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
 import { ClausesPanel } from "./components/panels/ClausesPanel";
 import { MammothPanel } from "./components/panels/MammothPanel";
-import { UpgradePrompt } from "./components/UpgradePrompt";
+import { FullAnalysisPanel } from "./components/panels/FullAnalysisPanel";
+import { HistoryPanel } from "./components/panels/HistoryPanel";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
 import { useAuthProvider } from "./hooks/useAuth";
@@ -55,8 +56,8 @@ function TabContent({ tab }: { tab: TabId }) {
     case "mammoth":
       return <MammothPanel />;
     case "analysis":
-      return <UpgradePrompt feature="Full Analysis" />;
+      return <FullAnalysisPanel />;
     case "history":
-      return <UpgradePrompt feature="History" />;
+      return <HistoryPanel />;
   }
 }

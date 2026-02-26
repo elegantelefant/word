@@ -6,8 +6,8 @@ import type { ReviewResponse, ReviewIssue, IssueKind } from "@/types/api";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { reviewFree, reviewPaid } from "@/api/review";
-import { getSelectedText, getDocumentBody, insertText } from "@/lib/office";
-import { isOfficeReady } from "@/lib/office";
+import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
+import { addToLocalHistory } from "./HistoryPanel";
 
 type Scope = "selection" | "document";
 
@@ -53,6 +53,11 @@ export function ReviewPanel() {
           : await reviewFree(text, settings.apiKey, settings.model, instructions || undefined);
 
       setResult(response);
+
+      // Save to local history (especially useful for free-tier users)
+      if (tier === "free") {
+        addToLocalHistory({ type: "review", summary: response.summary });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Review failed");
     } finally {
