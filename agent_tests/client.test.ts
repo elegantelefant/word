@@ -1,8 +1,8 @@
 // ABOUTME: Tests for the base API fetch client.
-// ABOUTME: Verifies auth headers, error handling, and request formatting.
+// ABOUTME: Verifies auth headers, error handling, network errors, and token expiry.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiFetch, ApiError } from "@/api/client";
+import { apiFetch, ApiError, NetworkError } from "@/api/client";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -49,6 +49,60 @@ describe("apiFetch", () => {
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).status).toBe(404);
+    }
+  });
+
+  it("throws ApiError with session expired message on 401", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Unauthorized", { status: 401 }),
+    );
+
+    try {
+      await apiFetch("/me", "expired-token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(401);
+      expect((err as ApiError).isAuthError).toBe(true);
+      expect((err as ApiError).message).toContain("Session expired");
+    }
+  });
+
+  it("throws ApiError with rate limit message on 429", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Rate limited", { status: 429 }),
+    );
+
+    try {
+      await apiFetch("/review", "token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).isRateLimited).toBe(true);
+    }
+  });
+
+  it("throws NetworkError on fetch failure", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    try {
+      await apiFetch("/me", "token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(NetworkError);
+      expect((err as NetworkError).message).toContain("Network request failed");
+    }
+  });
+
+  it("re-throws AbortError without wrapping", async () => {
+    const abort = new DOMException("Aborted", "AbortError");
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(abort);
+
+    try {
+      await apiFetch("/me", "token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBe(abort);
     }
   });
 });
