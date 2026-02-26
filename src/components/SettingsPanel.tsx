@@ -18,7 +18,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, updateSettings } = useSettings();
-  const { tier, user, logout } = useAuth();
+  const { tier, user, login, logout } = useAuth();
   const [keyVisible, setKeyVisible] = useState(false);
 
   return (
@@ -85,16 +85,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </section>
         )}
 
-        {/* Sign in link for free users */}
+        {/* Sign in for free users */}
         {tier === "free" && (
           <section className="border-t border-gray-200 pt-4">
-            <p className="text-xs text-gray-500">
-              Have an Elefant account?{" "}
-              <a href="https://elefant.legal/login" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                Sign in
-              </a>{" "}
-              for full features.
-            </p>
+            <p className="mb-2 text-xs text-gray-500">Have an Elefant account? Sign in for full features.</p>
+            <button
+              onClick={() => void login()}
+              className="w-full rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700"
+            >
+              Sign in to Elefant
+            </button>
           </section>
         )}
       </div>

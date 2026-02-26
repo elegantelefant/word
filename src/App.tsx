@@ -7,9 +7,8 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
 import { UpgradePrompt } from "./components/UpgradePrompt";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
-import { AuthContext, AUTH_INITIAL, type AuthState } from "./store/auth";
-import type { MeResponse, Tier } from "./types/api";
-import { getMe } from "./api/account";
+import { AuthContext } from "./store/auth";
+import { useAuthProvider } from "./hooks/useAuth";
 
 export function App() {
   // Settings state
@@ -23,28 +22,8 @@ export function App() {
   }, []);
   const settingsValue = useMemo(() => ({ settings, updateSettings }), [settings, updateSettings]);
 
-  // Auth state
-  const [auth, setAuth] = useState<AuthState>(AUTH_INITIAL);
-
-  const login = useCallback(async (token: string) => {
-    setAuth((prev) => ({ ...prev, loading: true }));
-    try {
-      const user = await getMe(token);
-      const tier: Tier = determineTier(user);
-      setAuth({ token, user, tier, loading: false });
-    } catch {
-      setAuth((prev) => ({ ...prev, loading: false }));
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    setAuth(AUTH_INITIAL);
-  }, []);
-
-  const authValue = useMemo(
-    () => ({ ...auth, login, logout }),
-    [auth, login, logout],
-  );
+  // Auth state (handles saved token, login dialog, tier detection)
+  const auth = useAuthProvider();
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabId>("review");
@@ -52,7 +31,7 @@ export function App() {
 
   return (
     <SettingsContext value={settingsValue}>
-      <AuthContext value={authValue}>
+      <AuthContext value={auth}>
         {showSettings ? (
           <SettingsPanel onClose={() => setShowSettings(false)} />
         ) : (
@@ -78,10 +57,4 @@ function TabContent({ tab }: { tab: TabId }) {
     case "history":
       return <UpgradePrompt feature="History" />;
   }
-}
-
-function determineTier(me: MeResponse): Tier {
-  const accountType = me.org.account_type?.toLowerCase();
-  if (accountType === "free" || accountType === "trial") return "free";
-  return "paid";
 }
