@@ -19,11 +19,29 @@ const devCerts = () => {
   }
 };
 
+const stubApigee = () => ({
+  name: "stub-apigee-llm",
+  enforce: "pre" as const,
+  resolveId(source: string) {
+    if (source.includes("apigee_llm")) {
+      return { id: "\0apigee-stub", moduleSideEffects: false };
+    }
+    return null;
+  },
+  load(id: string) {
+    if (id === "\0apigee-stub") {
+      return "export class ApigeeLlm { static supportedModels = []; }";
+    }
+    return null;
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [stubApigee(), react(), tailwindcss()],
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+      "@google/adk": resolve(__dirname, "src/lib/adk-shim.ts"),
     },
   },
   server: {

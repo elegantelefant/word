@@ -3,17 +3,26 @@
 
 import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/types/api";
 import { apiFetch } from "./client";
-import { reviewViaGateway } from "./gateway";
 import { pollForResult } from "@/lib/polling";
 
-/** Free-tier review: direct LLM call via gateway with user's key. */
+/** Free-tier review: runs ADK-JS agent in-browser with user's Gemini API key. */
 export async function reviewFree(
   text: string,
   apiKey: string,
   model: string,
   instructions?: string,
 ): Promise<ReviewResponse> {
-  return reviewViaGateway(text, apiKey, model, instructions);
+  const { runReview } = await import("@/lib/agent");
+  const result = await runReview(apiKey, model, text, instructions);
+  return {
+    summary: result.summary,
+    issues: result.issues.map((issue) => ({
+      message: issue.message,
+      kind: issue.kind,
+      location: issue.location ?? null,
+      suggestion: issue.suggestion ?? null,
+    })),
+  };
 }
 
 /** Paid-tier review: POST /review → poll job → get result. */

@@ -14,9 +14,11 @@
   },
   "packageManager": "pnpm@10.20.0",
   "dependencies": {
+    "@google/adk": "^0.4.0",
     "@microsoft/office-js": "^1.1.110",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -27,6 +29,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
     "office-addin-dev-certs": "^2.0.6",
+    "rollup-plugin-visualizer": "^7.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
