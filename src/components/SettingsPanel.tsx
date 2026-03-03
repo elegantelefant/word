@@ -6,10 +6,9 @@ import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 
 const MODELS = [
-  { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-  { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
 ];
 
 interface SettingsPanelProps {
@@ -52,7 +51,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 type={keyVisible ? "text" : "password"}
                 value={settings.apiKey}
                 onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                placeholder="sk-..."
+                placeholder="AIza..."
                 className="w-full rounded border border-gray-300 px-2 py-1.5 pr-8 text-xs focus:border-blue-500 focus:outline-none"
               />
               <button
@@ -63,7 +62,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 {keyVisible ? "Hide" : "Show"}
               </button>
             </div>
-            <p className="mt-1 text-xs text-gray-400">Your key is stored locally, never sent to Elefant.</p>
+            <p className="mt-1 text-xs text-gray-400">
+              Get a free key from{" "}
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-blue-500 hover:underline">
+                Google AI Studio
+              </a>
+              . Stored locally, never sent to Elefant.
+            </p>
           </section>
         )}
 

@@ -1,5 +1,5 @@
-// ABOUTME: Review API — dispatches to BYOK gateway (free) or Elefant API (paid).
-// ABOUTME: Paid path creates a job and polls for results.
+// ABOUTME: Review API — dispatches to ADK-JS agent in-browser (free) or Elefant API (paid).
+// ABOUTME: Free tier uses Gemini via BYOK key; paid path creates a job and polls for results.
 
 import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/types/api";
 import { apiFetch } from "./client";

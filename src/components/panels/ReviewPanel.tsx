@@ -1,5 +1,5 @@
 // ABOUTME: Review panel — select text in Word, send for AI review, display results.
-// ABOUTME: Free tier uses BYOK gateway; paid tier uses Elefant API with job polling.
+// ABOUTME: Free tier uses ADK-JS + Gemini in-browser; paid tier uses Elefant API with job polling.
 
 import { useState } from "react";
 import type { ReviewResponse, ReviewIssue, IssueKind } from "@/types/api";
@@ -106,7 +106,7 @@ export function ReviewPanel() {
 
       {!canReview && (
         <p className="text-xs text-amber-600">
-          {tier === "free" ? "Enter your API key in Settings to review." : "Sign in to review."}
+          {tier === "free" ? "Enter your Gemini API key in Settings to review." : "Sign in to review."}
         </p>
       )}
 

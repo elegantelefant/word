@@ -12,7 +12,7 @@ describe("settings store", () => {
   it("returns defaults when localStorage is empty", () => {
     const settings = loadSettings();
     expect(settings.apiKey).toBe("");
-    expect(settings.model).toBe("claude-sonnet-4-20250514");
+    expect(settings.model).toBe("gemini-2.5-flash");
   });
 
   it("persists and loads settings", () => {
@@ -34,6 +34,6 @@ describe("settings store", () => {
     localStorage.setItem("elefant_settings", JSON.stringify({ apiKey: "sk-partial" }));
     const settings = loadSettings();
     expect(settings.apiKey).toBe("sk-partial");
-    expect(settings.model).toBe("claude-sonnet-4-20250514");
+    expect(settings.model).toBe("gemini-2.5-flash");
   });
 });

@@ -14,7 +14,7 @@ export interface SettingsContextValue {
 }
 
 const STORAGE_KEY = "elefant_settings";
-const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null);
 
