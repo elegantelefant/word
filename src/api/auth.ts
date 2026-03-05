@@ -42,7 +42,7 @@ function openOfficeDialog(url: string): Promise<string> {
     Office.context.ui.displayDialogAsync(
       url,
       { height: 60, width: 30, promptBeforeOpen: false },
-      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message: string }) => void) => void }; error?: { message: string } }) => {
+      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message: string }) => void) => void; close: () => void }; error?: { message: string } }) => {
         if (result.status !== "succeeded") {
           reject(new Error(result.error?.message ?? "Failed to open login dialog"));
           return;
@@ -54,6 +54,7 @@ function openOfficeDialog(url: string): Promise<string> {
             try {
               const data = JSON.parse(arg.message);
               if (data.token) {
+                dialog.close();
                 saveToken(data.token);
                 resolve(data.token);
               } else {

@@ -9,14 +9,19 @@ interface Props {
 
 interface State {
   error: Error | null;
+  resetKey: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, resetKey: 0 };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
+
+  private handleReset = () => {
+    this.setState((prev) => ({ error: null, resetKey: prev.resetKey + 1 }));
+  };
 
   render() {
     if (this.state.error) {
@@ -26,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <h2 className="text-sm font-semibold text-gray-800">Something went wrong</h2>
           <p className="text-xs text-gray-500">{this.state.error.message}</p>
           <button
-            onClick={() => this.setState({ error: null })}
+            onClick={this.handleReset}
             className="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700"
           >
             Try again
@@ -35,6 +40,6 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return <div key={this.state.resetKey}>{this.props.children}</div>;
   }
 }
