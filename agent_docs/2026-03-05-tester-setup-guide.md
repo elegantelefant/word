@@ -82,13 +82,14 @@ The manifest file is `manifest.xml` in the project root. It tells Word to load t
 
 #### Word Desktop (Mac)
 
-1. Copy the manifest to the sideload folder:
+1. Copy the manifest to the sideload folder (create `wef` if it doesn't exist):
    ```sh
    mkdir -p ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
    cp manifest.xml ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/
    ```
-2. Quit and reopen Word.
-3. The "Elefant" button appears on the **Home** tab ribbon.
+   Or use Finder: Cmd+Shift+G, paste the path above, drag `manifest.xml` in.
+2. Open Word (or restart if already running), then open any document.
+3. Go to **Home > Add-ins** — "Elefant Legal Assistant" should appear. Click it.
 
 #### Word Desktop (Windows)
 
@@ -111,7 +112,7 @@ The manifest file is `manifest.xml` in the project root. It tells Word to load t
 
 ### 6. Open the task pane
 
-Click **"Open Elefant"** on the Home tab ribbon (Desktop) or the add-in icon (Online). The task pane should show the Elefant UI with 5 tabs: Review, Clauses, Mammoth, Analysis, History.
+On first sideload, find the add-in under **Home > Add-ins** and click it. After that, an **"Open Elefant"** button should appear in the Home tab ribbon for quick access. The task pane should show the Elefant UI with 5 tabs: Review, Clauses, Mammoth, Analysis, History.
 
 ---
 
