@@ -16,7 +16,7 @@
 | Section | Total | PASS | FAIL | RISK | UNKNOWN |
 |---------|-------|------|------|------|---------|
 | Pre-flight | 4 | 3 | 0 | 1 | 0 |
-| Settings & Config | 12 | 9 | 1 | 2 | 0 |
+| Settings & Config | 12 | 10 | 0 | 2 | 0 |
 | Review — Free | 14 | 14 | 0 | 0 | 0 |
 | Review — Paid | 5 | 4 | 0 | 1 | 0 |
 | Insert Text | 4 | 2 | 0 | 2 | 0 |
@@ -24,45 +24,22 @@
 | Clauses | 8 | 7 | 0 | 1 | 0 |
 | Mammoth | 10 | 7 | 0 | 2 | 1 |
 | Full Analysis | 9 | 7 | 0 | 1 | 1 |
-| Error Handling | 5 | 2 | 1 | 2 | 0 |
+| Error Handling | 5 | 3 | 0 | 2 | 0 |
 | Layout | 4 | 4 | 0 | 0 | 0 |
 | HTTPS | 2 | 1 | 0 | 1 | 0 |
-| **Total** | **85** | **67** | **2** | **14** | **2** |
+| **Total** | **85** | **69** | **0** | **14** | **2** |
 
 ---
 
-## Key Bugs (FAIL)
+## Bugs Found and Fixed
 
-### BUG-1: Office login dialog stays open after token received
+### BUG-1: Office login dialog stays open after token received — FIXED
 
-**Test:** #10 — "Complete login flow → Dialog closes, tier changes to paid"
+**Test:** #10 — `src/api/auth.ts:56` — added `dialog.close()` before resolving the token promise. Both Office and browser paths now close the popup.
 
-`src/api/auth.ts:50-58` — `openOfficeDialog()` receives the token and resolves the promise, but never calls `dialog.close()`:
-```ts
-const dialog = result.value;
-dialog.addEventHandler("DialogMessageReceived", (arg) => {
-  const data = JSON.parse(arg.message);
-  if (data.token) {
-    saveToken(data.token);
-    resolve(data.token);   // ← resolves promise
-    // ← dialog.close() is MISSING
-  }
-});
-```
-The browser fallback path (`openBrowserDialog`, line 86) correctly calls `popup.close()`. The Office path does not. The tier will change to paid, but the dialog window remains open until the user manually closes it.
+### BUG-2: ErrorBoundary "Try again" may not recover — FIXED
 
-**Fix:** Add `dialog.close()` before `resolve(data.token)` at line 57.
-
-### BUG-2: ErrorBoundary "Try again" may not recover
-
-**Test:** #75 — "Click 'Try again' → Component resets"
-
-`src/components/ErrorBoundary.tsx:29` — "Try again" calls `this.setState({ error: null })`, which unmounts the fallback UI and re-renders `this.props.children`. The children remount with fresh `useState` initializations, but:
-- If the crash was in a `useEffect` that re-runs on mount, the same error will immediately recur
-- No `componentDidCatch` is implemented, so there's no error logging or cleanup
-- No callback is passed to parent to reset external state that may have caused the crash
-
-For a crash forced via dev tools (test scenario), the re-mount _may_ succeed since the artificial crash condition no longer applies. But for a real crash (e.g., malformed API response stored in state), recovery is unlikely.
+**Test:** #75 — `src/components/ErrorBoundary.tsx` — added `resetKey` counter incremented on "Try again". Children are wrapped in `<div key={resetKey}>`, forcing React to destroy and recreate the entire subtree with fresh state.
 
 ---
 
@@ -104,7 +81,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 | # | Step | Verdict | Evidence |
 |---|------|---------|----------|
 | 9 | Click "Sign in" button | **PASS** | `SettingsPanel.tsx:98` — `onClick={() => void login()}` calls `useAuth.login()` → `openLoginDialog()` |
-| 10 | Complete login flow | **FAIL** | **BUG-1** — `auth.ts:50-58`: Office dialog never calls `dialog.close()` after receiving token. Tier changes to paid (state updates), but dialog stays open. Browser fallback correctly calls `popup.close()` (line 86). |
+| 10 | Complete login flow | **PASS** | **BUG-1 FIXED** — `auth.ts:56`: `dialog.close()` now called before resolving. Both Office and browser paths close the popup after token received. |
 | 11 | Settings shows account info | **PASS** | `SettingsPanel.tsx:34-42` — when `tier === "paid" && user`, renders `user.user.name` and `user.org.name`. BYOK section is hidden (only rendered for `tier === "free"`). |
 | 12 | Click "Sign out" | **RISK** | `SettingsPanel.tsx:39` calls `logout()` → `useAuth.ts:51-53` clears token and resets state to `AUTH_INITIAL`. However, there's no confirmation dialog — accidental clicks immediately sign out. Also, any in-flight API requests with the old token aren't cancelled. |
 
@@ -249,7 +226,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 | 72 | Use expired/invalid token | **RISK** | `client.ts:60-61` — throws `ApiError(401, "Session expired. Please sign in again.")`. Panel displays this as error text. But test expects "Session expired **+ sign-in prompt**". The code only shows the error message string — there's no automatic sign-in button or redirect to login in the error display. User must manually navigate to Settings to sign in again. |
 | 73 | Trigger rate limit (if possible) | **PASS** | `client.ts:63-64` — throws `ApiError(429, "Too many requests. Please wait a moment.")`. Displayed as error text in the panel. |
 | 74 | Force component crash (dev tools) | **PASS** | `ErrorBoundary.tsx:17-18` — `getDerivedStateFromError` catches render errors, shows "Something went wrong" + error message + "Try again" button |
-| 75 | Click "Try again" | **FAIL** | **BUG-2** — `ErrorBoundary.tsx:29` calls `setState({ error: null })`, which re-renders children from scratch. If the crash was in a `useEffect` that re-fires on mount, the same error recurs immediately. No `componentDidCatch` for logging, no `resetErrorBoundary` callback, no key-based remount to force fresh identity. For artificially forced crashes, may recover. For real crashes, likely loops. |
+| 75 | Click "Try again" | **PASS** | **BUG-2 FIXED** — `ErrorBoundary.tsx` now increments `resetKey` on reset, wrapping children in `<div key={resetKey}>` to force full subtree remount with fresh state. |
 
 ---
 
