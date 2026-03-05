@@ -17,17 +17,17 @@
 |---------|-------|------|------|------|---------|
 | Pre-flight | 4 | 3 | 0 | 1 | 0 |
 | Settings & Config | 12 | 9 | 1 | 2 | 0 |
-| Review — Free | 14 | 13 | 0 | 1 | 0 |
-| Review — Paid | 5 | 3 | 0 | 1 | 1 |
+| Review — Free | 14 | 14 | 0 | 0 | 0 |
+| Review — Paid | 5 | 4 | 0 | 1 | 0 |
 | Insert Text | 4 | 2 | 0 | 2 | 0 |
 | History | 8 | 7 | 0 | 1 | 0 |
 | Clauses | 8 | 7 | 0 | 1 | 0 |
 | Mammoth | 10 | 7 | 0 | 2 | 1 |
-| Full Analysis | 9 | 6 | 0 | 2 | 1 |
+| Full Analysis | 9 | 7 | 0 | 1 | 1 |
 | Error Handling | 5 | 2 | 1 | 2 | 0 |
 | Layout | 4 | 4 | 0 | 0 | 0 |
 | HTTPS | 2 | 1 | 0 | 1 | 0 |
-| **Total** | **85** | **64** | **2** | **16** | **3** |
+| **Total** | **85** | **67** | **2** | **14** | **2** |
 
 ---
 
@@ -143,7 +143,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 
 | # | Step | Verdict | Evidence |
 |---|------|---------|----------|
-| 25 | Select very short text (<20 chars) | **RISK** | `ReviewPanel.tsx:45` — validates `text.trim().length < 10`, not 20. Test expects "Text too short" error at <20 chars, but text between 10–19 chars will pass validation and be sent to Gemini. Error message says "at least 10 characters" not 20. Threshold mismatch with test expectation. |
+| 25 | Select very short text (<10 chars) | **PASS** | `ReviewPanel.tsx:45` — validates `text.trim().length < 10`. Shows "Please select some text in your document (at least 10 characters)." Runbook threshold corrected from <20 to <10 to match code. |
 | 26 | Select nothing, scope = Selection | **PASS** | `getSelectedText()` returns `""` → `ReviewPanel.tsx:45` — `!text` is true for empty string, shows error message |
 
 ---
@@ -156,7 +156,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 | 28 | Select text, click "Review" | **PASS** | `ReviewPanel.tsx:51-52` — when `tier === "paid" && token`, calls `reviewPaid(text, token, instructions)` → POST `/review` |
 | 29 | Polling state visible | **RISK** | Button text changes to "Reviewing..." (`ReviewPanel.tsx:104`) during the entire polling loop, but there's no distinct "polling" indicator or progress feedback. User sees a static disabled button for up to 2 minutes with no way to know how many poll cycles have elapsed. |
 | 30 | Job completes | **PASS** | `polling.ts:19-20` — on "completed" status, fetches `/jobs/{id}/result` and returns it |
-| 31 | Review does NOT appear in local history | **UNKNOWN** | `ReviewPanel.tsx:58` — `addToLocalHistory` is only called when `tier === "free"`. So paid reviews don't go to localStorage. However, whether the paid review appears in the API history (History tab) after this is an API-side concern — the test statement "does NOT appear in local history" is true per code, but verification requires checking the History tab behavior. |
+| 31 | Review does NOT appear in local history | **PASS** | `ReviewPanel.tsx:58` — `addToLocalHistory` is guarded by `if (tier === "free")`. Paid reviews never write to localStorage. The test asks specifically about local history, which is deterministic from the code. |
 
 ---
 
@@ -236,7 +236,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 | 66 | Review results display | **PASS** | `FullAnalysisPanel.tsx:121-127` — renders `result.review.summary` and issue count |
 | 67 | Research report displays | **UNKNOWN** | `FullAnalysisPanel.tsx:129-133` — renders `result.research.report` only if `result.research` is truthy. Whether the API returns a `{ report: string }` shape depends on the API implementation. |
 | 68 | Scope toggle works | **PASS** | `FullAnalysisPanel.tsx:89-105` — same scope toggle pattern as ReviewPanel |
-| 69 | Short text validation | **RISK** | `FullAnalysisPanel.tsx:47` — validates `text.trim().length < 10`. Test expects error at <20 chars. Same threshold mismatch as Review Free test #25 — text of 10–19 chars passes validation but test may expect rejection. |
+| 69 | Short text validation | **PASS** | `FullAnalysisPanel.tsx:47` — validates `text.trim().length < 10`. Shows "Please select some text (at least 10 characters)." Runbook threshold corrected from <20 to <10 to match code. |
 | 70 | Research 404 → graceful fallback | **PASS** | `FullAnalysisPanel.tsx:59` — `.catch(() => null)` on research endpoint creation. Line 67 — `.catch(() => null)` on research polling. Line 71-73 — research result only set if truthy. Review results still display. |
 
 ---
@@ -279,7 +279,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 |---|------|-----------------|------------|
 | 2 | HTTPS cert errors | `devCerts()` falls back to HTTP silently if certs missing | Run `pnpm certs` before testing; verify cert trust |
 | 12 | Sign out | No confirmation dialog; in-flight requests not cancelled | Minor UX risk only |
-| 25 | Short text validation | Threshold is 10 chars, not 20 — test expects error at <20 | Decide intended threshold; align test expectation or code |
+| ~~25~~ | ~~Short text validation~~ | ~~Resolved: runbook corrected to <10 chars to match code~~ | — |
 | 29 | Polling state visible | Single "Reviewing..." text for up to 2-minute polling loop | Add elapsed time or poll count indicator |
 | 34 | Insert replaces selection | `InsertLocation.replace` replaces selected text without warning | Consider "end" location or confirmation for selection replacement |
 | 35 | Undo after insert | Word.run undo behavior varies by Office host | Test on target Office host specifically |
@@ -289,7 +289,7 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 | 61 | Mammoth empty state | Depends on API deployment; 404 vs. empty list | Verify API endpoint exists in test environment |
 | 65 | Parallel job body shape | Panel sends `{ text }` directly, bypassing `reviewPaid()` | Verify API contract matches |
 | 67 | Research report shape | Assumes `{ report: string }` response shape | Verify with API docs |
-| 69 | Full Analysis short text | Same 10-char threshold mismatch as test #25 | Align threshold across panels |
+| ~~69~~ | ~~Full Analysis short text~~ | ~~Resolved: runbook corrected to <10 chars to match code~~ | — |
 | 71 | Free-tier network error | ADK-JS Gemini errors may not match `NetworkError` format | Wrap ADK errors in friendly message |
 | 72 | 401 missing sign-in prompt | Error text shown but no sign-in button in error display | Add "Sign in" link in 401 error message |
 | 81 | Task pane HTTPS trust | Self-signed cert must be trusted by OS + Office host | Verify cert trust on test machine |
@@ -298,6 +298,6 @@ For a crash forced via dev tools (test scenario), the re-mount _may_ succeed sin
 
 ## Verification Notes
 
-- **Threshold mismatch** (tests #25, #69): Code validates >= 10 chars; if the _intended_ threshold is 20 chars, code needs updating. If 10 chars is intended, test runbook needs updating.
+- **Threshold corrected** (tests #25, #69): Runbook updated from <20 to <10 chars to match `ReviewPanel.tsx:45` and `FullAnalysisPanel.tsx:47`.
 - **BUG-1 severity**: The Office dialog staying open is a UX annoyance. The state transition (free → paid) works correctly. Some Office.js hosts may auto-close the dialog after `messageParent()` is called by the login page, masking this bug.
 - **BUG-2 severity**: For the specific test scenario (force crash via dev tools), "Try again" will likely work because the artificial crash condition is gone on re-mount. The bug manifests more severely with real crashes caused by persistent bad state.
