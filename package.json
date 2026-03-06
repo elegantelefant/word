@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "certs": "office-addin-dev-certs install"
+    "certs": "office-addin-dev-certs install",
+    "deploy": "tsc -b && vite build && docker buildx build --platform linux/amd64 -t us-central1-docker.pkg.dev/psychic-mason-409615/cloud-run-source-deploy/elefant-word:latest --push . && gcloud run deploy elefant-word --image us-central1-docker.pkg.dev/psychic-mason-409615/cloud-run-source-deploy/elefant-word:latest --allow-unauthenticated --port 8080 --region us-central1"
   },
   "packageManager": "pnpm@10.20.0",
   "dependencies": {
@@ -27,6 +28,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "jsdom": "^28.1.0",
     "office-addin-dev-certs": "^2.0.6",
     "rollup-plugin-visualizer": "^7.0.0",

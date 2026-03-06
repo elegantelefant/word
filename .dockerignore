@@ -1,0 +1,12 @@
+node_modules
+src
+agent_docs
+agent_tests
+coverage
+.git
+*.md
+.env*
+tsconfig*
+vite.config.ts
+vitest.config.ts
+pnpm-lock.yaml
