@@ -2,7 +2,7 @@
 // ABOUTME: Verifies tab switching, settings toggle, and context provider wiring.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { App } from "@/App";
 
 vi.mock("@/api/account", () => ({
@@ -36,31 +36,31 @@ describe("App", () => {
   it("renders with all tabs and header", () => {
     render(<App />);
     expect(screen.getByText("Elefant")).toBeInTheDocument();
-    expect(screen.getByText("Clauses")).toBeInTheDocument();
-    expect(screen.getByText("Mammoth")).toBeInTheDocument();
-    expect(screen.getByText("Analysis")).toBeInTheDocument();
-    expect(screen.getByText("History")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /History/ })).toBeInTheDocument();
     // Review tab and Review button both exist
     expect(screen.getAllByText("Review")).toHaveLength(2);
   });
 
-  it("switches to Clauses tab", () => {
+  it("disables paid-only tabs for free tier", () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Clauses"));
-    // Free tier sees upgrade prompt
-    expect(screen.getByText("Clause Search requires Elefant Pro")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Clauses/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Mammoth/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Analysis/ })).toBeDisabled();
   });
 
-  it("switches to Mammoth tab", () => {
+  it("keeps free tabs enabled", () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Mammoth"));
-    expect(screen.getByText("Mammoth requires Elefant Pro")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation");
+    const historyTab = within(nav).getByRole("button", { name: /History/ });
+    const reviewTab = within(nav).getByRole("button", { name: /Review/ });
+    expect(reviewTab).toBeEnabled();
+    expect(historyTab).toBeEnabled();
   });
 
-  it("switches to Analysis tab", () => {
+  it("switches to History tab", () => {
     render(<App />);
-    fireEvent.click(screen.getByText("Analysis"));
-    expect(screen.getByText("Full Analysis requires Elefant Pro")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /History/ }));
+    expect(screen.getByText(/review history/i)).toBeInTheDocument();
   });
 
   it("opens and closes settings panel", () => {

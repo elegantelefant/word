@@ -10,13 +10,14 @@ interface Tab {
   id: TabId;
   label: string;
   disabled?: boolean;
+  paidOnly?: boolean;
 }
 
 const TABS: Tab[] = [
   { id: "review", label: "Review" },
-  { id: "clauses", label: "Clauses" },
-  { id: "mammoth", label: "Mammoth" },
-  { id: "analysis", label: "Analysis" },
+  { id: "clauses", label: "Clauses", paidOnly: true },
+  { id: "mammoth", label: "Mammoth", paidOnly: true },
+  { id: "analysis", label: "Analysis", paidOnly: true },
   { id: "history", label: "History" },
 ];
 
@@ -44,22 +45,27 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
       </header>
 
       <nav className="flex border-b border-gray-200">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => !tab.disabled && onTabChange(tab.id)}
-            disabled={tab.disabled}
-            className={`flex-1 px-1 py-2 text-xs font-medium transition-colors ${
-              activeTab === tab.id
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : tab.disabled
-                  ? "cursor-not-allowed text-gray-300"
-                  : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          const locked = tab.paidOnly && tier !== "paid";
+          const isDisabled = tab.disabled || locked;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => !isDisabled && onTabChange(tab.id)}
+              disabled={isDisabled}
+              className={`flex-1 px-1 py-2 text-xs font-medium transition-colors ${
+                activeTab === tab.id && !isDisabled
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : isDisabled
+                    ? "cursor-not-allowed text-gray-300"
+                    : "text-gray-500 hover:text-gray-700"
+              }`}
+              title={locked ? "Requires Elefant Pro" : undefined}
+            >
+              {tab.label}{locked && <LockIcon />}
+            </button>
+          );
+        })}
       </nav>
 
       <main className="flex-1 overflow-y-auto p-3">{children}</main>
@@ -73,6 +79,15 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         </span>
       </footer>
     </div>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" className="ml-0.5 inline-block align-baseline">
+      <rect x="3" y="8" width="10" height="7" rx="1.5" />
+      <path d="M5 8V5.5a3 3 0 016 0V8" fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
   );
 }
 

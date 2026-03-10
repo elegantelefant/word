@@ -50,7 +50,7 @@ describe("Layout", () => {
     expect(screen.getByText("Free")).toBeInTheDocument();
   });
 
-  it("calls onTabChange when tab clicked", () => {
+  it("calls onTabChange when free tab clicked", () => {
     const onChange = vi.fn();
     renderLayout(
       <Layout activeTab="review" onTabChange={onChange} onSettingsClick={() => {}}>
@@ -58,8 +58,22 @@ describe("Layout", () => {
       </Layout>,
     );
 
-    fireEvent.click(screen.getByText("Clauses"));
-    expect(onChange).toHaveBeenCalledWith("clauses");
+    fireEvent.click(screen.getByText("History"));
+    expect(onChange).toHaveBeenCalledWith("history");
+  });
+
+  it("disables paid-only tabs for free users", () => {
+    const onChange = vi.fn();
+    renderLayout(
+      <Layout activeTab="review" onTabChange={onChange} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    const clausesBtn = screen.getByRole("button", { name: /Clauses/ });
+    expect(clausesBtn).toBeDisabled();
+    fireEvent.click(clausesBtn);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("calls onSettingsClick when gear clicked", () => {
