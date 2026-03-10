@@ -36,7 +36,12 @@ const stubApigee = () => ({
   },
 });
 
+const pkg = JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf-8"));
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [stubApigee(), react(), tailwindcss()],
   resolve: {
     alias: {

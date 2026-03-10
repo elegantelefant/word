@@ -3,13 +3,28 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { Layout } from "@/components/Layout";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthContext } from "@/store/auth";
+
+const freeAuth = {
+  token: null,
+  user: null,
+  tier: "free" as const,
+  loading: false,
+  login: vi.fn(),
+  logout: vi.fn(),
+};
+
+function renderLayout(ui: ReactNode) {
+  return render(<AuthContext value={freeAuth}>{ui}</AuthContext>);
+}
 
 describe("Layout", () => {
   it("renders header and all tab labels", () => {
-    render(
+    renderLayout(
       <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
         <div>content</div>
       </Layout>,
@@ -24,9 +39,20 @@ describe("Layout", () => {
     expect(screen.getByText("content")).toBeInTheDocument();
   });
 
+  it("renders version and tier in footer", () => {
+    renderLayout(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    expect(screen.getByText("vtest")).toBeInTheDocument();
+    expect(screen.getByText("Free")).toBeInTheDocument();
+  });
+
   it("calls onTabChange when tab clicked", () => {
     const onChange = vi.fn();
-    render(
+    renderLayout(
       <Layout activeTab="review" onTabChange={onChange} onSettingsClick={() => {}}>
         <div />
       </Layout>,
@@ -38,7 +64,7 @@ describe("Layout", () => {
 
   it("calls onSettingsClick when gear clicked", () => {
     const onSettings = vi.fn();
-    render(
+    renderLayout(
       <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={onSettings}>
         <div />
       </Layout>,

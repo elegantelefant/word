@@ -9,6 +9,8 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+declare const __APP_VERSION__: string;
+
 // Office.js global types
 declare const Office: typeof import("@microsoft/office-js").Office;
 declare const Word: typeof import("@microsoft/office-js").Word;
