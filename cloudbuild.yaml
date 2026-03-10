@@ -1,0 +1,44 @@
+steps:
+  # Install deps and build static files
+  - name: node:22-alpine
+    entrypoint: sh
+    args:
+      - -c
+      - npm install -g pnpm && pnpm install --frozen-lockfile && pnpm build
+
+  # Build Docker image
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word:$COMMIT_SHA
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word:latest
+      - .
+
+  # Push Docker image
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word
+
+  # Deploy to Cloud Run
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - run
+      - deploy
+      - elefant-word
+      - --image=us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word:$COMMIT_SHA
+      - --region=us-central1
+      - --port=8080
+      - --allow-unauthenticated
+      - --memory=128Mi
+      - --max-instances=2
+
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word:$COMMIT_SHA
+  - us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/elefant-word:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
