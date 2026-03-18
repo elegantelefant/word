@@ -92,7 +92,15 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <p className="py-8 text-center text-xs text-gray-400">{message}</p>;
+  return (
+    <div className="flex flex-col items-center gap-2 py-12 text-center">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" className="mb-1">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 8v4l2.5 2.5" />
+      </svg>
+      <p className="max-w-[200px] text-xs leading-relaxed text-gray-400">{message}</p>
+    </div>
+  );
 }
 
 function formatDate(iso: string): string {

@@ -33,11 +33,14 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-        <span className="text-sm font-semibold text-gray-800">Elefant</span>
+      <header className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <ElefantLogo />
+          <span className="text-sm font-semibold text-gray-800">Elefant</span>
+        </div>
         <button
           onClick={onSettingsClick}
-          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           aria-label="Settings"
         >
           <SettingsIcon />
@@ -53,7 +56,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
               key={tab.id}
               onClick={() => !isDisabled && onTabChange(tab.id)}
               disabled={isDisabled}
-              className={`flex-1 px-1 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 items-center justify-center px-1 py-2.5 text-[11px] font-medium transition-colors ${
                 activeTab === tab.id && !isDisabled
                   ? "border-b-2 border-blue-600 text-blue-600"
                   : isDisabled
@@ -62,7 +65,10 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
               }`}
               title={locked ? "Requires Elefant Pro" : undefined}
             >
-              {tab.label}{locked && <LockIcon />}
+              <span className="inline-flex items-center gap-0.5">
+                {tab.label}
+                {locked && <LockIcon />}
+              </span>
             </button>
           );
         })}
@@ -72,8 +78,8 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
       <footer className="flex items-center justify-between border-t border-gray-100 px-3 py-1.5">
         <span className="text-[10px] text-gray-400">v{__APP_VERSION__}</span>
-        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-          tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500"
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+          tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
         }`}>
           {tier === "paid" ? "Pro" : "Free"}
         </span>
@@ -82,9 +88,19 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
   );
 }
 
+function ElefantLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#3b82f6" opacity="0.1" />
+      <circle cx="12" cy="12" r="11" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
+      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#3b82f6">e</text>
+    </svg>
+  );
+}
+
 function LockIcon() {
   return (
-    <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" className="ml-0.5 inline-block align-baseline">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0">
       <rect x="3" y="8" width="10" height="7" rx="1.5" />
       <path d="M5 8V5.5a3 3 0 016 0V8" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
