@@ -90,7 +90,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
 function ElefantLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="11" fill="#3b82f6" opacity="0.1" />
       <circle cx="12" cy="12" r="11" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
       <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#3b82f6">e</text>
