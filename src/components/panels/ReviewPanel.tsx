@@ -7,7 +7,7 @@ import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { reviewFree, reviewPaid } from "@/api/review";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
-import { addToLocalHistory } from "./HistoryPanel";
+import { addToLocalHistory } from "@/lib/history";
 
 type Scope = "selection" | "document";
 

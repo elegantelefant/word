@@ -21,7 +21,7 @@ vi.mock("@/lib/office", () => ({
   insertText: vi.fn(),
 }));
 
-vi.mock("@/components/panels/HistoryPanel", () => ({
+vi.mock("@/lib/history", () => ({
   addToLocalHistory: vi.fn(),
 }));
 
@@ -165,7 +165,7 @@ describe("ReviewPanel — free-tier review", () => {
     const { reviewFree } = await import("@/api/review");
     vi.mocked(reviewFree).mockResolvedValue({ summary: "Looks good.", issues: [] });
 
-    const { addToLocalHistory } = await import("@/components/panels/HistoryPanel");
+    const { addToLocalHistory } = await import("@/lib/history");
 
     renderPanel();
     fireEvent.click(screen.getByText("Review"));

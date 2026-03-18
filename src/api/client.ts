@@ -1,7 +1,7 @@
 // ABOUTME: Base HTTP client for Elefant API with auth header injection.
 // ABOUTME: Handles network errors, token expiry (401), and rate limiting.
 
-const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.legal";
+export const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.legal";
 
 export class ApiError extends Error {
   constructor(
@@ -44,7 +44,7 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       method,
       signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(body ? { "Content-Type": "application/json" } : {}),
         Authorization: `Bearer ${token}`,
         ...headers,
       },

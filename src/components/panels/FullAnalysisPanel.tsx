@@ -1,20 +1,14 @@
 // ABOUTME: Full Analysis panel — fires parallel review + research jobs.
 // ABOUTME: Paid-only "nuclear option" for comprehensive document analysis.
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { apiFetch } from "@/api/client";
-import { pollForResult } from "@/lib/polling";
+import { runFullAnalysis } from "@/api/review";
+import type { FullAnalysisResult } from "@/api/review";
 import { getSelectedText, getDocumentBody, isOfficeReady } from "@/lib/office";
-import type { JobCreated, ReviewResponse } from "@/types/api";
 
 type AnalysisStatus = "idle" | "running" | "done" | "error";
-
-interface AnalysisResult {
-  review?: ReviewResponse;
-  research?: { report: string };
-}
 
 export function FullAnalysisPanel() {
   const { tier, token } = useAuth();
@@ -30,9 +24,14 @@ function AnalysisContent({ token }: { token: string }) {
   const [scope, setScope] = useState<"selection" | "document">("selection");
   const [status, setStatus] = useState<AnalysisStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<FullAnalysisResult | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   async function handleAnalyze() {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setStatus("running");
     setError(null);
     setResult(null);
@@ -50,31 +49,11 @@ function AnalysisContent({ token }: { token: string }) {
         return;
       }
 
-      // Fire review and research in parallel
-      const [reviewJob, researchJob] = await Promise.all([
-        apiFetch<JobCreated>("/review", token, { method: "POST", body: { text } }),
-        apiFetch<JobCreated>("/research", token, {
-          method: "POST",
-          body: { query: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` },
-        }).catch(() => null), // Research endpoint may not exist — graceful fallback
-      ]);
-
-      const results: AnalysisResult = {};
-
-      // Poll both jobs
-      const [reviewResult, researchResult] = await Promise.all([
-        pollForResult(reviewJob.job_id, token),
-        researchJob ? pollForResult(researchJob.job_id, token).catch(() => null) : null,
-      ]);
-
-      results.review = reviewResult.result as unknown as ReviewResponse;
-      if (researchResult?.result) {
-        results.research = researchResult.result as unknown as { report: string };
-      }
-
-      setResult(results);
+      const analysisResult = await runFullAnalysis(text, token, controller.signal);
+      setResult(analysisResult);
       setStatus("done");
     } catch (err) {
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Analysis failed");
       setStatus("error");
     }

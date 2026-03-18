@@ -19,21 +19,24 @@ export function useJob(): UseJobResult {
   const [state, setState] = useState<JobState>("idle");
   const [result, setResult] = useState<JobResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const poll = useCallback(async (jobId: string, token: string): Promise<JobResult> => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setState("polling");
     setError(null);
     setResult(null);
-    abortRef.current = false;
 
     try {
-      const r = await pollForResult(jobId, token);
-      if (abortRef.current) throw new Error("Aborted");
+      const r = await pollForResult(jobId, token, undefined, undefined, controller.signal);
       setResult(r);
       setState("completed");
       return r;
     } catch (err) {
+      if (controller.signal.aborted) return null as unknown as JobResult;
       const msg = err instanceof Error ? err.message : "Job failed";
       setError(msg);
       setState("failed");
@@ -42,7 +45,8 @@ export function useJob(): UseJobResult {
   }, []);
 
   const reset = useCallback(() => {
-    abortRef.current = true;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setState("idle");
     setResult(null);
     setError(null);

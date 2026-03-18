@@ -2,8 +2,7 @@
 // ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
 
 import { isOfficeReady } from "@/lib/office";
-
-const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.legal";
+import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
 export function getSavedToken(): string | null {
@@ -42,7 +41,7 @@ function openOfficeDialog(url: string): Promise<string> {
     Office.context.ui.displayDialogAsync(
       url,
       { height: 60, width: 30, promptBeforeOpen: false },
-      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message: string }) => void) => void; close: () => void }; error?: { message: string } }) => {
+      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message?: string; error?: number }) => void) => void; close: () => void }; error?: { message: string } }) => {
         if (result.status !== "succeeded") {
           reject(new Error(result.error?.message ?? "Failed to open login dialog"));
           return;
@@ -50,9 +49,9 @@ function openOfficeDialog(url: string): Promise<string> {
         const dialog = result.value;
         dialog.addEventHandler(
           "DialogMessageReceived" as string,
-          (arg: { message: string }) => {
+          (arg: { message?: string }) => {
             try {
-              const data = JSON.parse(arg.message);
+              const data = JSON.parse(arg.message ?? "");
               if (data.token) {
                 dialog.close();
                 saveToken(data.token);
@@ -65,6 +64,9 @@ function openOfficeDialog(url: string): Promise<string> {
             }
           },
         );
+        dialog.addEventHandler("DialogEventReceived" as string, () => {
+          reject(new Error("Login dialog was closed"));
+        });
       },
     );
   });
@@ -78,10 +80,17 @@ function openBrowserDialog(url: string): Promise<string> {
       return;
     }
 
+    const timeoutId = setTimeout(() => {
+      window.removeEventListener("message", handler);
+      popup.close();
+      reject(new Error("Login timed out"));
+    }, 300_000);
+
     const handler = (event: MessageEvent) => {
       if (event.origin !== new URL(API_URL).origin) return;
       const data = event.data;
       if (data?.token) {
+        clearTimeout(timeoutId);
         window.removeEventListener("message", handler);
         saveToken(data.token);
         popup.close();
@@ -90,11 +99,5 @@ function openBrowserDialog(url: string): Promise<string> {
     };
 
     window.addEventListener("message", handler);
-
-    // Timeout after 5 minutes
-    setTimeout(() => {
-      window.removeEventListener("message", handler);
-      reject(new Error("Login timed out"));
-    }, 300_000);
   });
 }

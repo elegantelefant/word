@@ -12,19 +12,24 @@ export async function pollForResult(
   token: string,
   maxAttempts = MAX_ATTEMPTS,
   intervalMs = POLL_INTERVAL_MS,
+  signal?: AbortSignal,
 ): Promise<JobResult> {
   for (let i = 0; i < maxAttempts; i++) {
-    const job = await apiFetch<Job>(`/jobs/${jobId}`, token);
+    signal?.throwIfAborted();
+    const job = await apiFetch<Job>(`/jobs/${jobId}`, token, { signal });
 
     if (job.status === "completed") {
-      return apiFetch<JobResult>(`/jobs/${jobId}/result`, token);
+      return apiFetch<JobResult>(`/jobs/${jobId}/result`, token, { signal });
     }
 
     if (job.status === "failed") {
       throw new Error(job.error ?? "Job failed");
     }
 
-    await new Promise((r) => setTimeout(r, intervalMs));
+    await new Promise((r) => {
+      const timer = setTimeout(r, intervalMs);
+      signal?.addEventListener("abort", () => clearTimeout(timer), { once: true });
+    });
   }
 
   throw new Error("Job timed out");

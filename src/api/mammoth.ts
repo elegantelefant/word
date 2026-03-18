@@ -9,9 +9,9 @@ export type RequestStatus = "draft" | "pending" | "in_progress" | "completed" | 
 
 export interface LegalRequest {
   id: string;
-  request_type: string;
-  status: string;
-  priority: string;
+  request_type: RequestType;
+  status: RequestStatus;
+  priority: RequestPriority;
   title: string;
   description?: string | null;
   category?: string | null;
@@ -47,10 +47,12 @@ export async function createLegalRequest(
 
 export async function listLegalRequests(
   token: string,
-  status?: string,
+  status?: RequestStatus,
 ): Promise<LegalRequest[]> {
-  const params = status ? `?status=${status}` : "";
-  const res = await apiFetch<LegalRequestListResponse>(`/legal-requests${params}`, token);
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const qs = params.toString();
+  const res = await apiFetch<LegalRequestListResponse>(`/legal-requests${qs ? `?${qs}` : ""}`, token);
   return res.requests;
 }
 

@@ -4,36 +4,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/store/auth";
 import { listJobs } from "@/api/jobs";
+import { getLocalHistory } from "@/lib/history";
+import type { LocalHistoryItem } from "@/lib/history";
 import type { Job } from "@/types/api";
-
-const HISTORY_KEY = "elefant_history";
-const MAX_LOCAL_ITEMS = 50;
-
-export interface LocalHistoryItem {
-  id: string;
-  type: string;
-  summary: string;
-  timestamp: string;
-}
-
-export function addToLocalHistory(item: Omit<LocalHistoryItem, "id" | "timestamp">): void {
-  const history = getLocalHistory();
-  history.unshift({
-    ...item,
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-  });
-  if (history.length > MAX_LOCAL_ITEMS) history.length = MAX_LOCAL_ITEMS;
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-}
-
-function getLocalHistory(): LocalHistoryItem[] {
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
-}
 
 export function HistoryPanel() {
   const { tier, token } = useAuth();

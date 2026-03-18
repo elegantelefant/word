@@ -2,7 +2,7 @@
 // ABOUTME: Verifies add, retrieve, max items, and corrupt data handling.
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { addToLocalHistory, type LocalHistoryItem } from "@/components/panels/HistoryPanel";
+import { addToLocalHistory, type LocalHistoryItem } from "@/lib/history";
 
 const HISTORY_KEY = "elefant_history";
 

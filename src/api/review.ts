@@ -5,6 +5,11 @@ import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/typ
 import { apiFetch } from "./client";
 import { pollForResult } from "@/lib/polling";
 
+export interface FullAnalysisResult {
+  review?: ReviewResponse;
+  research?: { report: string };
+}
+
 /** Free-tier review: runs ADK-JS agent in-browser with user's Gemini API key. */
 export async function reviewFree(
   text: string,
@@ -39,6 +44,30 @@ export async function reviewPaid(
 }
 
 /** Polls a job until completed, returns the result payload. */
-export async function getJobResult(jobId: string, token: string): Promise<JobResult> {
-  return pollForResult(jobId, token);
+export async function pollJobResult(jobId: string, token: string, signal?: AbortSignal): Promise<JobResult> {
+  return pollForResult(jobId, token, undefined, undefined, signal);
+}
+
+/** Full analysis: fires parallel review + research jobs, polls both. */
+export async function runFullAnalysis(text: string, token: string, signal?: AbortSignal): Promise<FullAnalysisResult> {
+  const [reviewJob, researchJob] = await Promise.all([
+    apiFetch<JobCreated>("/review", token, { method: "POST", body: { text }, signal }),
+    apiFetch<JobCreated>("/research", token, {
+      method: "POST",
+      body: { query: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` },
+      signal,
+    }).catch(() => null),
+  ]);
+
+  const [reviewResult, researchResult] = await Promise.all([
+    pollForResult(reviewJob.job_id, token, undefined, undefined, signal),
+    researchJob ? pollForResult(researchJob.job_id, token, undefined, undefined, signal).catch(() => null) : null,
+  ]);
+
+  const results: FullAnalysisResult = {};
+  results.review = reviewResult.result as unknown as ReviewResponse;
+  if (researchResult?.result) {
+    results.research = researchResult.result as unknown as { report: string };
+  }
+  return results;
 }
