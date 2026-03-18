@@ -33,6 +33,31 @@ test.describe("Settings persistence across reload", () => {
   });
 });
 
+test.describe("State preserved across tab switches", () => {
+  test("review instructions survive tab switch", async ({ page }) => {
+    await page.goto("/");
+
+    // Set API key first
+    await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByPlaceholder("AIza...").fill("test-key");
+    await page.getByRole("button", { name: "Close" }).click();
+
+    // Type instructions
+    await page.getByPlaceholder("Review instructions").fill("Check for liability clauses");
+
+    // Toggle scope
+    await page.getByRole("button", { name: "Full Document" }).click();
+
+    // Switch to History and back
+    await page.locator("nav").getByRole("button", { name: "History" }).click();
+    await page.locator("nav").getByRole("button", { name: "Review" }).click();
+
+    // Instructions and scope should be preserved
+    await expect(page.getByPlaceholder("Review instructions")).toHaveValue("Check for liability clauses");
+    await expect(page.getByRole("button", { name: "Full Document" })).toHaveClass(/bg-blue-100/);
+  });
+});
+
 test.describe("Rapid interactions", () => {
   test("rapid tab switching does not crash", async ({ page }) => {
     await page.goto("/");
@@ -69,11 +94,11 @@ test.describe("Rapid interactions", () => {
     await page.getByRole("button", { name: "Close" }).click();
 
     // Click review — it'll show error quickly (no text in non-Office env)
-    const reviewBtn = page.locator("main").getByRole("button", { name: "Review" });
+    const reviewBtn = page.locator("main").getByRole("button", { name: "Review Document" });
     await reviewBtn.click();
 
     // Error should show
-    await expect(page.getByText("at least 10 characters")).toBeVisible();
+    await expect(page.getByText("requires Microsoft Word")).toBeVisible();
 
     // App should still be functional
     await expect(page.getByText("Something went wrong")).not.toBeVisible();
@@ -88,7 +113,7 @@ test.describe("Review without API key", () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
 
-    const reviewBtn = page.locator("main").getByRole("button", { name: "Review" });
+    const reviewBtn = page.locator("main").getByRole("button", { name: "Review Document" });
     await expect(reviewBtn).toBeDisabled();
   });
 

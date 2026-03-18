@@ -37,8 +37,8 @@ describe("App", () => {
     render(<App />);
     expect(screen.getByText("Elefant")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /History/ })).toBeInTheDocument();
-    // Review tab and Review button both exist
-    expect(screen.getAllByText("Review")).toHaveLength(2);
+    // Review tab and Review Document button both exist
+    expect(screen.getByText("Review Document")).toBeInTheDocument();
   });
 
   it("disables paid-only tabs for free tier", () => {

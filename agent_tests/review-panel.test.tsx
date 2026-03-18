@@ -65,31 +65,31 @@ describe("ReviewPanel — rendering", () => {
     expect(screen.getByText("Selection")).toBeInTheDocument();
     expect(screen.getByText("Full Document")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/review instructions/i)).toBeInTheDocument();
-    expect(screen.getByText("Review")).toBeInTheDocument();
+    expect(screen.getByText("Review Document")).toBeInTheDocument();
   });
 
   it("disables review button when no API key (free tier)", () => {
     renderPanel({ settings: { apiKey: "", model: "gemini-2.5-flash" } });
 
-    expect(screen.getByText("Review")).toBeDisabled();
-    expect(screen.getByText(/enter your gemini api key/i)).toBeInTheDocument();
+    expect(screen.getByText("Review Document")).toBeDisabled();
+    expect(screen.getByText(/gemini api key/i)).toBeInTheDocument();
   });
 
   it("disables review button when no token (paid tier)", () => {
     renderPanel({}, { tier: "paid", token: null });
 
-    expect(screen.getByText("Review")).toBeDisabled();
+    expect(screen.getByText("Review Document")).toBeDisabled();
     expect(screen.getByText(/sign in to review/i)).toBeInTheDocument();
   });
 
   it("enables review button when API key is set (free tier)", () => {
     renderPanel();
-    expect(screen.getByText("Review")).not.toBeDisabled();
+    expect(screen.getByText("Review Document")).not.toBeDisabled();
   });
 
   it("enables review button when token is set (paid tier)", () => {
     renderPanel({}, { tier: "paid", token: "tok-123" });
-    expect(screen.getByText("Review")).not.toBeDisabled();
+    expect(screen.getByText("Review Document")).not.toBeDisabled();
   });
 });
 
@@ -111,10 +111,10 @@ describe("ReviewPanel — scope toggle", () => {
 describe("ReviewPanel — free-tier review", () => {
   it("shows error when text too short (Office not ready)", async () => {
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
-      expect(screen.getByText(/at least 10 characters/)).toBeInTheDocument();
+      expect(screen.getByText(/requires Microsoft Word/)).toBeInTheDocument();
     });
   });
 
@@ -133,7 +133,7 @@ describe("ReviewPanel — free-tier review", () => {
     });
 
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     // Should show loading state
     expect(screen.getByText("Reviewing...")).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe("ReviewPanel — free-tier review", () => {
     const { addToLocalHistory } = await import("@/lib/history");
 
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(screen.getByText("Looks good.")).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe("ReviewPanel — free-tier review", () => {
 
     renderPanel();
     fireEvent.click(screen.getByText("Full Document"));
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(reviewFree).toHaveBeenCalledWith("Full document body text here", "AIza-test", "gemini-2.5-flash", undefined);
@@ -205,7 +205,7 @@ describe("ReviewPanel — paid-tier review", () => {
     vi.mocked(reviewPaid).mockResolvedValue({ summary: "Reviewed via API.", issues: [] });
 
     renderPanel({}, { tier: "paid", token: "tok-123" });
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(reviewPaid).toHaveBeenCalledWith("Contract text for paid review", "tok-123", undefined);
@@ -223,14 +223,14 @@ describe("ReviewPanel — error handling", () => {
     vi.mocked(reviewFree).mockRejectedValue(new Error("API key invalid"));
 
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(screen.getByText("API key invalid")).toBeInTheDocument();
     });
 
     // Button should be re-enabled after error
-    expect(screen.getByText("Review")).not.toBeDisabled();
+    expect(screen.getByText("Review Document")).not.toBeDisabled();
   });
 });
 
@@ -247,7 +247,7 @@ describe("ReviewPanel — issue cards", () => {
     });
 
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(screen.getByText("Plain issue, no extras")).toBeInTheDocument();
@@ -269,7 +269,7 @@ describe("ReviewPanel — issue cards", () => {
     });
 
     renderPanel();
-    fireEvent.click(screen.getByText("Review"));
+    fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
       expect(screen.getByText("No kind set")).toBeInTheDocument();

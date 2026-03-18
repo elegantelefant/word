@@ -28,7 +28,7 @@ test.describe("App loads and renders", () => {
     const reviewTab = page.locator("nav").getByRole("button", { name: "Review" });
     await expect(reviewTab).toHaveClass(/border-blue-600/);
     // Review panel content should be visible (the action button is in main)
-    await expect(page.locator("main").getByRole("button", { name: "Review" })).toBeVisible();
+    await expect(page.locator("main").getByRole("button", { name: "Review Document" })).toBeVisible();
   });
 });
 
@@ -85,7 +85,7 @@ test.describe("Review panel (free tier)", () => {
 
   test("shows API key prompt when no key set", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Enter your Gemini API key")).toBeVisible();
+    await expect(page.getByText("Gemini API key")).toBeVisible();
   });
 
   test("scope toggle switches active state", async ({ page }) => {
@@ -112,8 +112,8 @@ test.describe("Review panel (free tier)", () => {
     await page.getByRole("button", { name: "Close" }).click();
 
     // Click review — should show error because no text selected (not in Office)
-    await page.locator("main").getByRole("button", { name: "Review" }).click();
-    await expect(page.getByText("at least 10 characters")).toBeVisible();
+    await page.locator("main").getByRole("button", { name: "Review Document" }).click();
+    await expect(page.getByText("requires Microsoft Word")).toBeVisible();
   });
 });
 

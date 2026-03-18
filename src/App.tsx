@@ -39,7 +39,7 @@ export function App() {
           <SettingsPanel onClose={() => setShowSettings(false)} />
         ) : (
           <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={() => setShowSettings(true)}>
-            <TabContent tab={activeTab} />
+            <TabContent activeTab={activeTab} />
           </Layout>
         )}
       </AuthContext>
@@ -47,17 +47,18 @@ export function App() {
   );
 }
 
-function TabContent({ tab }: { tab: TabId }) {
-  switch (tab) {
-    case "review":
-      return <ReviewPanel />;
-    case "clauses":
-      return <ClausesPanel />;
-    case "mammoth":
-      return <MammothPanel />;
-    case "analysis":
-      return <FullAnalysisPanel />;
-    case "history":
-      return <HistoryPanel />;
-  }
+function TabContent({ activeTab }: { activeTab: TabId }) {
+  return (
+    <>
+      <TabPane active={activeTab === "review"}><ReviewPanel /></TabPane>
+      <TabPane active={activeTab === "clauses"}><ClausesPanel /></TabPane>
+      <TabPane active={activeTab === "mammoth"}><MammothPanel /></TabPane>
+      <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
+      <TabPane active={activeTab === "history"}><HistoryPanel /></TabPane>
+    </>
+  );
+}
+
+function TabPane({ active, children }: { active: boolean; children: React.ReactNode }) {
+  return <div className={active ? "" : "hidden"}>{children}</div>;
 }

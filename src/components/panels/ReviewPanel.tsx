@@ -29,6 +29,7 @@ export function ReviewPanel() {
   const [result, setResult] = useState<ReviewResponse | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
+  const inOffice = isOfficeReady();
 
   async function handleReview() {
     setLoading(true);
@@ -36,14 +37,18 @@ export function ReviewPanel() {
     setResult(null);
 
     try {
-      const text = isOfficeReady()
+      const text = inOffice
         ? scope === "selection"
           ? await getSelectedText()
           : await getDocumentBody()
         : "";
 
       if (!text || text.trim().length < 10) {
-        setError("Please select some text in your document (at least 10 characters).");
+        setError(
+          inOffice
+            ? "Please select some text in your document (at least 10 characters)."
+            : "This feature requires Microsoft Word. Open this add-in from within Word to review documents.",
+        );
         return;
       }
 
@@ -54,7 +59,6 @@ export function ReviewPanel() {
 
       setResult(response);
 
-      // Save to local history (especially useful for free-tier users)
       if (tier === "free") {
         addToLocalHistory({ type: "review", summary: response.summary });
       }
@@ -66,7 +70,7 @@ export function ReviewPanel() {
   }
 
   async function handleInsert(text: string) {
-    if (!isOfficeReady()) return;
+    if (!inOffice) return;
     try {
       await insertText(text);
     } catch (err) {
@@ -78,10 +82,10 @@ export function ReviewPanel() {
     <div className="space-y-3">
       {/* Scope selector */}
       <div className="flex gap-2">
-        <ScopeButton active={scope === "selection"} onClick={() => setScope("selection")}>
+        <ScopeButton active={scope === "selection"} onClick={() => { setScope("selection"); setError(null); }}>
           Selection
         </ScopeButton>
-        <ScopeButton active={scope === "document"} onClick={() => setScope("document")}>
+        <ScopeButton active={scope === "document"} onClick={() => { setScope("document"); setError(null); }}>
           Full Document
         </ScopeButton>
       </div>
@@ -92,26 +96,39 @@ export function ReviewPanel() {
         onChange={(e) => setInstructions(e.target.value)}
         placeholder="Review instructions (optional)..."
         rows={2}
-        className="w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+        className="w-full resize-none rounded-md border border-gray-200 px-2.5 py-2 text-xs transition-colors focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100"
       />
 
       {/* Review button */}
       <button
         onClick={handleReview}
         disabled={loading || !canReview}
-        className="w-full rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-md bg-blue-600 px-3 py-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Reviewing..." : "Review"}
+        {loading ? "Reviewing..." : "Review Document"}
       </button>
 
       {!canReview && (
         <p className="text-xs text-amber-600">
-          {tier === "free" ? "Enter your Gemini API key in Settings to review." : "Sign in to review."}
+          {tier === "free"
+            ? "Add your Gemini API key in Settings to get started."
+            : "Sign in to review."}
         </p>
       )}
 
       {/* Error */}
-      {error && <div className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">{error}</div>}
+      {error && (
+        <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">
+          <span className="flex-1">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="shrink-0 text-red-400 transition-colors hover:text-red-600"
+            aria-label="Dismiss error"
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {/* Results */}
       {result && <ReviewResults result={result} onInsert={handleInsert} />}
@@ -122,9 +139,9 @@ export function ReviewPanel() {
 function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert: (text: string) => void }) {
   return (
     <div className="space-y-3">
-      <div className="rounded border border-gray-200 bg-gray-50 p-2">
-        <h4 className="mb-1 text-xs font-semibold text-gray-600">Summary</h4>
-        <p className="text-xs text-gray-700">{result.summary}</p>
+      <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
+        <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Summary</h4>
+        <p className="text-xs leading-relaxed text-gray-700">{result.summary}</p>
       </div>
 
       {result.issues && result.issues.length > 0 && (
@@ -142,7 +159,7 @@ function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert:
 function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: string) => void }) {
   const kind = issue.kind ?? "other";
   return (
-    <div className="rounded border border-gray-200 p-2">
+    <div className="rounded-md border border-gray-200 p-2.5">
       <div className="mb-1 flex items-start gap-1.5">
         <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${SEVERITY_COLORS[kind]}`}>
           {kind}
@@ -177,7 +194,7 @@ function ScopeButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded px-2 py-1 text-xs font-medium ${
+      className={`rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
         active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
       }`}
     >
