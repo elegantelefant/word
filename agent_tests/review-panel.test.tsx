@@ -7,6 +7,7 @@ import { ReviewPanel } from "@/components/panels/ReviewPanel";
 import { SettingsContext, type SettingsContextValue } from "@/store/settings";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
+import { UIContext } from "@/store/ui";
 
 // Mock modules
 vi.mock("@/api/review", () => ({
@@ -48,7 +49,9 @@ function renderPanel(
   return render(
     <SettingsContext value={settings}>
       <AuthContext value={auth}>
-        <ReviewPanel />
+        <UIContext value={{ openSettings: vi.fn() }}>
+          <ReviewPanel />
+        </UIContext>
       </AuthContext>
     </SettingsContext>,
   );
@@ -79,7 +82,7 @@ describe("ReviewPanel — rendering", () => {
     renderPanel({}, { tier: "paid", token: null });
 
     expect(screen.getByText("Review Document")).toBeDisabled();
-    expect(screen.getByText(/sign in to review/i)).toBeInTheDocument();
+    expect(screen.getByText(/sign in.*to review/i)).toBeInTheDocument();
   });
 
   it("enables review button when API key is set (free tier)", () => {

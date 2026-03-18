@@ -8,13 +8,13 @@ test.describe("Settings persistence across reload", () => {
     await page.goto("/");
 
     // Set an API key
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.getByPlaceholder("AIza...").fill("AIzaSyReloadTest");
     await page.getByRole("button", { name: "Close" }).click();
 
     // Reload
     await page.reload();
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("AIzaSyReloadTest");
   });
@@ -22,12 +22,12 @@ test.describe("Settings persistence across reload", () => {
   test("model selection survives page reload", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.locator("select").selectOption("gemini-2.5-pro");
     await page.getByRole("button", { name: "Close" }).click();
 
     await page.reload();
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     await expect(page.locator("select")).toHaveValue("gemini-2.5-pro");
   });
@@ -38,7 +38,7 @@ test.describe("State preserved across tab switches", () => {
     await page.goto("/");
 
     // Set API key first
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.getByPlaceholder("AIza...").fill("test-key");
     await page.getByRole("button", { name: "Close" }).click();
 
@@ -78,7 +78,7 @@ test.describe("Rapid interactions", () => {
     await page.goto("/");
 
     for (let i = 0; i < 5; i++) {
-      await page.getByRole("button", { name: "Settings" }).click();
+      await page.locator("header").getByRole("button", { name: "Settings" }).click();
       await page.getByRole("button", { name: "Close" }).click();
     }
 
@@ -89,7 +89,7 @@ test.describe("Rapid interactions", () => {
     await page.goto("/");
 
     // Set API key
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.getByPlaceholder("AIza...").fill("test-key");
     await page.getByRole("button", { name: "Close" }).click();
 
@@ -207,7 +207,7 @@ test.describe("Empty and boundary states", () => {
     await page.reload();
 
     // Default model
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await expect(page.locator("select")).toHaveValue("gemini-2.5-flash");
 
     // Empty API key

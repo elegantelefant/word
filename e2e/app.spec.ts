@@ -7,7 +7,7 @@ test.describe("App loads and renders", () => {
   test("shows the Elefant header and tab bar", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("header")).toContainText("Elefant");
-    await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
+    await expect(page.locator("header").getByRole("button", { name: "Settings" })).toBeVisible();
 
     // All 5 tabs present in the nav bar
     const nav = page.locator("nav");
@@ -107,7 +107,7 @@ test.describe("Review panel (free tier)", () => {
     await page.goto("/");
 
     // Set an API key so review button is enabled
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.getByPlaceholder("AIza...").fill("test-key-12345");
     await page.getByRole("button", { name: "Close" }).click();
 
@@ -122,7 +122,7 @@ test.describe("Settings panel", () => {
     await page.goto("/");
 
     // Open settings
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await expect(page.getByText("API Key (BYOK)")).toBeVisible();
     await expect(page.getByText("Model")).toBeVisible();
 
@@ -133,7 +133,7 @@ test.describe("Settings panel", () => {
 
   test("API key input toggles visibility", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     const input = page.getByPlaceholder("AIza...");
     await input.fill("AIzaSyTest123");
@@ -154,18 +154,18 @@ test.describe("Settings panel", () => {
     await page.goto("/");
 
     // Set key
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await page.getByPlaceholder("AIza...").fill("AIzaSyPersistTest");
     await page.getByRole("button", { name: "Close" }).click();
 
     // Reopen — key should persist
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("AIzaSyPersistTest");
   });
 
   test("model selector defaults to Gemini 2.5 Flash", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     const select = page.locator("select");
     await expect(select).toHaveValue("gemini-2.5-flash");
@@ -173,7 +173,7 @@ test.describe("Settings panel", () => {
 
   test("shows sign-in button for free users", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     await expect(page.getByRole("button", { name: "Sign in to Elefant" })).toBeVisible();
     await expect(page.getByText("Have an Elefant account?")).toBeVisible();
@@ -257,7 +257,7 @@ test.describe("Visual quality and UX", () => {
       h: document.documentElement.clientHeight,
     }));
 
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     await expect(page.getByText("API Key (BYOK)")).toBeVisible();
 
     const viewportAfter = await page.evaluate(() => ({
@@ -280,13 +280,13 @@ test.describe("Error boundary", () => {
 test.describe("Accessibility basics", () => {
   test("settings button has aria-label", async ({ page }) => {
     await page.goto("/");
-    const btn = page.getByRole("button", { name: "Settings" });
+    const btn = page.locator("header").getByRole("button", { name: "Settings" });
     await expect(btn).toHaveAttribute("aria-label", "Settings");
   });
 
   test("close button has aria-label", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await page.locator("header").getByRole("button", { name: "Settings" }).click();
     const close = page.getByRole("button", { name: "Close" });
     await expect(close).toHaveAttribute("aria-label", "Close");
   });

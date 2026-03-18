@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { ReviewResponse, ReviewIssue, IssueKind } from "@/types/api";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
+import { useUI } from "@/store/ui";
 import { reviewFree, reviewPaid } from "@/api/review";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
@@ -22,6 +23,7 @@ const SEVERITY_COLORS: Record<IssueKind, string> = {
 export function ReviewPanel() {
   const { settings } = useSettings();
   const { tier, token } = useAuth();
+  const { openSettings } = useUI();
   const [scope, setScope] = useState<Scope>("selection");
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
@@ -80,6 +82,12 @@ export function ReviewPanel() {
 
   return (
     <div className="space-y-3">
+      {!canReview && !result && (
+        <p className="text-xs leading-relaxed text-gray-500">
+          AI-powered legal document review. Select text in Word and get instant analysis of risks, ambiguities, and missing clauses.
+        </p>
+      )}
+
       {/* Scope selector */}
       <div className="flex gap-2">
         <ScopeButton active={scope === "selection"} onClick={() => { setScope("selection"); setError(null); }}>
@@ -109,11 +117,14 @@ export function ReviewPanel() {
       </button>
 
       {!canReview && (
-        <p className="text-xs text-amber-600">
+        <button
+          onClick={openSettings}
+          className="w-full rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-left text-xs text-amber-700 transition-colors hover:bg-amber-100"
+        >
           {tier === "free"
-            ? "Add your Gemini API key in Settings to get started."
-            : "Sign in to review."}
-        </p>
+            ? "Add your Gemini API key in Settings to get started \u2192"
+            : "Sign in to your Elefant account to review \u2192"}
+        </button>
       )}
 
       {/* Error */}

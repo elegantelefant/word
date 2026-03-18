@@ -11,6 +11,7 @@ import { FullAnalysisPanel } from "./components/panels/FullAnalysisPanel";
 import { HistoryPanel } from "./components/panels/HistoryPanel";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
+import { UIContext } from "./store/ui";
 import { useAuthProvider } from "./hooks/useAuth";
 
 export function App() {
@@ -31,17 +32,21 @@ export function App() {
   // UI state
   const [activeTab, setActiveTab] = useState<TabId>("review");
   const [showSettings, setShowSettings] = useState(false);
+  const openSettings = useCallback(() => setShowSettings(true), []);
+  const uiValue = useMemo(() => ({ openSettings }), [openSettings]);
 
   return (
     <SettingsContext value={settingsValue}>
       <AuthContext value={auth}>
-        {showSettings ? (
-          <SettingsPanel onClose={() => setShowSettings(false)} />
-        ) : (
-          <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={() => setShowSettings(true)}>
-            <TabContent activeTab={activeTab} />
-          </Layout>
-        )}
+        <UIContext value={uiValue}>
+          {showSettings ? (
+            <SettingsPanel onClose={() => setShowSettings(false)} />
+          ) : (
+            <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={openSettings}>
+              <TabContent activeTab={activeTab} />
+            </Layout>
+          )}
+        </UIContext>
       </AuthContext>
     </SettingsContext>
   );
