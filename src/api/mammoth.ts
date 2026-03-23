@@ -1,39 +1,17 @@
 // ABOUTME: Mammoth API — create, list, and track legal requests.
 // ABOUTME: All endpoints require Elefant auth (paid tier only).
 
+import type {
+  LegalRequest,
+  CreateLegalRequest,
+  LegalRequestListResponse,
+  RequestType,
+  RequestPriority,
+  RequestStatus,
+} from "@/types/api";
 import { apiFetch } from "./client";
 
-export type RequestType = "research" | "draft" | "review" | "extraction" | "analysis";
-export type RequestPriority = "low" | "normal" | "high" | "urgent";
-export type RequestStatus = "draft" | "pending" | "in_progress" | "completed" | "failed" | "cancelled";
-
-export interface LegalRequest {
-  id: string;
-  request_type: RequestType;
-  status: RequestStatus;
-  priority: RequestPriority;
-  title: string;
-  description?: string | null;
-  category?: string | null;
-  result?: Record<string, unknown> | null;
-  error?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-export interface CreateLegalRequest {
-  request_type: RequestType;
-  title: string;
-  description?: string;
-  category?: string;
-  priority?: RequestPriority;
-  input?: Record<string, unknown>;
-}
-
-interface LegalRequestListResponse {
-  requests: LegalRequest[];
-  total: number;
-}
+export type { LegalRequest, CreateLegalRequest, RequestType, RequestPriority, RequestStatus };
 
 export async function createLegalRequest(
   data: CreateLegalRequest,

@@ -122,6 +122,65 @@ export interface GatewayResponse {
   content: string;
 }
 
+// -- Clauses --
+
+export interface ClauseDatabase {
+  id: string;
+  name?: string;
+  clause_count?: number;
+}
+
+export interface Clause {
+  id: string;
+  name: string;
+  content: string;
+  category?: string | null;
+  tags?: string[];
+  created_at?: string | null;
+}
+
+export interface ClauseDatabaseListResponse {
+  databases: ClauseDatabase[];
+}
+
+export interface ClauseListResponse {
+  clauses: Clause[];
+}
+
+// -- Mammoth / Legal Requests --
+
+export type RequestType = "research" | "draft" | "review" | "extraction" | "analysis";
+export type RequestPriority = "low" | "normal" | "high" | "urgent";
+export type RequestStatus = "draft" | "pending" | "in_progress" | "completed" | "failed" | "cancelled";
+
+export interface LegalRequest {
+  id: string;
+  request_type: RequestType;
+  status: RequestStatus;
+  priority: RequestPriority;
+  title: string;
+  description?: string | null;
+  category?: string | null;
+  result?: Record<string, unknown> | null;
+  error?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CreateLegalRequest {
+  request_type: RequestType;
+  title: string;
+  description?: string;
+  category?: string;
+  priority?: RequestPriority;
+  input?: Record<string, unknown>;
+}
+
+export interface LegalRequestListResponse {
+  requests: LegalRequest[];
+  total: number;
+}
+
 // -- Tier --
 
 export type Tier = "free" | "paid";
