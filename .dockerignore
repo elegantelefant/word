@@ -10,3 +10,5 @@ tsconfig*
 vite.config.ts
 vitest.config.ts
 pnpm-lock.yaml
+manifest.xml
+public/
