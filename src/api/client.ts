@@ -35,6 +35,13 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+let onAuthErrorCallback: (() => void) | null = null;
+
+/** Register a callback invoked on any 401. Use for centralized session invalidation. */
+export function setOnAuthError(cb: (() => void) | null): void {
+  onAuthErrorCallback = cb;
+}
+
 export async function apiFetch<T>(path: string, token: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, headers = {}, signal } = options;
 
@@ -58,12 +65,17 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     if (res.status === 401) {
+      onAuthErrorCallback?.();
       throw new ApiError(401, "Session expired. Please sign in again.");
     }
     if (res.status === 429) {
       throw new ApiError(429, "Too many requests. Please wait a moment.");
     }
     throw new ApiError(res.status, text);
+  }
+
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as T;
   }
 
   return res.json() as Promise<T>;

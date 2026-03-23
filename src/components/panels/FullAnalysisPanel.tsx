@@ -41,7 +41,7 @@ function AnalysisContent({ token }: { token: string }) {
         ? scope === "selection"
           ? await getSelectedText()
           : await getDocumentBody()
-        : "";
+        : null;
 
       if (!text || text.trim().length < 10) {
         setError("Please select some text (at least 10 characters).");

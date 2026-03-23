@@ -2,6 +2,7 @@
 // ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
 
 import { isOfficeReady } from "@/lib/office";
+import { safeSetItem } from "@/lib/storage";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
@@ -14,7 +15,7 @@ export function getSavedToken(): string | null {
 }
 
 export function saveToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  safeSetItem(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {

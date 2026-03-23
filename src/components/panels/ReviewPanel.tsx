@@ -43,7 +43,7 @@ export function ReviewPanel() {
         ? scope === "selection"
           ? await getSelectedText()
           : await getDocumentBody()
-        : "";
+        : null;
 
       if (!text || text.trim().length < 10) {
         setError(

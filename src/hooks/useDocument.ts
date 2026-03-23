@@ -26,8 +26,8 @@ export function useDocument(): UseDocumentResult {
     setError(null);
     try {
       const t = await getSelectedText();
-      setText(t);
-      return t;
+      setText(t ?? "");
+      return t ?? "";
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to read selection";
       setError(msg);

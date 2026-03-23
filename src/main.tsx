@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { markOfficeReady } from "./lib/office";
 import "./index.css";
 
 const mount = () => {
@@ -21,7 +22,10 @@ const mount = () => {
 
 // Office.js loaded via CDN in index.html
 if (typeof Office !== "undefined") {
-  Office.onReady(() => mount());
+  Office.onReady(() => {
+    markOfficeReady();
+    mount();
+  });
 } else {
   // Running outside Office (dev browser, tests)
   mount();

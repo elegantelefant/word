@@ -2,6 +2,7 @@
 // ABOUTME: Persists to localStorage so free-tier users keep their config.
 
 import { createContext, useContext } from "react";
+import { safeSetItem } from "@/lib/storage";
 
 export interface Settings {
   apiKey: string;
@@ -35,7 +36,7 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(settings: Settings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  safeSetItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 export function useSettings(): SettingsContextValue {
