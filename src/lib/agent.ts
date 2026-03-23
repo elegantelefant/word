@@ -65,6 +65,7 @@ export async function runReview(
   model: string,
   text: string,
   instructions?: string,
+  signal?: AbortSignal,
 ): Promise<ReviewResult> {
   const runner = createReviewRunner(apiKey, model);
   const session = await runner.sessionService.createSession({
@@ -83,6 +84,7 @@ export async function runReview(
     sessionId: session.id,
     newMessage: { role: "user", parts: [{ text: prompt }] },
   })) {
+    signal?.throwIfAborted();
     if (event.actions?.stateDelta?.review_result) {
       result = event.actions.stateDelta.review_result as ReviewResult;
     }

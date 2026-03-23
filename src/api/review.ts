@@ -16,9 +16,10 @@ export async function reviewFree(
   apiKey: string,
   model: string,
   instructions?: string,
+  signal?: AbortSignal,
 ): Promise<ReviewResponse> {
   const { runReview } = await import("@/lib/agent");
-  const result = await runReview(apiKey, model, text, instructions);
+  const result = await runReview(apiKey, model, text, instructions, signal);
   return {
     summary: result.summary,
     issues: result.issues.map((issue) => ({
@@ -36,10 +37,11 @@ export async function reviewPaid(
   token: string,
   instructions?: string,
   context?: ReviewRequest["context"],
+  signal?: AbortSignal,
 ): Promise<ReviewResponse> {
   const body: ReviewRequest = { text, instructions, context };
-  const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body });
-  const result = await pollForResult(job.job_id, token);
+  const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body, signal });
+  const result = await pollForResult(job.job_id, token, undefined, undefined, signal);
   return (result.result as unknown as ReviewResponse) ?? { summary: "No result returned.", issues: [] };
 }
 

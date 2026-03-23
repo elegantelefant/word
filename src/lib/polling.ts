@@ -26,9 +26,10 @@ export async function pollForResult(
       throw new Error(job.error ?? "Job failed");
     }
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) { reject(signal.reason); return; }
       const timer = setTimeout(resolve, intervalMs);
-      signal?.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+      signal?.addEventListener("abort", () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
     });
   }
 

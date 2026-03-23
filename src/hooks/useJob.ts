@@ -1,7 +1,7 @@
 // ABOUTME: Hook for polling an Elefant API async job until completion.
 // ABOUTME: Returns job state, result, and abort function.
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { JobResult } from "@/types/api";
 import { pollForResult } from "@/lib/polling";
 
@@ -36,13 +36,19 @@ export function useJob(): UseJobResult {
       setState("completed");
       return r;
     } catch (err) {
-      if (controller.signal.aborted) return null as unknown as JobResult;
+      if (controller.signal.aborted) {
+        setState("idle");
+        throw err;
+      }
       const msg = err instanceof Error ? err.message : "Job failed";
       setError(msg);
       setState("failed");
       throw err;
     }
   }, []);
+
+  // Abort on unmount
+  useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();
