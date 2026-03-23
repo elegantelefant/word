@@ -1,7 +1,7 @@
 // ABOUTME: Root app component with auth/settings providers and tab routing.
 // ABOUTME: Manages global state, settings overlay, and active panel display.
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Layout, type TabId } from "./components/Layout";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
@@ -31,6 +31,11 @@ export function App() {
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabId>("review");
+  const visitedTabs = useRef(new Set<TabId>(["review", "history"]));
+  const handleTabChange = useCallback((tab: TabId) => {
+    visitedTabs.current.add(tab);
+    setActiveTab(tab);
+  }, []);
   const [showSettings, setShowSettings] = useState(false);
   const openSettings = useCallback(() => setShowSettings(true), []);
   const uiValue = useMemo(() => ({ openSettings }), [openSettings]);
@@ -42,8 +47,8 @@ export function App() {
           {showSettings ? (
             <SettingsPanel onClose={() => setShowSettings(false)} />
           ) : (
-            <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={openSettings}>
-              <TabContent activeTab={activeTab} />
+            <Layout activeTab={activeTab} onTabChange={handleTabChange} onSettingsClick={openSettings}>
+              <TabContent activeTab={activeTab} visitedTabs={visitedTabs.current} />
             </Layout>
           )}
         </UIContext>
@@ -52,18 +57,19 @@ export function App() {
   );
 }
 
-function TabContent({ activeTab }: { activeTab: TabId }) {
+function TabContent({ activeTab, visitedTabs }: { activeTab: TabId; visitedTabs: Set<TabId> }) {
   return (
     <>
-      <TabPane active={activeTab === "review"}><ReviewPanel /></TabPane>
-      <TabPane active={activeTab === "clauses"}><ClausesPanel /></TabPane>
-      <TabPane active={activeTab === "mammoth"}><MammothPanel /></TabPane>
-      <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
-      <TabPane active={activeTab === "history"}><HistoryPanel /></TabPane>
+      <TabPane active={activeTab === "review"} mounted><ReviewPanel /></TabPane>
+      <TabPane active={activeTab === "clauses"} mounted={visitedTabs.has("clauses")}><ClausesPanel /></TabPane>
+      <TabPane active={activeTab === "mammoth"} mounted={visitedTabs.has("mammoth")}><MammothPanel /></TabPane>
+      <TabPane active={activeTab === "analysis"} mounted={visitedTabs.has("analysis")}><FullAnalysisPanel /></TabPane>
+      <TabPane active={activeTab === "history"} mounted><HistoryPanel /></TabPane>
     </>
   );
 }
 
-function TabPane({ active, children }: { active: boolean; children: React.ReactNode }) {
+function TabPane({ active, mounted, children }: { active: boolean; mounted: boolean; children: React.ReactNode }) {
+  if (!mounted) return null;
   return <div className={active ? "" : "hidden"}>{children}</div>;
 }

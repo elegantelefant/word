@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { useAuth } from "@/store/auth";
+import { ElefantLogo, SettingsIcon, LockIcon } from "./icons";
 
 export type TabId = "review" | "clauses" | "mammoth" | "analysis" | "history";
 
@@ -67,7 +68,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
             >
               <span className="inline-flex items-center gap-0.5">
                 {tab.label}
-                {locked && <LockIcon />}
+                {locked && <LockIcon size={10} />}
               </span>
             </button>
           );
@@ -85,33 +86,5 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         </span>
       </footer>
     </div>
-  );
-}
-
-function ElefantLogo() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="11" fill="#3b82f6" opacity="0.1" />
-      <circle cx="12" cy="12" r="11" stroke="#3b82f6" strokeWidth="1" opacity="0.3" />
-      <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#3b82f6">e</text>
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0">
-      <rect x="3" y="8" width="10" height="7" rx="1.5" />
-      <path d="M5 8V5.5a3 3 0 016 0V8" fill="none" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M6.5 1.5h3l.5 2 1.5.7 1.8-1 2 2-1 1.8.7 1.5 2 .5v3l-2 .5-.7 1.5 1 1.8-2 2-1.8-1-1.5.7-.5 2h-3l-.5-2-1.5-.7-1.8 1-2-2 1-1.8-.7-1.5-2-.5v-3l2-.5.7-1.5-1-1.8 2-2 1.8 1 1.5-.7z" />
-      <circle cx="8" cy="8" r="2" />
-    </svg>
   );
 }

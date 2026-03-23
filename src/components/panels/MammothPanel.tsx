@@ -1,9 +1,10 @@
 // ABOUTME: Mammoth panel — create and track legal requests from Word.
 // ABOUTME: Paid-only; shows create form + request list with status tracking.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ToggleGroup } from "@/components/ToggleGroup";
 import {
   createLegalRequest,
   listLegalRequests,
@@ -53,37 +54,27 @@ function MammothContent({ token }: { token: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     setLoading(true);
     listLegalRequests(token)
       .then(setRequests)
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  };
+  }, [token]);
 
-  useEffect(() => { refresh(); }, [token]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   return (
     <div className="space-y-3">
       {/* View toggle */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setView("list")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            view === "list" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          Requests
-        </button>
-        <button
-          onClick={() => setView("create")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            view === "create" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          + New
-        </button>
-      </div>
+      <ToggleGroup
+        options={[
+          { value: "list", label: "Requests" },
+          { value: "create", label: "+ New" },
+        ]}
+        value={view}
+        onChange={(v) => setView(v as "create" | "list")}
+      />
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 

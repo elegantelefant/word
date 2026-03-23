@@ -9,6 +9,7 @@ import { useUI } from "@/store/ui";
 import { reviewFree, reviewPaid } from "@/api/review";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
+import { ToggleGroup } from "@/components/ToggleGroup";
 
 type Scope = "selection" | "document";
 
@@ -89,14 +90,14 @@ export function ReviewPanel() {
       )}
 
       {/* Scope selector */}
-      <div className="flex gap-2">
-        <ScopeButton active={scope === "selection"} onClick={() => { setScope("selection"); setError(null); }}>
-          Selection
-        </ScopeButton>
-        <ScopeButton active={scope === "document"} onClick={() => { setScope("document"); setError(null); }}>
-          Full Document
-        </ScopeButton>
-      </div>
+      <ToggleGroup
+        options={[
+          { value: "selection", label: "Selection" },
+          { value: "document", label: "Full Document" },
+        ]}
+        value={scope}
+        onChange={(v) => { setScope(v as Scope); setError(null); }}
+      />
 
       {/* Instructions */}
       <textarea
@@ -159,7 +160,7 @@ function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert:
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-gray-600">Issues ({result.issues.length})</h4>
           {result.issues.map((issue, i) => (
-            <IssueCard key={i} issue={issue} onInsert={onInsert} />
+            <IssueCard key={`${issue.kind}-${i}-${(issue.message ?? "").slice(0, 30)}`} issue={issue} onInsert={onInsert} />
           ))}
         </div>
       )}
@@ -193,23 +194,3 @@ function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: s
   );
 }
 
-function ScopeButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
-        active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}

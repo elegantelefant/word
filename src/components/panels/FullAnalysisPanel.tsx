@@ -4,6 +4,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ToggleGroup } from "@/components/ToggleGroup";
 import { runFullAnalysis } from "@/api/review";
 import type { FullAnalysisResult } from "@/api/review";
 import { getSelectedText, getDocumentBody, isOfficeReady } from "@/lib/office";
@@ -65,24 +66,14 @@ function AnalysisContent({ token }: { token: string }) {
         Run comprehensive analysis: parallel review + research on your document.
       </p>
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setScope("selection")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            scope === "selection" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          Selection
-        </button>
-        <button
-          onClick={() => setScope("document")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            scope === "document" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          Full Document
-        </button>
-      </div>
+      <ToggleGroup
+        options={[
+          { value: "selection", label: "Selection" },
+          { value: "document", label: "Full Document" },
+        ]}
+        value={scope}
+        onChange={(v) => setScope(v as "selection" | "document")}
+      />
 
       <button
         onClick={handleAnalyze}
