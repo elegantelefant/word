@@ -81,18 +81,30 @@ function openBrowserDialog(url: string): Promise<string> {
       return;
     }
 
-    const timeoutId = setTimeout(() => {
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      clearInterval(closedCheckId);
       window.removeEventListener("message", handler);
+    };
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
       popup.close();
       reject(new Error("Login timed out"));
     }, 300_000);
+
+    const closedCheckId = setInterval(() => {
+      if (popup.closed) {
+        cleanup();
+        reject(new Error("Login dialog was closed"));
+      }
+    }, 500);
 
     const handler = (event: MessageEvent) => {
       if (event.origin !== new URL(API_URL).origin) return;
       const data = event.data;
       if (data?.token) {
-        clearTimeout(timeoutId);
-        window.removeEventListener("message", handler);
+        cleanup();
         saveToken(data.token);
         popup.close();
         resolve(data.token);
