@@ -46,7 +46,7 @@ test.describe("State preserved across tab switches", () => {
     await page.getByPlaceholder("Review instructions").fill("Check for liability clauses");
 
     // Toggle scope
-    await page.getByRole("button", { name: "Full Document" }).click();
+    await page.getByRole("radio", { name: "Full Document" }).click();
 
     // Switch to History and back
     await page.locator("nav").getByRole("button", { name: "History" }).click();
@@ -54,7 +54,7 @@ test.describe("State preserved across tab switches", () => {
 
     // Instructions and scope should be preserved
     await expect(page.getByPlaceholder("Review instructions")).toHaveValue("Check for liability clauses");
-    await expect(page.getByRole("button", { name: "Full Document" })).toHaveClass(/bg-blue-100/);
+    await expect(page.getByRole("radio", { name: "Full Document" })).toHaveClass(/bg-blue-100/);
   });
 });
 
@@ -197,6 +197,25 @@ test.describe("Layout edge cases", () => {
       (el) => getComputedStyle(el).overflowY,
     );
     expect(mainOverflow).toBe("auto");
+  });
+});
+
+test.describe("Lazy panel mounting", () => {
+  test("paid panels are not mounted on initial load", async ({ page }) => {
+    // Intercept API calls that paid panels would make
+    const clauseRequests: string[] = [];
+    const mammothRequests: string[] = [];
+    page.on("request", (req) => {
+      if (req.url().includes("/clause-databases")) clauseRequests.push(req.url());
+      if (req.url().includes("/legal-requests")) mammothRequests.push(req.url());
+    });
+
+    await page.goto("/");
+    await page.waitForTimeout(1000);
+
+    // No requests should have been made to paid-only endpoints
+    expect(clauseRequests).toHaveLength(0);
+    expect(mammothRequests).toHaveLength(0);
   });
 });
 

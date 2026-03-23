@@ -71,8 +71,8 @@ test.describe("Tab navigation", () => {
 test.describe("Review panel (free tier)", () => {
   test("shows scope toggle (Selection / Full Document)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Selection" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Full Document" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Selection" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Full Document" })).toBeVisible();
   });
 
   test("shows instructions textarea", async ({ page }) => {
@@ -90,8 +90,8 @@ test.describe("Review panel (free tier)", () => {
 
   test("scope toggle switches active state", async ({ page }) => {
     await page.goto("/");
-    const selection = page.getByRole("button", { name: "Selection" });
-    const fullDoc = page.getByRole("button", { name: "Full Document" });
+    const selection = page.getByRole("radio", { name: "Selection" });
+    const fullDoc = page.getByRole("radio", { name: "Full Document" });
 
     // Selection starts active (blue)
     await expect(selection).toHaveClass(/bg-blue-100/);
@@ -298,5 +298,44 @@ test.describe("Accessibility basics", () => {
     await page.keyboard.press("Tab");
     const focused = await page.evaluate(() => document.activeElement?.tagName);
     expect(focused).toBe("BUTTON");
+  });
+
+  test("scope toggle has radiogroup semantics", async ({ page }) => {
+    await page.goto("/");
+    const group = page.getByRole("radiogroup");
+    await expect(group).toBeVisible();
+
+    const radios = group.getByRole("radio");
+    await expect(radios).toHaveCount(2);
+
+    // Selection radio should be checked by default
+    const selection = group.getByRole("radio", { name: "Selection" });
+    await expect(selection).toHaveAttribute("aria-checked", "true");
+
+    const fullDoc = group.getByRole("radio", { name: "Full Document" });
+    await expect(fullDoc).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("decorative icons have aria-hidden", async ({ page }) => {
+    await page.goto("/");
+    const icons = page.locator("svg[aria-hidden='true']");
+    // At minimum: ElefantLogo, SettingsIcon, and lock icons on paid tabs
+    expect(await icons.count()).toBeGreaterThanOrEqual(3);
+  });
+
+  test("scope toggle supports keyboard navigation", async ({ page }) => {
+    await page.goto("/");
+    const group = page.getByRole("radiogroup");
+    const selection = group.getByRole("radio", { name: "Selection" });
+
+    // Focus the active radio
+    await selection.focus();
+    await expect(selection).toHaveAttribute("aria-checked", "true");
+
+    // Arrow right should move to Full Document
+    await page.keyboard.press("ArrowRight");
+    const fullDoc = group.getByRole("radio", { name: "Full Document" });
+    await expect(fullDoc).toHaveAttribute("aria-checked", "true");
+    await expect(selection).toHaveAttribute("aria-checked", "false");
   });
 });

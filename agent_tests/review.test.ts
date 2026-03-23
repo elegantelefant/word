@@ -29,7 +29,7 @@ describe("reviewFree", () => {
 
     const result = await reviewFree("test text", "AIza-test", "gemini-2.5-flash");
 
-    expect(runReview).toHaveBeenCalledWith("AIza-test", "gemini-2.5-flash", "test text", undefined);
+    expect(runReview).toHaveBeenCalledWith("AIza-test", "gemini-2.5-flash", "test text", undefined, undefined);
     expect(result.summary).toBe("Contract looks solid.");
     expect(result.issues).toHaveLength(2);
     expect(result.issues[0]).toEqual({
@@ -52,7 +52,7 @@ describe("reviewFree", () => {
 
     await reviewFree("text", "key", "model", "Focus on IP");
 
-    expect(runReview).toHaveBeenCalledWith("key", "model", "text", "Focus on IP");
+    expect(runReview).toHaveBeenCalledWith("key", "model", "text", "Focus on IP", undefined);
   });
 
   it("propagates agent errors", async () => {
@@ -79,7 +79,7 @@ describe("reviewPaid", () => {
     const result = await reviewPaid("text", "token-123");
 
     expect(fetch).toHaveBeenCalled();
-    expect(pollForResult).toHaveBeenCalledWith("j1", "token-123");
+    expect(pollForResult).toHaveBeenCalledWith("j1", "token-123", undefined, undefined, undefined);
     expect(result.summary).toBe("Reviewed.");
   });
 });
