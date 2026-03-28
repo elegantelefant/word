@@ -13,7 +13,7 @@ interface ToggleGroupProps {
 }
 
 export function ToggleGroup({ options, value, onChange }: ToggleGroupProps) {
-  function handleKeyDown(e: React.KeyboardEvent, idx: number) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, idx: number) {
     let next = -1;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       next = (idx + 1) % options.length;
@@ -24,6 +24,9 @@ export function ToggleGroup({ options, value, onChange }: ToggleGroupProps) {
     if (opt) {
       e.preventDefault();
       onChange(opt.value);
+      const group = e.currentTarget.parentElement;
+      const buttons = group?.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+      buttons?.[next]?.focus();
     }
   }
 
