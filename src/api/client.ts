@@ -1,6 +1,8 @@
 // ABOUTME: Base HTTP client for Elefant API with auth header injection.
 // ABOUTME: Handles network errors, token expiry (401), and rate limiting.
 
+import { API_PREFIX } from "./endpoints";
+
 export const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.legal";
 
 export class ApiError extends Error {
@@ -42,12 +44,13 @@ export function setOnAuthError(cb: (() => void) | null): void {
   onAuthErrorCallback = cb;
 }
 
+/** `path` is the route below the version prefix (e.g. "/me"); API_PREFIX is prepended here. */
 export async function apiFetch<T>(path: string, token: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, headers = {}, signal } = options;
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    res = await fetch(`${API_URL}${API_PREFIX}${path}`, {
       method,
       signal,
       headers: {
