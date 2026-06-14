@@ -3,7 +3,7 @@
 
 import { API_PREFIX } from "./endpoints";
 
-export const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.legal";
+export const API_URL = import.meta.env.VITE_API_URL || "https://api.elefant.com";
 
 export class ApiError extends Error {
   constructor(

@@ -4,12 +4,12 @@
 #
 # Usage:
 #   export ELEFANT_TOKEN="your-jwt-token"
-#   export API_URL="https://api.elefant.legal"  # optional, defaults to prod
+#   export API_URL="https://api.elefant.com"  # optional, defaults to prod
 #   bash agent_tests/integration.sh
 
 set -euo pipefail
 
-API_URL="${API_URL:-https://api.elefant.legal}"
+API_URL="${API_URL:-https://api.elefant.com}"
 TOKEN="${ELEFANT_TOKEN:?Set ELEFANT_TOKEN env var}"
 
 PASS=0
