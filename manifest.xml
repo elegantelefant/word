@@ -17,8 +17,6 @@
   <SupportUrl DefaultValue="https://elefant.legal/support"/>
 
   <AppDomains>
-    <AppDomain>https://api.elefant.legal</AppDomain>
-    <AppDomain>https://gateway.elefant.legal</AppDomain>
     <AppDomain>https://elefant.legal</AppDomain>
   </AppDomains>
 
