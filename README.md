@@ -25,7 +25,7 @@ src/
 
 **Stack:** React 19, Tailwind CSS 4, Vite 7, TypeScript 5, Vitest, Playwright
 
-**Backend:** Calls `api.elefant.legal` (paid tier) or Gemini via `gateway.pydantic.dev` (free BYOK tier).
+**Backend:** Calls the Elefant API via the `elefant.legal/api/v4` proxy (paid tier) or Gemini via `gateway.pydantic.dev` (free BYOK tier).
 
 ## Deployment
 
@@ -113,7 +113,7 @@ pnpm test:e2e       # Playwright e2e tests
 Copy `.env.example` → `.env`:
 
 ```
-VITE_API_URL=https://api.elefant.legal
+VITE_API_URL=https://elefant.legal/api/v4
 VITE_GEMINI_BASE_URL=https://gateway.pydantic.dev/proxy/google
 ```
 

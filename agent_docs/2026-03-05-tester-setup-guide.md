@@ -41,7 +41,7 @@ Edit `.env` if you need to override defaults:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `VITE_API_URL` | `https://api.elefant.legal` | Elefant backend API |
+| `VITE_API_URL` | `https://elefant.legal/api/v4` | Elefant backend API (apex proxy) |
 | `VITE_GEMINI_BASE_URL` | `https://gateway.pydantic.dev/proxy/google` | Gemini proxy (optional, for free-tier BYOK) |
 
 For most testers, the defaults are fine — leave `.env` as-is.
