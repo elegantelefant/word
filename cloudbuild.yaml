@@ -4,7 +4,7 @@ steps:
     entrypoint: sh
     args:
       - -c
-      - npm install -g pnpm && pnpm install --frozen-lockfile && pnpm build
+      - corepack enable && pnpm install --frozen-lockfile && pnpm build
 
   # Build Docker image
   - name: gcr.io/cloud-builders/docker
