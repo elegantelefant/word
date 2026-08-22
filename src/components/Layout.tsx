@@ -47,6 +47,16 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         </button>
       </header>
 
+      {tier !== "paid" && (
+        <button
+          onClick={onSettingsClick}
+          className="flex w-full items-center justify-center gap-1 border-b border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 transition-colors hover:bg-blue-100"
+        >
+          <LockIcon />
+          <span>Unlock all features — Sign in</span>
+        </button>
+      )}
+
       <nav className="flex border-b border-gray-200">
         {TABS.map((tab) => {
           const locked = tab.paidOnly && tier !== "paid";
