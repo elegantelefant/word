@@ -31,8 +31,6 @@ export type ReviewResult = z.infer<typeof reviewSchema>;
 
 import { DEFAULT_MODEL } from "./models";
 
-export { GEMINI_MODELS, DEFAULT_MODEL } from "./models";
-
 const GEMINI_BASE_URL = import.meta.env.VITE_GEMINI_BASE_URL || "";
 
 export function createReviewRunner(apiKey: string, model: string = DEFAULT_MODEL) {
