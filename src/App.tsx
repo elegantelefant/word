@@ -13,18 +13,8 @@ import { SettingsContext, loadSettings, saveSettings, type Settings } from "./st
 import { AuthContext } from "./store/auth";
 import { UIContext } from "./store/ui";
 import { useAuthProvider } from "./hooks/useAuth";
-import { isOfficeReady } from "./lib/office";
-import { LandingPage } from "./components/LandingPage";
 
 export function App() {
-  // Outside Word (e.g. someone opening the Cloud Run URL directly), the task
-  // pane can't work — Office.js isn't loaded. Show install instructions rather
-  // than a UI that fails on first click. Skipped in dev so `pnpm dev` in a
-  // browser still renders the app.
-  if (!isOfficeReady() && !import.meta.env.DEV) {
-    return <LandingPage />;
-  }
-
   // Settings state
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const updateSettings = useCallback((patch: Partial<Settings>) => {

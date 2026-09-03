@@ -1,5 +1,5 @@
 // ABOUTME: Tests for the browser landing page shown outside Office.
-// ABOUTME: Covers install links and the Office-detection branch in App.
+// ABOUTME: Covers the explanatory copy and install links, not the mount decision.
 
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
