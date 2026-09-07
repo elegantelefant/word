@@ -2,6 +2,7 @@
 // ABOUTME: Persists to localStorage so free-tier users keep their config.
 
 import { createContext, useContext } from "react";
+import { DEFAULT_MODEL } from "@/lib/models";
 
 export interface Settings {
   apiKey: string;
@@ -14,7 +15,7 @@ export interface SettingsContextValue {
 }
 
 const STORAGE_KEY = "elefant_settings";
-const DEFAULT_MODEL = "gemini-2.5-flash";
+
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null);
 

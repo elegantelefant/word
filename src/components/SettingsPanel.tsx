@@ -4,12 +4,7 @@
 import { useState } from "react";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
-
-const MODELS = [
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-];
+import { GEMINI_MODELS } from "@/lib/models";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -81,8 +76,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               onChange={(e) => updateSettings({ model: e.target.value })}
               className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-2 text-xs transition-colors focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100"
             >
-              {MODELS.map((m) => (
-                <option key={m.value} value={m.value}>
+              {GEMINI_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
                   {m.label}
                 </option>
               ))}
