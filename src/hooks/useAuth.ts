@@ -15,7 +15,12 @@ function determineTier(me: MeResponse): Tier {
 }
 
 export function useAuthProvider(): AuthContextValue {
-  const [state, setState] = useState<AuthState>(AUTH_INITIAL);
+  // Start in a loading state when a saved token exists, so a returning user
+  // doesn't render as signed-out for the frame before loadUser kicks in.
+  const [state, setState] = useState<AuthState>(() => ({
+    ...AUTH_INITIAL,
+    loading: !!getSavedToken(),
+  }));
 
   const loadUser = useCallback(async (token: string) => {
     setState((prev) => ({ ...prev, loading: true }));

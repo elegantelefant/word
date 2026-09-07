@@ -80,6 +80,30 @@ describe("Layout", () => {
     expect(screen.queryByText("Unlock all features — Sign in")).not.toBeInTheDocument();
   });
 
+  it("says Upgrade rather than Sign in for signed-in free users", () => {
+    render(
+      <AuthContext value={{ ...freeAuth, token: "trial-token" }}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+
+    expect(screen.getByText("Unlock all features — Upgrade")).toBeInTheDocument();
+  });
+
+  it("hides the banner while auth is still loading", () => {
+    render(
+      <AuthContext value={{ ...freeAuth, loading: true }}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+
+    expect(screen.queryByText(/Unlock all features/)).not.toBeInTheDocument();
+  });
+
   it("calls onSettingsClick when the unlock banner is clicked", () => {
     const onSettings = vi.fn();
     renderLayout(
