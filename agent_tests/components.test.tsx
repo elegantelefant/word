@@ -18,8 +18,18 @@ const freeAuth = {
   logout: vi.fn(),
 };
 
+const paidAuth = {
+  ...freeAuth,
+  token: "test-token",
+  tier: "paid" as const,
+};
+
 function renderLayout(ui: ReactNode) {
   return render(<AuthContext value={freeAuth}>{ui}</AuthContext>);
+}
+
+function renderLayoutPaid(ui: ReactNode) {
+  return render(<AuthContext value={paidAuth}>{ui}</AuthContext>);
 }
 
 describe("Layout", () => {
@@ -48,6 +58,62 @@ describe("Layout", () => {
 
     expect(screen.getByText("vtest")).toBeInTheDocument();
     expect(screen.getByText("Free")).toBeInTheDocument();
+  });
+
+  it("shows the unlock banner for free tier", () => {
+    renderLayout(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    expect(screen.getByText("Unlock all features — Sign in")).toBeInTheDocument();
+  });
+
+  it("hides the unlock banner for paid tier", () => {
+    renderLayoutPaid(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    expect(screen.queryByText("Unlock all features — Sign in")).not.toBeInTheDocument();
+  });
+
+  it("says Upgrade rather than Sign in for signed-in free users", () => {
+    render(
+      <AuthContext value={{ ...freeAuth, token: "trial-token" }}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+
+    expect(screen.getByText("Unlock all features — Upgrade")).toBeInTheDocument();
+  });
+
+  it("hides the banner while auth is still loading", () => {
+    render(
+      <AuthContext value={{ ...freeAuth, loading: true }}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+
+    expect(screen.queryByText(/Unlock all features/)).not.toBeInTheDocument();
+  });
+
+  it("calls onSettingsClick when the unlock banner is clicked", () => {
+    const onSettings = vi.fn();
+    renderLayout(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={onSettings}>
+        <div />
+      </Layout>,
+    );
+
+    fireEvent.click(screen.getByText("Unlock all features — Sign in"));
+    expect(onSettings).toHaveBeenCalledOnce();
   });
 
   it("calls onTabChange when free tab clicked", () => {

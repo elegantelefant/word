@@ -40,6 +40,23 @@ describe("useAuthProvider", () => {
     expect(result.current.tier).toBe("free");
   });
 
+  it("starts not-loading when there is no saved token", () => {
+    const { result } = renderHook(() => useAuthProvider());
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("starts in a loading state when a saved token exists", async () => {
+    const { getSavedToken } = await import("@/api/auth");
+    const { getMe } = await import("@/api/account");
+    vi.mocked(getSavedToken).mockReturnValue("saved-tok");
+    // Never resolves, so we can observe the initial render rather than the
+    // state after loadUser settles.
+    vi.mocked(getMe).mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useAuthProvider());
+    expect(result.current.loading).toBe(true);
+  });
+
   it("loads saved token on mount", async () => {
     const { getSavedToken } = await import("@/api/auth");
     const { getMe } = await import("@/api/account");

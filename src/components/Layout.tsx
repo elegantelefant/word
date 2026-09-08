@@ -29,7 +29,7 @@ interface LayoutProps {
 }
 
 export function Layout({ activeTab, onTabChange, onSettingsClick, children }: LayoutProps) {
-  const { tier } = useAuth();
+  const { tier, token, loading } = useAuth();
 
   return (
     <div className="flex h-screen flex-col">
@@ -46,6 +46,20 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
           <SettingsIcon />
         </button>
       </header>
+
+      {!loading && tier !== "paid" && (
+        <button
+          onClick={onSettingsClick}
+          className="flex w-full items-center justify-center gap-1 border-b border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 transition-colors hover:bg-blue-100"
+        >
+          <LockIcon />
+          <span>
+            {token
+              ? "Unlock all features — Upgrade"
+              : "Unlock all features — Sign in"}
+          </span>
+        </button>
+      )}
 
       <nav className="flex border-b border-gray-200">
         {TABS.map((tab) => {
