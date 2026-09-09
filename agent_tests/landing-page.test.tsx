@@ -1,5 +1,6 @@
 // ABOUTME: Tests for the browser landing page shown outside Office.
-// ABOUTME: Covers the explanatory copy and install links, not the mount decision.
+// ABOUTME: Covers the explanatory copy and install links; the mount decision
+// ABOUTME: is tested separately in mount-decision.test.ts.
 
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";

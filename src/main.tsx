@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { LandingPage } from "./components/LandingPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { chooseComponent } from "./lib/mount-decision";
 import "./index.css";
 
 const mount = (Component: typeof App | typeof LandingPage) => {
@@ -20,18 +21,15 @@ const mount = (Component: typeof App | typeof LandingPage) => {
   );
 };
 
-// Office.js loaded via CDN in index.html
+// Office.js is loaded from the CDN in index.html, so `typeof Office` is defined
+// in a plain browser tab too — and onReady fires there with host null. The host
+// is what actually distinguishes a task pane from someone opening the URL.
 if (typeof Office !== "undefined") {
-  Office.onReady(() => mount(App));
-} else if (import.meta.env.DEV) {
-  // Dev browser: render the app so `pnpm dev` stays usable without sideloading.
-  mount(App);
-} else if (window.top !== window.self) {
-  // Framed but Office.js missing — likely the CDN script failed inside Word.
-  // Render the app rather than telling an installed user to install it.
-  mount(App);
+  Office.onReady((info: { host: unknown; platform: unknown }) => {
+    mount(chooseComponent(info.host, import.meta.env.DEV) === "app" ? App : LandingPage);
+  });
 } else {
-  // Someone opened the Cloud Run URL directly. The task pane can't work here,
-  // so show install instructions instead of a UI that fails on first click.
-  mount(LandingPage);
+  // Office.js failed to load. Inside Word that's a CDN problem, not a reason to
+  // tell an installed user to install it, so render the app.
+  mount(App);
 }
