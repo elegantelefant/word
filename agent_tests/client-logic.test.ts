@@ -87,7 +87,7 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
-  it("uses statusText when response body is unreadable", async () => {
+  it("uses a safe message when response body is unreadable", async () => {
     const res = new Response(null, { status: 502, statusText: "Bad Gateway" });
     vi.spyOn(res, "text").mockRejectedValueOnce(new Error("body stream already read"));
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(res);
@@ -97,7 +97,9 @@ describe("apiFetch — error semantics", () => {
       expect.fail("Should throw");
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
-      expect((err as ApiError).message).toBe("Bad Gateway");
+      expect((err as ApiError).message).toBe(
+        "Something went wrong while contacting Elefant. Please try again.",
+      );
     }
   });
 

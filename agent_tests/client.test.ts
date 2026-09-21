@@ -105,4 +105,42 @@ describe("apiFetch", () => {
       expect(err).toBe(abort);
     }
   });
+  it("does not expose raw response bodies for unexpected API errors", async () => {
+    const internalDetails =
+      "SECRET_INTERNAL_DETAIL: DatabaseError at /app/database.ts:82";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(internalDetails, {
+        status: 500,
+        statusText: "Internal Server Error",
+      }),
+    );
+
+    try {
+      await apiFetch("/review", "token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(500);
+      expect((err as ApiError).message).not.toContain(internalDetails);
+    }
+  });
+
+  it("converts invalid JSON in a successful response into an ApiError", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html>Proxy error</html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      }),
+    );
+
+    try {
+      await apiFetch("/review", "token");
+      expect.fail("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(200);
+      expect((err as ApiError).message).not.toContain("Proxy error");
+    }
+  });
 });

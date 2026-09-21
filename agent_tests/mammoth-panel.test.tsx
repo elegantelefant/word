@@ -155,15 +155,18 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
-  it("shows error when list load fails", async () => {
+  it("uses a safe message when response body is unreadable", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("Server Error", { status: 500 }));
 
     renderWithAuth(paidAuth);
 
     await waitFor(() => {
-      expect(screen.getByText(/Server Error/)).toBeInTheDocument();
-    });
+      expect(
+        screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Server Error/)).not.toBeInTheDocument();
+      });
   });
 
   it("shows request description when present", async () => {

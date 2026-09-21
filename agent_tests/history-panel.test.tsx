@@ -97,7 +97,10 @@ describe("HistoryPanel — paid tier (API history)", () => {
     renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Server Error/)).toBeInTheDocument();
+      expect(
+          screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Server Error/)).not.toBeInTheDocument();
     });
   });
 });
