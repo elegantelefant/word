@@ -4,6 +4,7 @@
 import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/types/api";
 import { apiFetch } from "./client";
 import { pollForResult } from "@/lib/polling";
+import { z } from "zod";
 
 export interface FullAnalysisResult {
   review?: ReviewResponse;
@@ -40,7 +41,7 @@ export async function reviewPaid(
   const body: ReviewRequest = { text, instructions, context };
   const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body });
   const result = await pollForResult(job.job_id, token);
-  return (result.result as unknown as ReviewResponse) ?? { summary: "No result returned.", issues: [] };
+  return parsePaidReviewResult(result.result);
 }
 
 /** Polls a job until completed, returns the result payload. */
@@ -65,9 +66,35 @@ export async function runFullAnalysis(text: string, token: string, signal?: Abor
   ]);
 
   const results: FullAnalysisResult = {};
-  results.review = reviewResult.result as unknown as ReviewResponse;
+  results.review = parsePaidReviewResult(reviewResult.result);
   if (researchResult?.result) {
     results.research = researchResult.result as unknown as { report: string };
   }
   return results;
+}
+
+const paidReviewResponseSchema = z.object({
+  summary: z.string(),
+  issues: z
+    .array(
+      z.object({
+        message: z.string(),
+        kind: z
+          .enum(["risk", "ambiguity", "missing", "style", "other"])
+          .optional(),
+        location: z.string().nullable().optional(),
+        suggestion: z.string().nullable().optional(),
+      }),
+    )
+    .optional(),
+});
+
+function parsePaidReviewResult(value: unknown): ReviewResponse {
+  const parsed = paidReviewResponseSchema.safeParse(value);
+
+  if (!parsed.success) {
+    throw new Error("Elefant returned an invalid review result.");
+  }
+
+  return parsed.data;
 }

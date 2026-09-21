@@ -29,6 +29,37 @@ describe("reviewPaid", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  it("rejects a completed job result with an invalid review shape", async () => {
+    const jobCreated = {
+      job_id: "r-invalid",
+      poll_url: "/jobs/r-invalid",
+      status: "queued",
+    };
+    const jobCompleted = {
+      id: "r-invalid",
+      type: "review",
+      status: "completed",
+      created_at: "2025-01-01",
+    };
+    const malformedResult = {
+      id: "r-invalid",
+      status: "completed",
+      result: {
+        summary: "Looks good",
+        issues: "not-an-array",
+      },
+    };
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify(jobCreated)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(jobCompleted)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(malformedResult)));
+
+    await expect(
+      reviewPaid("Some legal text", "token"),
+    ).rejects.toThrow("Elefant returned an invalid review result.");
+  });
+
   it("passes instructions and context to the API", async () => {
     const jobCreated = { job_id: "r2", poll_url: "/jobs/r2", status: "queued" };
     const jobCompleted = { id: "r2", type: "review", status: "completed", created_at: "2025-01-01" };
@@ -64,25 +95,116 @@ describe("runFullAnalysis", () => {
   it("fires review + research in parallel and returns both", async () => {
     const reviewJob = { job_id: "rev1", poll_url: "/jobs/rev1", status: "queued" };
     const researchJob = { job_id: "res1", poll_url: "/jobs/res1", status: "queued" };
-    const revCompleted = { id: "rev1", type: "review", status: "completed", created_at: "2025-01-01" };
-    const resCompleted = { id: "res1", type: "research", status: "completed", created_at: "2025-01-01" };
-    const revResult = { id: "rev1", status: "completed", result: { summary: "Review OK", issues: [] } };
-    const resResult = { id: "res1", status: "completed", result: { report: "Research report" } };
+
+    const reviewCompleted = {
+      id: "rev1",
+      type: "review",
+      status: "completed",
+      created_at: "2025-01-01",
+    };
+
+    const researchCompleted = {
+      id: "res1",
+      type: "research",
+      status: "completed",
+      created_at: "2025-01-01",
+    };
+
+    const reviewResult = {
+      id: "rev1",
+      status: "completed",
+      result: { summary: "Review OK", issues: [] },
+    };
+
+    const researchResult = {
+      id: "res1",
+      status: "completed",
+      result: { report: "Research report" },
+    };
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url.includes("/review") && !url.includes("jobs")) return new Response(JSON.stringify(reviewJob));
-      if (url.includes("/research") && !url.includes("jobs")) return new Response(JSON.stringify(researchJob));
-      if (url.includes("/jobs/rev1/result")) return new Response(JSON.stringify(revResult));
-      if (url.includes("/jobs/res1/result")) return new Response(JSON.stringify(resResult));
-      if (url.includes("/jobs/rev1")) return new Response(JSON.stringify(revCompleted));
-      if (url.includes("/jobs/res1")) return new Response(JSON.stringify(resCompleted));
+
+      if (url.includes("/review") && !url.includes("jobs")) {
+        return new Response(JSON.stringify(reviewJob));
+      }
+
+      if (url.includes("/research") && !url.includes("jobs")) {
+        return new Response(JSON.stringify(researchJob));
+      }
+
+      if (url.includes("/jobs/rev1/result")) {
+        return new Response(JSON.stringify(reviewResult));
+      }
+
+      if (url.includes("/jobs/res1/result")) {
+        return new Response(JSON.stringify(researchResult));
+      }
+
+      if (url.includes("/jobs/rev1")) {
+        return new Response(JSON.stringify(reviewCompleted));
+      }
+
+      if (url.includes("/jobs/res1")) {
+        return new Response(JSON.stringify(researchCompleted));
+      }
+
       return new Response("Not found", { status: 404 });
     });
 
     const result = await runFullAnalysis("Legal text", "token");
+
     expect(result.review?.summary).toBe("Review OK");
     expect(result.research?.report).toBe("Research report");
+  });
+  it("rejects an invalid review result during full analysis", async () => {
+    const reviewJob = {
+      job_id: "rev-invalid",
+      poll_url: "/jobs/rev-invalid",
+      status: "queued",
+    };
+
+    const reviewCompleted = {
+      id: "rev-invalid",
+      type: "review",
+      status: "completed",
+      created_at: "2025-01-01",
+    };
+
+    const malformedResult = {
+      id: "rev-invalid",
+      status: "completed",
+      result: {
+        summary: "Looks good",
+        issues: "not-an-array",
+      },
+    };
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url.includes("/review") && !url.includes("jobs")) {
+        return new Response(JSON.stringify(reviewJob));
+      }
+
+      if (url.includes("/research")) {
+        return new Response("Not implemented", { status: 501 });
+      }
+
+      if (url.includes("/jobs/rev-invalid/result")) {
+        return new Response(JSON.stringify(malformedResult));
+      }
+
+      if (url.includes("/jobs/rev-invalid")) {
+        return new Response(JSON.stringify(reviewCompleted));
+      }
+
+      return new Response("Not found", { status: 404 });
+    });
+
+    await expect(runFullAnalysis("Legal text", "token")).rejects.toThrow(
+      "Elefant returned an invalid review result.",
+    );
   });
 
   it("handles research endpoint failure gracefully", async () => {
