@@ -29,9 +29,10 @@ const PRIORITIES: { value: RequestPriority; label: string }[] = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
   pending: "bg-yellow-100 text-yellow-700",
+  assigned: "bg-blue-100 text-blue-700",
   in_progress: "bg-blue-100 text-blue-700",
+  awaiting_review: "bg-purple-100 text-purple-700",
   completed: "bg-green-100 text-green-700",
   failed: "bg-red-100 text-red-700",
   cancelled: "bg-gray-100 text-gray-500",
@@ -127,7 +128,7 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
     setError(null);
     try {
       await createLegalRequest(
-        { request_type: requestType, title, description: description || undefined, priority },
+        { requestType, title, description: description || undefined, priority },
         token,
       );
       onCreated();
@@ -214,7 +215,7 @@ function RequestList({ requests, loading }: { requests: LegalRequest[]; loading:
             </span>
           </div>
           <div className="mt-1 flex gap-2 text-[10px] text-gray-400">
-            <span>{req.request_type}</span>
+            <span>{req.requestType}</span>
             <span>{req.priority}</span>
           </div>
           {req.description && (

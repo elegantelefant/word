@@ -1,7 +1,7 @@
-// ABOUTME: Jobs API — list and poll async jobs for the current user.
+// ABOUTME: Jobs API — list async jobs for the current user.
 // ABOUTME: Used by Full Analysis panel and History panel.
 
-import type { Job, JobResult } from "@/types/api";
+import type { Job } from "@/types/api";
 import { apiFetch } from "./client";
 
 export async function listJobs(
@@ -15,8 +15,4 @@ export async function listJobs(
   const qs = params.toString();
   const res = await apiFetch<{ jobs: Job[] }>(`/jobs${qs ? `?${qs}` : ""}`, token);
   return res.jobs;
-}
-
-export async function getJobResult(jobId: string, token: string): Promise<JobResult> {
-  return apiFetch<JobResult>(`/jobs/${jobId}/result`, token);
 }

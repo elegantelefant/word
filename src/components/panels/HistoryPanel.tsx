@@ -68,7 +68,7 @@ function ApiHistory({ token }: { token: string }) {
             <StatusBadge status={job.status} />
           </div>
           <div className="mt-0.5 flex gap-2 text-[10px] text-gray-400">
-            <span>{formatDate(job.created_at)}</span>
+            <span>{formatDate(job.createdAt)}</span>
             {job.query && <span className="line-clamp-1">{job.query}</span>}
           </div>
         </div>

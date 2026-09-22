@@ -2,7 +2,7 @@
 // ABOUTME: Free tier uses ADK-JS + Gemini in-browser; paid tier uses Elefant API with job polling.
 
 import { useState } from "react";
-import type { ReviewResponse, ReviewIssue, IssueKind } from "@/types/api";
+import type { ReviewResponse, ReviewIssue } from "@/types/api";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
@@ -12,13 +12,19 @@ import { addToLocalHistory } from "@/lib/history";
 
 type Scope = "selection" | "document";
 
-const SEVERITY_COLORS: Record<IssueKind, string> = {
+// category is a freeform string per the contract (ReviewIssueResult.category), not a
+// closed enum — known values get a color, anything else falls back to gray.
+const CATEGORY_COLORS: Record<string, string> = {
   risk: "bg-red-100 text-red-700",
   ambiguity: "bg-yellow-100 text-yellow-700",
   missing: "bg-orange-100 text-orange-700",
   style: "bg-blue-100 text-blue-700",
   other: "bg-gray-100 text-gray-600",
 };
+
+function categoryColor(category: string): string {
+  return CATEGORY_COLORS[category] ?? "bg-gray-100 text-gray-600";
+}
 
 export function ReviewPanel() {
   const { settings } = useSettings();
@@ -168,21 +174,26 @@ function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert:
 }
 
 function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: string) => void }) {
-  const kind = issue.kind ?? "other";
+  const category = issue.category || "other";
   return (
     <div className="rounded-md border border-gray-200 p-2.5">
       <div className="mb-1 flex items-start gap-1.5">
-        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${SEVERITY_COLORS[kind]}`}>
-          {kind}
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${categoryColor(category)}`}>
+          {category}
         </span>
-        <p className="flex-1 text-xs text-gray-700">{issue.message}</p>
+        {issue.severity && (
+          <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+            {issue.severity}
+          </span>
+        )}
+        <p className="flex-1 text-xs text-gray-700">{issue.description}</p>
       </div>
-      {issue.location && <p className="text-[10px] italic text-gray-400">"{issue.location}"</p>}
-      {issue.suggestion && (
+      {issue.clauseReference && <p className="text-[10px] italic text-gray-400">"{issue.clauseReference}"</p>}
+      {issue.recommendation && (
         <div className="mt-1.5 flex items-start gap-1">
-          <p className="flex-1 text-xs text-green-700">{issue.suggestion}</p>
+          <p className="flex-1 text-xs text-green-700">{issue.recommendation}</p>
           <button
-            onClick={() => onInsert(issue.suggestion!)}
+            onClick={() => onInsert(issue.recommendation)}
             className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
           >
             Insert

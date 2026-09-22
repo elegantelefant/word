@@ -1,7 +1,7 @@
 // ABOUTME: Review API — dispatches to ADK-JS agent in-browser (free) or Elefant API (paid).
 // ABOUTME: Free tier uses Gemini via BYOK key; paid path creates a job and polls for results.
 
-import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/types/api";
+import type { JobCreated, JobResult, ReviewRequest, ReviewResponse, ResearchRequest } from "@/types/api";
 import { apiFetch } from "./client";
 import { pollForResult } from "@/lib/polling";
 
@@ -21,11 +21,16 @@ export async function reviewFree(
   const result = await runReview(apiKey, model, text, instructions);
   return {
     summary: result.summary,
+    // Mechanical mapping onto the contract's ReviewIssueResult shape: the agent has no
+    // notion of severity or source filename, so those are left blank.
     issues: result.issues.map((issue) => ({
-      message: issue.message,
-      kind: issue.kind,
-      location: issue.location ?? null,
-      suggestion: issue.suggestion ?? null,
+      category: issue.kind,
+      severity: "",
+      recommendation: issue.suggestion ?? "",
+      clauseReference: issue.location ?? "",
+      sourceFilename: "",
+      description: issue.message,
+      explanation: "",
     })),
   };
 }
@@ -39,7 +44,7 @@ export async function reviewPaid(
 ): Promise<ReviewResponse> {
   const body: ReviewRequest = { text, instructions, context };
   const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body });
-  const result = await pollForResult(job.job_id, token);
+  const result = await pollForResult(job.jobId, token);
   return (result.result as unknown as ReviewResponse) ?? { summary: "No result returned.", issues: [] };
 }
 
@@ -50,18 +55,18 @@ export async function pollJobResult(jobId: string, token: string, signal?: Abort
 
 /** Full analysis: fires parallel review + research jobs, polls both. */
 export async function runFullAnalysis(text: string, token: string, signal?: AbortSignal): Promise<FullAnalysisResult> {
+  const researchBody: ResearchRequest = {
+    question: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}`,
+  };
+
   const [reviewJob, researchJob] = await Promise.all([
     apiFetch<JobCreated>("/review", token, { method: "POST", body: { text }, signal }),
-    apiFetch<JobCreated>("/research", token, {
-      method: "POST",
-      body: { query: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` },
-      signal,
-    }).catch(() => null),
+    apiFetch<JobCreated>("/research", token, { method: "POST", body: researchBody, signal }).catch(() => null),
   ]);
 
   const [reviewResult, researchResult] = await Promise.all([
-    pollForResult(reviewJob.job_id, token, undefined, undefined, signal),
-    researchJob ? pollForResult(researchJob.job_id, token, undefined, undefined, signal).catch(() => null) : null,
+    pollForResult(reviewJob.jobId, token, undefined, undefined, signal),
+    researchJob ? pollForResult(researchJob.jobId, token, undefined, undefined, signal).catch(() => null) : null,
   ]);
 
   const results: FullAnalysisResult = {};
