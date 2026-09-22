@@ -27,6 +27,10 @@ const MANIFEST = [
   { tsFile: "src/api/clauses.ts", tsType: "Clause", schema: "ClauseResponse", fields: ["id", "name", "content", "category", "tags", "createdAt"] },
   { tsFile: "src/api/mammoth.ts", tsType: "LegalRequest", schema: "LegalRequestResponse", fields: ["id", "requestType", "status", "priority", "title", "description", "category", "result", "error", "createdAt", "updatedAt"] },
   { tsFile: "src/api/mammoth.ts", tsType: "CreateLegalRequest", schema: "LegalRequestCreateRequest", fields: ["requestType", "title", "description", "category", "priority"] },
+  { tsFile: "src/api/jobs.ts", tsType: "JobListResponse", schema: "JobListResponse", fields: ["jobs"] },
+  { tsFile: "src/api/clauses.ts", tsType: "ClauseDatabaseListResponse", schema: "ClauseDatabaseListResponse", fields: ["databases"] },
+  { tsFile: "src/api/clauses.ts", tsType: "ClauseListResponse", schema: "ClauseListResponse", fields: ["clauses"] },
+  { tsFile: "src/api/mammoth.ts", tsType: "LegalRequestListResponse", schema: "LegalRequestListResponse", fields: ["requests", "total"] },
 ];
 
 /** Extracts the top-level field names of `interface <name> { ... }` from TS source. */

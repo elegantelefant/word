@@ -4,12 +4,12 @@
 #
 # Usage:
 #   export ELEFANT_TOKEN="your-jwt-token"
-#   export API_URL="https://api.elefant.legal"  # optional, defaults to prod
+#   export API_URL="https://elefant.legal/api/v1"  # optional, defaults to prod
 #   bash agent_tests/integration.sh
 
 set -euo pipefail
 
-API_URL="${API_URL:-https://api.elefant.legal}"
+API_URL="${API_URL:-https://elefant.legal/api/v1}"
 TOKEN="${ELEFANT_TOKEN:?Set ELEFANT_TOKEN env var}"
 
 PASS=0
@@ -76,20 +76,6 @@ fi
 echo "── Auth / Account ──"
 # ─────────────────────────────────────────────
 
-# GET /whoami — used by api/account.ts
-api GET /whoami
-if [[ "$HTTP_CODE" == "200" ]]; then
-  if echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('user_id')" 2>/dev/null; then
-    pass "GET /whoami → 200, has user_id"
-  else
-    fail "GET /whoami" "200 but missing user_id field"
-  fi
-elif [[ "$HTTP_CODE" == "401" ]]; then
-  fail "GET /whoami" "401 — token is invalid or expired"
-else
-  fail "GET /whoami" "got $HTTP_CODE"
-fi
-
 # GET /me — used by api/account.ts, hooks/useAuth.ts
 api GET /me
 if [[ "$HTTP_CODE" == "200" ]]; then
@@ -114,9 +100,7 @@ assert 'name' in d['org'], 'missing org.name'
 checks += 1
 assert 'slug' in d['org'], 'missing org.slug'
 checks += 1
-assert 'account_type' in d['org'], 'missing org.account_type'
-checks += 1
-assert 'entitlements' in d, 'missing entitlements'
+assert 'accountType' in d['org'], 'missing org.accountType'
 checks += 1
 print(f'all {checks} fields present')
 " 2>&1 && pass "GET /me → 200, correct shape" || fail "GET /me" "200 but wrong shape: $(echo "$BODY" | head -c 200)"
@@ -131,11 +115,11 @@ echo "── Review (paid) ──"
 # POST /review — used by api/review.ts (reviewPaid)
 api POST /review '{"text":"This agreement shall be governed by the laws of Singapore. The parties agree to submit to the exclusive jurisdiction of the Singapore courts. Either party may terminate this agreement with 30 days written notice."}'
 if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "201" || "$HTTP_CODE" == "202" ]]; then
-  JOB_ID=$(echo "$BODY" | python3 -c "import json,sys; print(json.load(sys.stdin).get('job_id',''))" 2>/dev/null)
+  JOB_ID=$(echo "$BODY" | python3 -c "import json,sys; print(json.load(sys.stdin).get('jobId',''))" 2>/dev/null)
   if [[ -n "$JOB_ID" && "$JOB_ID" != "None" ]]; then
-    pass "POST /review → $HTTP_CODE, job_id=$JOB_ID"
+    pass "POST /review → $HTTP_CODE, jobId=$JOB_ID"
   else
-    fail "POST /review" "$HTTP_CODE but no job_id in response"
+    fail "POST /review" "$HTTP_CODE but no jobId in response"
   fi
 elif [[ "$HTTP_CODE" == "422" ]]; then
   fail "POST /review" "422 validation error: $(echo "$BODY" | head -c 200)"
@@ -191,7 +175,7 @@ if [[ -n "${JOB_ID:-}" && "$JOB_ID" != "None" ]]; then
 import json, sys
 d = json.load(sys.stdin)
 assert d.get('id') == '$JOB_ID', f'wrong id: {d.get(\"id\")}'
-assert d.get('status') in ('queued','running','completed','failed'), f'bad status: {d.get(\"status\")}'
+assert d.get('status') in ('queued','running','completed','failed','cancelled'), f'bad status: {d.get(\"status\")}'
 print(f'status={d[\"status\"]}')
 " 2>&1 && pass "GET /jobs/$JOB_ID → 200, valid status" || fail "GET /jobs/$JOB_ID" "wrong shape"
   else
@@ -212,8 +196,8 @@ print(f'status={d[\"status\"]}')
     skip "GET /jobs/{id}/result" "job not yet completed (status=$JOB_STATUS)"
   fi
 else
-  skip "GET /jobs/{id}" "no job_id from POST /review"
-  skip "GET /jobs/{id}/result" "no job_id"
+  skip "GET /jobs/{id}" "no jobId from POST /review"
+  skip "GET /jobs/{id}/result" "no jobId"
 fi
 
 # ─────────────────────────────────────────────

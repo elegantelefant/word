@@ -4,7 +4,7 @@ Repo-level instructions for humans and AI coding agents working on the Elefant W
 
 ## What this is
 
-A Microsoft Word task-pane add-in: a small React SPA that Word loads through Office.js. Two tiers — free BYOK (the user's Gemini key; review runs in the browser via `@google/adk`) and paid (signed-in Elefant accounts; async jobs on `elefant.legal/api/v4`). Static files served by nginx on Cloud Run (`elefant-word`, `us-central1`). Narrative onboarding (`agent_docs/2026-07-20-intern-onboarding.md`) exists only untracked on the laptop — committing it is a follow-up; `agent_docs/2026-03-10-ux-fixes-and-cicd.md` is the issue list the recent PRs work from.
+A Microsoft Word task-pane add-in: a small React SPA that Word loads through Office.js. Two tiers — free BYOK (the user's Gemini key; review runs in the browser via `@google/adk`) and paid (signed-in Elefant accounts; async jobs on `elefant.legal/api/v1`). Static files served by nginx on Cloud Run (`elefant-word`, `us-central1`). Narrative onboarding (`agent_docs/2026-07-20-intern-onboarding.md`) exists only untracked on the laptop — committing it is a follow-up; `agent_docs/2026-03-10-ux-fixes-and-cicd.md` is the issue list the recent PRs work from.
 
 | Path | What |
 |---|---|

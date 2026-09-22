@@ -4,6 +4,10 @@
 import type { Job } from "@/types/api";
 import { apiFetch } from "./client";
 
+interface JobListResponse {
+  jobs: Job[];
+}
+
 export async function listJobs(
   token: string,
   status?: string,
@@ -13,6 +17,6 @@ export async function listJobs(
   if (status) params.set("status", status);
   if (type) params.set("type", type);
   const qs = params.toString();
-  const res = await apiFetch<{ jobs: Job[] }>(`/jobs${qs ? `?${qs}` : ""}`, token);
+  const res = await apiFetch<JobListResponse>(`/jobs${qs ? `?${qs}` : ""}`, token);
   return res.jobs;
 }

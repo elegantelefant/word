@@ -58,8 +58,8 @@ describe("HistoryPanel — free tier (local history)", () => {
 describe("HistoryPanel — paid tier (API history)", () => {
   it("shows loading then API jobs", async () => {
     const jobs = [
-      { id: "j1", type: "review", status: "completed", created_at: "2025-06-01T10:00:00Z" },
-      { id: "j2", type: "research", status: "running", created_at: "2025-06-02T10:00:00Z" },
+      { id: "j1", type: "review", status: "completed", createdAt: "2025-06-01T10:00:00Z" },
+      { id: "j2", type: "research", status: "running", createdAt: "2025-06-02T10:00:00Z" },
     ];
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(

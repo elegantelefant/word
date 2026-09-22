@@ -138,15 +138,12 @@ describe("contract 0.305.0 field pins", () => {
     const reviewJob = { jobId: "rev", pollUrl: "/jobs/rev", status: "queued" };
     const researchJob = { jobId: "res", pollUrl: "/jobs/res", status: "queued" };
 
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    // Assertions must run AFTER the call, on captured requests: an expect that
+    // throws inside the mock becomes a NetworkError that runFullAnalysis's
+    // .catch(() => null) swallows, making the test pass for any body.
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url.includes("/research") && !url.includes("jobs")) {
-        const body = JSON.parse(init!.body as string);
-        expect(body).toHaveProperty("question");
-        expect(body).not.toHaveProperty("query");
-        expect(body.question).toContain("Legal text");
-        return new Response(JSON.stringify(researchJob));
-      }
+      if (url.includes("/research") && !url.includes("jobs")) return new Response(JSON.stringify(researchJob));
       if (url.includes("/review") && !url.includes("jobs")) return new Response(JSON.stringify(reviewJob));
       if (url.includes("/jobs/rev")) return new Response(JSON.stringify({ id: "rev", status: "completed", result: { summary: "ok", issues: [] } }));
       if (url.includes("/jobs/res")) return new Response(JSON.stringify({ id: "res", status: "completed", result: { report: "r" } }));
@@ -154,5 +151,14 @@ describe("contract 0.305.0 field pins", () => {
     });
 
     await runFullAnalysis("Legal text", "token");
+
+    const researchCall = vi.mocked(fetch).mock.calls.find(
+      ([input]) => String(input).includes("/research"),
+    );
+    expect(researchCall).toBeDefined();
+    const body = JSON.parse((researchCall![1] as RequestInit).body as string);
+    expect(body).toHaveProperty("question");
+    expect(body).not.toHaveProperty("query");
+    expect(body.question).toContain("Legal text");
   });
 });
