@@ -72,8 +72,8 @@ describe("FullAnalysisPanel — paid tier", () => {
 
     // POST /review and POST /research
     vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ job_id: "j-review" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ job_id: "j-research" })));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-review" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-research" })));
 
     const { pollForResult } = await import("@/lib/polling");
     vi.mocked(pollForResult)
@@ -104,7 +104,7 @@ describe("FullAnalysisPanel — paid tier", () => {
     vi.mocked(getSelectedText).mockResolvedValue("Enough text for the analysis to proceed without issue.");
 
     vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ job_id: "j-review" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-review" })))
       .mockResolvedValueOnce(new Response("Not Found", { status: 404 }));  // research 404
 
     const { pollForResult } = await import("@/lib/polling");
@@ -146,8 +146,8 @@ describe("FullAnalysisPanel — paid tier", () => {
     vi.mocked(getDocumentBody).mockResolvedValue("Full document body text for comprehensive analysis here.");
 
     vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ job_id: "j1" })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ job_id: "j2" })));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j1" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j2" })));
 
     const { pollForResult } = await import("@/lib/polling");
     vi.mocked(pollForResult)

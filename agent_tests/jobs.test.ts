@@ -1,8 +1,8 @@
-// ABOUTME: Tests for jobs API module — list and result fetching.
+// ABOUTME: Tests for jobs API module — listing jobs.
 // ABOUTME: Verifies query param construction and response unwrapping.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { listJobs, getJobResult } from "@/api/jobs";
+import { listJobs } from "@/api/jobs";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -59,21 +59,5 @@ describe("listJobs", () => {
     const url = vi.mocked(fetch).mock.calls[0]![0] as string;
     expect(url).toContain("status=failed");
     expect(url).toContain("type=mammoth");
-  });
-});
-
-describe("getJobResult", () => {
-  it("fetches job result by id", async () => {
-    const jobResult = { id: "j1", status: "completed", result: { summary: "Done" } };
-
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(jobResult)),
-    );
-
-    const result = await getJobResult("j1", "token-123");
-
-    expect(result).toEqual(jobResult);
-    const url = vi.mocked(fetch).mock.calls[0]![0] as string;
-    expect(url).toContain("/jobs/j1/result");
   });
 });

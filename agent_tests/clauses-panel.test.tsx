@@ -44,7 +44,7 @@ describe("ClausesPanel — paid tier", () => {
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
 
   it("loads databases on mount", async () => {
-    const dbs = [{ id: "db1", name: "Standard Clauses", clause_count: 42 }];
+    const dbs = [{ id: "db1", name: "Standard Clauses", clauseCount: 42 }];
     const clauses = [
       { id: "c1", name: "Indemnity", content: "The party shall indemnify...", category: "Liability" },
       { id: "c2", name: "Force Majeure", content: "Neither party shall be liable...", category: null },
@@ -64,8 +64,8 @@ describe("ClausesPanel — paid tier", () => {
 
   it("shows database selector when multiple databases", async () => {
     const dbs = [
-      { id: "db1", name: "Standard", clause_count: 10 },
-      { id: "db2", name: "Custom", clause_count: 5 },
+      { id: "db1", name: "Standard", clauseCount: 10 },
+      { id: "db2", name: "Custom", clauseCount: 5 },
     ];
 
     vi.spyOn(globalThis, "fetch")
