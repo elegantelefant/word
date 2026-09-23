@@ -98,3 +98,21 @@ listener goes live — before word's W0 migration can target anything concretely
 then, word's only working base remains `elefant.legal/api/v4`, which the field-level
 findings in `2026-09-22-w0-callsite-inventory.md` show is itself badly out of sync with the 0.305.0 shapes on
 several endpoints already in production use.
+
+## Addendum (2026-09-22, after consulting the birepo session)
+
+The ambiguity above is resolved — and the earlier conclusion is superseded. There is
+no public host for bare `/api/v1` and none is planned without an owner decision
+(birepo ALB plan §6). Clients reach the backend through the Nuxt BFF catch-all proxy:
+`https://elefant.legal/api/v4/[...path]` strips `/api/v4` and forwards verbatim, and
+the backend mounts everything under `/api/v1` — so the correct client URL shape is
+`https://elefant.legal/api/v4/api/v1/<path>` (double prefix, by design per
+frontend/apps/nuxt/app/api/custom-fetch.ts). Verified live: `/api/v4/api/v1/me` and
+`/api/v4/api/v1/jobs` both return 401 (exists, auth-gated). `api.elefant.legal`'s
+uniform 403 is Cloud Run IAM (service-to-service only, custom-audience ID tokens) —
+deliberately not public; `api.elefant.com` appears in no config. Staging:
+`https://staging.elefant.legal`, same shape.
+
+Open question moved to #7: the proxy authenticates via BetterAuth session cookie or a
+narrowly-allowlisted `x-api-key`; whether the add-in's Bearer JWT (e.g. from
+`GET /api/auth/stream-token`) passes remains for the staging smoke to verify.
