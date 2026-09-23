@@ -108,11 +108,19 @@ describe("apiFetch — error semantics", () => {
       new Response(
         JSON.stringify({
           error: true,
-          message: "This document type is not supported.",
-          detail: null,
+          upstream_status: 500,
+          error_class: "ServerError",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Internal server error",
+          detail: {
+            traceback: ["SECRET_INTERNAL_TRACE"],
+          },
+          path: "/api/v4/test",
+          request_id: "req-test",
+          retry_after_seconds: null,
         }),
         {
-          status: 400,
+          status: 500,
           headers: { "Content-Type": "application/json" },
         },
       ),
@@ -123,10 +131,10 @@ describe("apiFetch — error semantics", () => {
       expect.fail("Should throw");
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
-      expect((err as ApiError).status).toBe(400);
-      expect((err as ApiError).message).toBe(
-        "This document type is not supported.",
-      );
+      expect((err as ApiError).status).toBe(500);
+      expect((err as ApiError).message).toBe("Internal server error");
+      expect((err as ApiError).message).not.toContain("SECRET_INTERNAL_TRACE");
+      expect((err as ApiError).message).not.toContain("traceback");
     }
   });
 
