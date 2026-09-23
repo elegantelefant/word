@@ -45,7 +45,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", accountType: "professional" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -87,7 +87,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Free User" },
-      org: { id: "o1", name: "Free Org", slug: "free", accountType: "free" },
+      org: { id: "o1", name: "Free Org", slug: "free", accountType: "personal" },
       entitlements: {},
     };
 
@@ -130,9 +130,9 @@ describe("useAuthProvider — state machine", () => {
     saveToken("legacy-shape-token");
 
     // A snake_case account_type — the pre-W0 field name — must NOT be read as tier
-    // signal. Contract's MeOrg only has accountType; a server sending the old shape
-    // (or this add-in regressing to read the old field) should fall through to "paid",
-    // not be silently treated as free.
+    // signal. Contract's MeOrg only has accountType; without positive evidence of a
+    // commercial account, tier falls closed to "free" — paid panels never unlock on
+    // a missing or unrecognised field (staging smoke 2026-09-22).
     const legacyShapedResponse = {
       user: { id: "u1", email: "test@test.com", name: "Legacy Shape User" },
       org: { id: "o1", name: "Org", slug: "org", account_type: "free" },
@@ -148,7 +148,7 @@ describe("useAuthProvider — state machine", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.tier).toBe("paid");
+    expect(result.current.tier).toBe("free");
   });
 
   it("logout clears state and token", async () => {
@@ -156,7 +156,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", accountType: "enterprise" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -183,7 +183,7 @@ describe("useAuthProvider — state machine", () => {
   it("login with token directly loads user", async () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Direct Login" },
-      org: { id: "o1", name: "Org", slug: "org", accountType: "professional" },
+      org: { id: "o1", name: "Org", slug: "org", accountType: "commercial" },
       entitlements: {},
     };
 

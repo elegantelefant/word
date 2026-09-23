@@ -22,13 +22,13 @@ beforeEach(() => {
 
 const PAID_ME = {
   user: { id: "u1", email: "a@b.com", name: "Alice" },
-  org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "pro" },
+  org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "commercial" },
   entitlements: ["review", "clauses"],
 };
 
 const FREE_ME = {
   user: { id: "u2", email: "b@b.com", name: "Bob" },
-  org: { id: "o2", name: "FreeCo", slug: "freeco", accountType: "free" },
+  org: { id: "o2", name: "FreeCo", slug: "freeco", accountType: "personal" },
   entitlements: [],
 };
 
@@ -87,13 +87,13 @@ describe("useAuthProvider", () => {
     expect(result.current.user).toEqual(FREE_ME);
   });
 
-  it("detects trial as free tier", async () => {
-    const trialMe = {
+  it("maps an unrecognised accountType to free, never paid", async () => {
+    const unknownMe = {
       ...PAID_ME,
-      org: { ...PAID_ME.org, accountType: "trial" },
+      org: { ...PAID_ME.org, accountType: "unrecognised-new-type" },
     };
     const { getMe } = await import("@/api/account");
-    vi.mocked(getMe).mockResolvedValue(trialMe);
+    vi.mocked(getMe).mockResolvedValue(unknownMe);
 
     const { result } = renderHook(() => useAuthProvider());
 

@@ -8,10 +8,12 @@ import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
 import { getSavedToken, clearToken, openLoginDialog, saveToken } from "@/api/auth";
 
+// Live accountType vocabulary (verified on staging 2026-09-22): "personal" for
+// unpaid orgs, "commercial" for paying and trialing orgs. Unknown values map to
+// free — never unlock paid panels without positive evidence. Trial detection is
+// impossible from MeOrg alone (no subscription status field); tracked in #21.
 function determineTier(me: MeResponse): Tier {
-  const accountType = me.org.accountType?.toLowerCase();
-  if (accountType === "free" || accountType === "trial") return "free";
-  return "paid";
+  return me.org.accountType?.toLowerCase() === "commercial" ? "paid" : "free";
 }
 
 export function useAuthProvider(): AuthContextValue {
