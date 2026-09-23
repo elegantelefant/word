@@ -64,15 +64,29 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       throw new ApiError(429, "Too many requests. Please wait a moment.");
     }
 
+    let message = "Something went wrong while contacting Elefant. Please try again.";
+
+    try {
+      const body: unknown = JSON.parse(await res.text());
+
+      if (
+        typeof body === "object" &&
+        body !== null &&
+        "detail" in body &&
+        typeof body.detail === "string"
+      ) {
+        message = body.detail;
+      }
+    } catch {
+      // Non-JSON and unreadable bodies use the safe generic message.
+    }
+
     console.error("Elefant API request failed", {
       path,
       status: res.status,
     });
 
-    throw new ApiError(
-      res.status,
-      "Something went wrong while contacting Elefant. Please try again.",
-    );
+    throw new ApiError(res.status, message);
   }
 
   const text = await res.text();

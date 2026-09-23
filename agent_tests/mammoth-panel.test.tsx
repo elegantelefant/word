@@ -155,7 +155,7 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
-  it("uses a safe message when response body is unreadable", async () => {
+  it("shows error when list load fails", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("Server Error", { status: 500 }));
 

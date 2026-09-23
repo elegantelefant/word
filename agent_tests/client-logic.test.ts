@@ -87,10 +87,10 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
-  it("uses a safe message when response body is unreadable", async () => {
-    const res = new Response(null, { status: 502, statusText: "Bad Gateway" });
-    vi.spyOn(res, "text").mockRejectedValueOnce(new Error("body stream already read"));
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(res);
+  it("uses a safe message for a non-JSON error body", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Server Error", { status: 502 }),
+    );
 
     try {
       await apiFetch("/test", "token");
@@ -99,6 +99,29 @@ describe("apiFetch — error semantics", () => {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).message).toBe(
         "Something went wrong while contacting Elefant. Please try again.",
+      );
+    }
+  });
+
+  it("uses a meaningful string detail from a JSON error response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ detail: "This document type is not supported." }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    try {
+      await apiFetch("/test", "token");
+      expect.fail("Should throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(400);
+      expect((err as ApiError).message).toBe(
+        "This document type is not supported.",
       );
     }
   });
