@@ -103,6 +103,31 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
+  it("uses a meaningful message from a JSON 4xx error response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: true,
+          upstream_status: 400,
+          error_class: "ClientError",
+          code: "BAD_REQUEST",
+          message: "This document type is not supported.",
+          path: "/api/v4/test",
+          request_id: "req-test",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(apiFetch("/test", "token")).rejects.toMatchObject({
+      status: 400,
+      message: "This document type is not supported.",
+    });
+  });
+
   it("uses a meaningful message from a JSON error response", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
@@ -110,14 +135,13 @@ describe("apiFetch — error semantics", () => {
           error: true,
           upstream_status: 500,
           error_class: "ServerError",
-          code: "INTERNAL_SERVER_ERROR",
+          code: "INTERNAL_ERROR",
           message: "Internal server error",
           detail: {
             traceback: ["SECRET_INTERNAL_TRACE"],
           },
           path: "/api/v4/test",
           request_id: "req-test",
-          retry_after_seconds: null,
         }),
         {
           status: 500,
