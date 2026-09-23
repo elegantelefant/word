@@ -103,10 +103,14 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
-  it("uses a meaningful string detail from a JSON error response", async () => {
+  it("uses a meaningful message from a JSON error response", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ detail: "This document type is not supported." }),
+        JSON.stringify({
+          error: true,
+          message: "This document type is not supported.",
+          detail: null,
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },

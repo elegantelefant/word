@@ -72,10 +72,10 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       if (
         typeof body === "object" &&
         body !== null &&
-        "detail" in body &&
-        typeof body.detail === "string"
+        "message" in body &&
+        typeof body.message === "string"
       ) {
-        message = body.detail;
+        message = body.message;
       }
     } catch {
       // Non-JSON and unreadable bodies use the safe generic message.
