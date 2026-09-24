@@ -56,11 +56,13 @@ function TabContent({ activeTab }: { activeTab: TabId }) {
   return (
     <>
       <TabPane active={activeTab === "review"}><ReviewPanel /></TabPane>
-      <TabPane active={activeTab === "clauses"}><ClausesPanel /></TabPane>
-      <TabPane active={activeTab === "mammoth"}><MammothPanel /></TabPane>
+      <TabPane active={activeTab === "clauses"}><ClausesPanel /></TabPane>      <TabPane active={activeTab === "mammoth"}>
+        <MammothPanel active={activeTab === "mammoth"} />
+      </TabPane>
       <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
-      <TabPane active={activeTab === "history"}><HistoryPanel /></TabPane>
-    </>
+      <TabPane active={activeTab === "history"}>
+        <HistoryPanel active={activeTab === "history"} />
+      </TabPane>    </>
   );
 }
 

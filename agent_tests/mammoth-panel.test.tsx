@@ -12,8 +12,8 @@ vi.mock("@/lib/office", () => ({
   getSelectedText: vi.fn(),
 }));
 
-const noop = () => {};
-const noopAsync = async () => {};
+const noop = () => { };
+const noopAsync = async () => { };
 
 function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
   const auth: AuthContextValue = {
@@ -41,6 +41,48 @@ describe("MammothPanel — free tier", () => {
 });
 
 describe("MammothPanel — paid tier", () => {
+
+    it("refreshes requests when the user clicks Refresh", async () => {
+    const pendingRequest = {
+      id: "r1",
+      request_type: "review",
+      status: "pending",
+      priority: "normal",
+      title: "Review NDA",
+    };
+    const completedRequest = {
+      ...pendingRequest,
+      status: "completed",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ requests: [pendingRequest], total: 1 }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ requests: [completedRequest], total: 1 }),
+        ),
+      );
+
+    renderWithAuth(paidAuth);
+
+    await waitFor(() => {
+      expect(screen.getByText("pending")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh requests" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("completed")).toBeInTheDocument();
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
 
   it("loads request list on mount", async () => {
@@ -60,6 +102,67 @@ describe("MammothPanel — paid tier", () => {
     expect(screen.getByText("IP Research")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
+  });
+
+  it("refetches requests when the panel becomes active again", async () => {
+    const pendingRequest = {
+      id: "r1",
+      request_type: "review",
+      status: "pending",
+      priority: "normal",
+      title: "Review NDA",
+    };
+    const completedRequest = {
+      ...pendingRequest,
+      status: "completed",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ requests: [pendingRequest], total: 1 }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ requests: [completedRequest], total: 1 }),
+        ),
+      );
+
+    const auth: AuthContextValue = {
+      ...AUTH_INITIAL,
+      tier: "paid",
+      token: "tok-123",
+      login: noopAsync,
+      logout: noop,
+    };
+
+    const { rerender } = render(
+      <AuthContext value={auth}>
+        <MammothPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("pending")).toBeInTheDocument();
+    });
+
+    rerender(
+      <AuthContext value={auth}>
+        <MammothPanel active={false} />
+      </AuthContext>,
+    );
+    rerender(
+      <AuthContext value={auth}>
+        <MammothPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("completed")).toBeInTheDocument();
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it("shows empty state when no requests", async () => {

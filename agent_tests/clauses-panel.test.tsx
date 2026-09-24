@@ -12,8 +12,8 @@ vi.mock("@/lib/office", () => ({
   insertText: vi.fn(),
 }));
 
-const noop = () => {};
-const noopAsync = async () => {};
+const noop = () => { };
+const noopAsync = async () => { };
 
 function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
   const auth: AuthContextValue = {
@@ -42,7 +42,6 @@ describe("ClausesPanel — free tier", () => {
 
 describe("ClausesPanel — paid tier", () => {
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
-
   it("loads databases on mount", async () => {
     const dbs = [{ id: "db1", name: "Standard Clauses", clause_count: 42 }];
     const clauses = [
@@ -62,6 +61,131 @@ describe("ClausesPanel — paid tier", () => {
     expect(screen.getByText("Force Majeure")).toBeInTheDocument();
   });
 
+  it("refetches databases and clauses when the panel becomes active again", async () => {
+    const database = {
+      id: "db1",
+      name: "Standard Clauses",
+      clause_count: 1,
+    };
+    const initialClause = {
+      id: "c1",
+      name: "Initial Clause",
+      content: "Initial text",
+    };
+    const refreshedClause = {
+      id: "c2",
+      name: "Refreshed Clause",
+      content: "Updated text",
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ databases: [database] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ clauses: [initialClause] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ databases: [database] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ clauses: [refreshedClause] })),
+      );
+
+    const auth = {
+      ...AUTH_INITIAL,
+      tier: "paid" as const,
+      token: "tok-123",
+      login: noopAsync,
+      logout: noop,
+    };
+    const { rerender } = render(
+      <AuthContext value={auth}>
+        <ClausesPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Initial Clause")).toBeInTheDocument();
+    });
+    rerender(
+      <AuthContext value={auth}>
+        <ClausesPanel active={false} />
+      </AuthContext>,
+    );
+    rerender(
+      <AuthContext value={auth}>
+        <ClausesPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Refreshed Clause")).toBeInTheDocument();
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+  });
+    it("refreshes databases and clauses when the user clicks Refresh", async () => {
+    const database = {
+      id: "db1",
+      name: "Standard Clauses",
+      clause_count: 1,
+    };
+
+    const initialClause = {
+      id: "c1",
+      name: "Initial Clause",
+      content: "Initial text",
+    };
+
+    const refreshedClause = {
+      id: "c2",
+      name: "Refreshed Clause",
+      content: "Updated text",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ databases: [database] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ clauses: [initialClause] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ databases: [database] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ clauses: [refreshedClause] })),
+      );
+
+    const auth = {
+      ...AUTH_INITIAL,
+      tier: "paid" as const,
+      token: "tok-123",
+      login: noopAsync,
+      logout: noop,
+    };
+
+    render(
+      <AuthContext value={auth}>
+        <ClausesPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Initial Clause")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh clauses" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Refreshed Clause")).toBeInTheDocument();
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+  });
   it("shows database selector when multiple databases", async () => {
     const dbs = [
       { id: "db1", name: "Standard", clause_count: 10 },

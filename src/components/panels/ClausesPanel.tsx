@@ -1,23 +1,29 @@
 // ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
 // ABOUTME: Paid-only feature; shows UpgradePrompt for free-tier users.
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { insertText, isOfficeReady } from "@/lib/office";
-
-export function ClausesPanel() {
+import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
   if (tier !== "paid" || !token) {
     return <UpgradePrompt feature="Clause Search" />;
   }
 
-  return <ClausesContent token={token} />;
+  return <ClausesContent token={token} active={active} />;
 }
 
-function ClausesContent({ token }: { token: string }) {
+function ClausesContent({
+  token,
+  active,
+}: {
+  token: string;
+  active: boolean;
+}) {
   const [databases, setDatabases] = useState<ClauseDatabase[]>([]);
   const [activeDb, setActiveDb] = useState<string | null>(null);
   const [clauses, setClauses] = useState<Clause[]>([]);
@@ -26,32 +32,50 @@ function ClausesContent({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
+    const refreshDatabases = useCallback(async () => {
     setLoading(true);
-    listClauseDatabases(token)
-      .then((dbs) => {
-        setDatabases(dbs);
-        if (dbs[0]) setActiveDb(dbs[0].id);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    setError(null);
+
+    try {
+      const dbs = await listClauseDatabases(token);
+      setDatabases(dbs);
+      if (dbs[0]) {
+        setActiveDb((current) => current ?? dbs[0]!.id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load databases");
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
-  useEffect(() => {
+  const refreshClauses = useCallback(async () => {
     if (!activeDb) return;
+
     setLoading(true);
-    listClauses(activeDb, token)
-      .then(setClauses)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    setError(null);
+
+    try {
+      setClauses(await listClauses(activeDb, token));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load clauses");
+    } finally {
+      setLoading(false);
+    }
   }, [activeDb, token]);
+  const refreshAll = useCallback(async () => {
+    await refreshDatabases();
+    await refreshClauses();
+  }, [refreshDatabases, refreshClauses]);
+  useRefreshOnActive(active, refreshDatabases);
+  useRefreshOnActive(active && Boolean(activeDb), refreshClauses);
 
   const filtered = search
     ? clauses.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.content.toLowerCase().includes(search.toLowerCase()),
-      )
+      (c) =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.content.toLowerCase().includes(search.toLowerCase()),
+    )
     : clauses;
 
   async function handleInsert(text: string) {
@@ -65,6 +89,17 @@ function ClausesContent({ token }: { token: string }) {
 
   return (
     <div className="space-y-3">
+            <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => void refreshAll()}
+          disabled={loading}
+          aria-label="Refresh clauses"
+          className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+        >
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
       {/* Database selector (if multiple) */}
       {databases.length > 1 && (
         <select
