@@ -80,10 +80,10 @@ function ClausesContent({
 
   const filtered = search
     ? clauses.filter(
-      (c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.content.toLowerCase().includes(search.toLowerCase()),
-    )
+        (c) =>
+          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          c.content.toLowerCase().includes(search.toLowerCase()),
+      )
     : clauses;
 
   async function handleInsert(text: string) {

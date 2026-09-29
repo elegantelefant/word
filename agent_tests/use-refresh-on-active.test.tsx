@@ -1,3 +1,6 @@
+// ABOUTME: Tests for useRefreshOnActive — refresh on tab activation.
+// ABOUTME: Guards against inline callbacks retriggering the refresh.
+
 import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
