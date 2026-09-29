@@ -17,7 +17,7 @@ vi.mock("@/lib/polling", () => ({
 }));
 
 describe("reviewFree", () => {
-  it("calls runReview and maps result to ReviewResponse", async () => {
+  it("calls runReview and maps result to the review view (suggestion stays insertable, no verdict)", async () => {
     const { runReview } = await import("@/lib/agent");
     vi.mocked(runReview).mockResolvedValueOnce({
       summary: "Contract looks solid.",
@@ -36,7 +36,8 @@ describe("reviewFree", () => {
       description: "Vague termination",
       category: "ambiguity",
       clauseReference: "Section 3",
-      recommendation: "Add specifics",
+      recommendation: "",
+      suggestion: "Add specifics",
       severity: "",
       sourceFilename: "",
       explanation: "",

@@ -1,8 +1,14 @@
 // ABOUTME: Review API — dispatches to ADK-JS agent in-browser (free) or Elefant API (paid).
 // ABOUTME: Free tier uses Gemini via BYOK key; paid path creates a job and polls for results.
 
-import type { JobCreated, JobResult, ReviewRequest, ReviewResponse, ResearchRequest } from "@/types/api";
+import type { JobCreated, JobResult, ReviewIssue, ReviewRequest, ReviewResponse, ResearchRequest } from "@/types/api";
 import { apiFetch } from "./client";
+
+// View-layer extension of the contract shapes: `suggestion` exists only for
+// free-tier (BYOK agent) results and is the only insertable text. Paid issues
+// carry none until monorepo#4449 ships replacement text.
+export type ReviewIssueView = ReviewIssue & { suggestion?: string };
+export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
 import { pollForResult } from "@/lib/polling";
 
 export interface FullAnalysisResult {
@@ -16,21 +22,25 @@ export async function reviewFree(
   apiKey: string,
   model: string,
   instructions?: string,
-): Promise<ReviewResponse> {
+): Promise<ReviewView> {
   const { runReview } = await import("@/lib/agent");
   const result = await runReview(apiKey, model, text, instructions);
   return {
     summary: result.summary,
-    // Mechanical mapping onto the contract's ReviewIssueResult shape: the agent has no
-    // notion of severity or source filename, so those are left blank.
+    // Mapping onto the contract's ReviewIssueResult shape plus the view-only
+    // `suggestion`. The paid tier's `recommendation` is a verdict enum
+    // (accept|negotiate|reject), NOT insertable text — the free agent's
+    // suggestion must not be shoehorned into it (monorepo#4449 tracks a real
+    // replacement-text field for the paid tier).
     issues: result.issues.map((issue) => ({
       category: issue.kind,
       severity: "",
-      recommendation: issue.suggestion ?? "",
+      recommendation: "",
       clauseReference: issue.location ?? "",
       sourceFilename: "",
       description: issue.message,
       explanation: "",
+      suggestion: issue.suggestion || undefined,
     })),
   };
 }

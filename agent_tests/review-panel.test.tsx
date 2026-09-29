@@ -135,9 +135,10 @@ describe("ReviewPanel — free-tier review", () => {
           category: "ambiguity",
           severity: "",
           clauseReference: "Section 3.1",
-          recommendation: "Add 30-day notice period",
+          recommendation: "",
           sourceFilename: "",
           explanation: "",
+          suggestion: "Add 30-day notice period",
         },
         {
           description: "Missing force majeure",
@@ -174,6 +175,40 @@ describe("ReviewPanel — free-tier review", () => {
 
     // Check issues count header
     expect(screen.getByText("Issues (2)")).toBeInTheDocument();
+  });
+
+  it("renders a paid verdict as a badge with no Insert button", async () => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Clause text.");
+
+    const { reviewPaid } = await import("@/api/review");
+    vi.mocked(reviewPaid).mockResolvedValue({
+      summary: "One issue found.",
+      issues: [
+        {
+          description: "Indemnity is uncapped",
+          category: "risk",
+          severity: "high",
+          clauseReference: "Section 9",
+          recommendation: "negotiate",
+          sourceFilename: "",
+          explanation: "Liability should be capped at fees paid.",
+        },
+      ],
+    });
+
+    renderPanel({}, { tier: "paid", token: "tok" });
+    fireEvent.click(screen.getByText("Review Document"));
+
+    await waitFor(() => {
+      expect(screen.getByText("One issue found.")).toBeInTheDocument();
+    });
+    // The verdict enum renders as a badge; nothing on a paid issue is insertable
+    // until monorepo#4449 ships replacement text.
+    expect(screen.getByText("negotiate")).toBeInTheDocument();
+    expect(screen.getByText("Liability should be capped at fees paid.")).toBeInTheDocument();
+    expect(screen.queryByText("Insert")).not.toBeInTheDocument();
   });
 
   it("saves to local history on free-tier review", async () => {

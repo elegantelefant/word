@@ -2,11 +2,10 @@
 // ABOUTME: Free tier uses ADK-JS + Gemini in-browser; paid tier uses Elefant API with job polling.
 
 import { useState } from "react";
-import type { ReviewResponse, ReviewIssue } from "@/types/api";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
-import { reviewFree, reviewPaid } from "@/api/review";
+import { reviewFree, reviewPaid, type ReviewIssueView, type ReviewView } from "@/api/review";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
 
@@ -34,7 +33,7 @@ export function ReviewPanel() {
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ReviewResponse | null>(null);
+  const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
   const inOffice = isOfficeReady();
@@ -60,7 +59,7 @@ export function ReviewPanel() {
         return;
       }
 
-      const response =
+      const response: ReviewView =
         tier === "paid" && token
           ? await reviewPaid(text, token, instructions || undefined)
           : await reviewFree(text, settings.apiKey, settings.model, instructions || undefined);
@@ -153,7 +152,7 @@ export function ReviewPanel() {
   );
 }
 
-function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert: (text: string) => void }) {
+function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
@@ -173,8 +172,9 @@ function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert:
   );
 }
 
-function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: string) => void }) {
+function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (text: string) => void }) {
   const category = issue.category || "other";
+  const suggestion = issue.suggestion;
   return (
     <div className="rounded-md border border-gray-200 p-2.5">
       <div className="mb-1 flex items-start gap-1.5">
@@ -189,11 +189,20 @@ function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: s
         <p className="flex-1 text-xs text-gray-700">{issue.description}</p>
       </div>
       {issue.clauseReference && <p className="text-[10px] italic text-gray-400">"{issue.clauseReference}"</p>}
+      {issue.explanation && <p className="mt-1 text-xs text-gray-600">{issue.explanation}</p>}
+      {/* Paid tier: recommendation is a verdict enum (accept|negotiate|reject), never
+          insertable text — rendered as a badge. Insert exists only for the free
+          agent's suggestion until monorepo#4449 ships real replacement text. */}
       {issue.recommendation && (
+        <span className="mt-1.5 inline-block rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-green-700">
+          {issue.recommendation}
+        </span>
+      )}
+      {suggestion && (
         <div className="mt-1.5 flex items-start gap-1">
-          <p className="flex-1 text-xs text-green-700">{issue.recommendation}</p>
+          <p className="flex-1 text-xs text-green-700">{suggestion}</p>
           <button
-            onClick={() => onInsert(issue.recommendation)}
+            onClick={() => onInsert(suggestion)}
             className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
           >
             Insert
