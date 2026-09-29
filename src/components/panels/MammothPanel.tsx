@@ -13,6 +13,7 @@ import {
 } from "@/api/mammoth";
 import { getSelectedText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 const REQUEST_TYPES: { value: RequestType; label: string }[] = [
   { value: "review", label: "Review" },
@@ -54,18 +55,22 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const begin = useLatestRequest();
+
   const refresh = useCallback(async () => {
+    const isLatest = begin();
     setLoading(true);
     setError(null);
 
     try {
-      setRequests(await listLegalRequests(token));
+      const result = await listLegalRequests(token);
+      if (isLatest()) setRequests(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load requests");
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load requests");
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
-  }, [token]);
+  }, [token, begin]);
 
   useRefreshOnActive(active, refresh, [token]);
 

@@ -1,12 +1,13 @@
 // ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
 // ABOUTME: Paid-only feature; shows UpgradePrompt for free-tier users.
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
@@ -30,32 +31,34 @@ function ClausesContent({
   const [search, setSearch] = useState("");
   const [loadingDatabases, setLoadingDatabases] = useState(false);
   const [loadingClauses, setLoadingClauses] = useState(false);
-  const clausesRequest = useRef(0);
+  const beginDatabases = useLatestRequest();
+  const beginClauses = useLatestRequest();
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const refreshDatabases = useCallback(async () => {
+    const isLatest = beginDatabases();
     setLoadingDatabases(true);
     setError(null);
 
     try {
       const dbs = await listClauseDatabases(token);
+      if (!isLatest()) return;
       setDatabases(dbs);
       if (dbs[0]) {
         setActiveDb((current) => current ?? dbs[0]!.id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load databases");
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load databases");
     } finally {
-      setLoadingDatabases(false);
+      if (isLatest()) setLoadingDatabases(false);
     }
-  }, [token]);
+  }, [token, beginDatabases]);
 
   const refreshClauses = useCallback(async () => {
     if (!activeDb) return;
 
-    const request = ++clausesRequest.current;
-    const isLatest = () => request === clausesRequest.current;
+    const isLatest = beginClauses();
     setLoadingClauses(true);
     setError(null);
 
@@ -67,10 +70,9 @@ function ClausesContent({
     } finally {
       if (isLatest()) setLoadingClauses(false);
     }
-  }, [activeDb, token]);
+  }, [activeDb, token, beginClauses]);
   const refreshAll = useCallback(async () => {
-    await refreshDatabases();
-    await refreshClauses();
+    await Promise.all([refreshDatabases(), refreshClauses()]);
   }, [refreshDatabases, refreshClauses]);
   useRefreshOnActive(active, refreshDatabases, [token]);
   useRefreshOnActive(active && Boolean(activeDb), refreshClauses, [activeDb, token]);

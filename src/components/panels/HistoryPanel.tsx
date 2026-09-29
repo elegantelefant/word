@@ -8,6 +8,7 @@ import { getLocalHistory } from "@/lib/history";
 import type { LocalHistoryItem } from "@/lib/history";
 import type { Job } from "@/types/api";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 export function HistoryPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
@@ -50,18 +51,22 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const begin = useLatestRequest();
+
   const refresh = useCallback(async () => {
+    const isLatest = begin();
     setLoading(true);
     setError(null);
 
     try {
-      setJobs(await listJobs(token));
+      const result = await listJobs(token);
+      if (isLatest()) setJobs(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load history");
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load history");
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
-  }, [token]);
+  }, [token, begin]);
 
   useRefreshOnActive(active, refresh, [token]);
 

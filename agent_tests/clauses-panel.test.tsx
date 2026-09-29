@@ -416,7 +416,7 @@ describe("ClausesPanel — paid tier", () => {
   });
 });
 
-describe("ClausesPanel — overlapping loads", () => {
+describe("ClausesPanel — reloads and races", () => {
   const dbs = [
     { id: "db1", name: "Standard", clause_count: 1 },
     { id: "db2", name: "Custom", clause_count: 1 },
@@ -451,6 +451,34 @@ describe("ClausesPanel — overlapping loads", () => {
     return view;
   }
 
+  it("keeps the selected database's clauses when Refresh resolves after a switch", async () => {
+    await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "db2" } });
+    await settle("/db2/clauses", clausesFor("db2"));
+    await settle(dbList, { databases: dbs });
+    while (pending.some((p) => p.url.includes("/clauses"))) {
+      const url = pending.find((p) => p.url.includes("/clauses"))!.url;
+      await settle(url, clausesFor(url.includes("db1") ? "db1" : "db2"));
+    }
+
+    expect(screen.getByText("db2 Clause")).toBeInTheDocument();
+    expect(screen.queryByText("db1 Clause")).not.toBeInTheDocument();
+  });
+
+  it("shows a failed database reload after Refresh even when clauses load", async () => {
+    await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
+    await waitFor(() => expect(pending.some((p) => p.url.endsWith(dbList))).toBe(true));
+    const [dbLoad] = pending.splice(pending.findIndex((p) => p.url.endsWith(dbList)), 1);
+    await act(async () => { dbLoad!.resolve(new Response("Server Error", { status: 500 })); });
+    await settle("/db1/clauses", clausesFor("db1"));
+
+    expect(
+      screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+    ).toBeInTheDocument();
+  });
+
   it("reloads with the new token when the token changes", async () => {
     const view = await mount("tok-1");
     view.rerender(<AuthContext value={authFor("tok-2")}><ClausesPanel active /></AuthContext>);
@@ -458,5 +486,21 @@ describe("ClausesPanel — overlapping loads", () => {
     await waitFor(() => {
       expect(pending.map((p) => p.auth)).toContain("Bearer tok-2");
     });
+  });
+
+  it("keeps Refresh disabled while a superseded databases load is still in flight", async () => {
+    const view = await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
+    view.rerender(<AuthContext value={authFor("tok-1")}><ClausesPanel active={false} /></AuthContext>);
+    view.rerender(<AuthContext value={authFor("tok-1")}><ClausesPanel active /></AuthContext>);
+    await waitFor(() => expect(pending.filter((p) => p.url.endsWith(dbList))).toHaveLength(2));
+
+    await settle(dbList, { databases: dbs });
+    while (pending.some((p) => p.url.includes("/clauses"))) {
+      await settle("/db1/clauses", clausesFor("db1"));
+    }
+
+    expect(pending.some((p) => p.url.endsWith(dbList))).toBe(true);
+    expect(screen.getByRole("button", { name: "Refresh clauses" })).toBeDisabled();
   });
 });
