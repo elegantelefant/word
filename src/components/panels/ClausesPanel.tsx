@@ -1,7 +1,7 @@
 // ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
 // ABOUTME: Paid-only feature; shows UpgradePrompt for free-tier users.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
@@ -28,12 +28,14 @@ function ClausesContent({
   const [activeDb, setActiveDb] = useState<string | null>(null);
   const [clauses, setClauses] = useState<Clause[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+  const [loadingClauses, setLoadingClauses] = useState(false);
+  const clausesRequest = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
     const refreshDatabases = useCallback(async () => {
-    setLoading(true);
+    setLoadingDatabases(true);
     setError(null);
 
     try {
@@ -45,22 +47,25 @@ function ClausesContent({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load databases");
     } finally {
-      setLoading(false);
+      setLoadingDatabases(false);
     }
   }, [token]);
 
   const refreshClauses = useCallback(async () => {
     if (!activeDb) return;
 
-    setLoading(true);
+    const request = ++clausesRequest.current;
+    const isLatest = () => request === clausesRequest.current;
+    setLoadingClauses(true);
     setError(null);
 
     try {
-      setClauses(await listClauses(activeDb, token));
+      const result = await listClauses(activeDb, token);
+      if (isLatest()) setClauses(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load clauses");
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load clauses");
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoadingClauses(false);
     }
   }, [activeDb, token]);
   const refreshAll = useCallback(async () => {
@@ -69,6 +74,7 @@ function ClausesContent({
   }, [refreshDatabases, refreshClauses]);
   useRefreshOnActive(active, refreshDatabases);
   useRefreshOnActive(active && Boolean(activeDb), refreshClauses, activeDb);
+  const loading = loadingDatabases || loadingClauses;
 
   const filtered = search
     ? clauses.filter(

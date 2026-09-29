@@ -232,6 +232,84 @@ describe("ClausesPanel — paid tier", () => {
     });
   });
 
+  it("ignores a superseded database's clauses that resolve late", async () => {
+    const dbs = [
+      { id: "db1", name: "Standard", clause_count: 1 },
+      { id: "db2", name: "Custom", clause_count: 1 },
+    ];
+    let resolveStale!: (response: Response) => void;
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: dbs })))
+      .mockReturnValueOnce(new Promise<Response>((resolve) => { resolveStale = resolve; }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [{ id: "c2", name: "Custom Clause", content: "b" }] })));
+
+    renderWithAuth(paidAuth);
+
+    await waitFor(() => {
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "db2" } });
+    await waitFor(() => {
+      expect(screen.getByText("Custom Clause")).toBeInTheDocument();
+    });
+
+    resolveStale(new Response(JSON.stringify({ clauses: [{ id: "c1", name: "Standard Clause", content: "a" }] })));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Refresh clauses" })).toBeEnabled();
+    });
+    expect(screen.queryByText("Standard Clause")).not.toBeInTheDocument();
+  });
+
+  it("keeps Refresh disabled until every in-flight load settles", async () => {
+    let resolveClauses!: (response: Response) => void;
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: [{ id: "db1" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: [{ id: "db1" }] })))
+      .mockReturnValueOnce(new Promise<Response>((resolve) => { resolveClauses = resolve; }));
+
+    const auth = {
+      ...AUTH_INITIAL,
+      tier: "paid" as const,
+      token: "tok-123",
+      login: noopAsync,
+      logout: noop,
+    };
+    const { rerender } = render(
+      <AuthContext value={auth}>
+        <ClausesPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("No clauses in this database.")).toBeInTheDocument();
+    });
+    rerender(
+      <AuthContext value={auth}>
+        <ClausesPanel active={false} />
+      </AuthContext>,
+    );
+    rerender(
+      <AuthContext value={auth}>
+        <ClausesPanel active />
+      </AuthContext>,
+    );
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByRole("button", { name: "Refresh clauses" })).toBeDisabled();
+
+    resolveClauses(new Response(JSON.stringify({ clauses: [] })));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Refresh clauses" })).toBeEnabled();
+    });
+  });
+
   it("filters clauses by search text", async () => {
     const clauses = [
       { id: "c1", name: "Indemnity", content: "indemnify and hold harmless" },
