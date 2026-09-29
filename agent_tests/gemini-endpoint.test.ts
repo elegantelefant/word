@@ -4,10 +4,13 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 
 // The adk shim also loads llm_agent.js, whose web build Node cannot parse
-// ('super' in an async generator), so load only the real Gemini model.
+// ('super' in an async generator). Load the real Gemini model; the agent and
+// runner only hold their config, so the review runner's model is reachable.
 vi.mock("@google/adk", async () => ({
   // @ts-expect-error — deep import from the web build, no type declarations
   Gemini: (await import("../node_modules/@google/adk/dist/web/models/google_llm.js")).Gemini,
+  LlmAgent: class { constructor(public config: { model: unknown }) {} },
+  InMemoryRunner: class { constructor(public config: { agent: unknown }) {} },
 }));
 
 const GOOGLE_ENDPOINT = "https://generativelanguage.googleapis.com/";
@@ -15,8 +18,10 @@ const PROXY_ENDPOINT = "https://proxy.example.test/google";
 
 async function geminiBaseUrl(): Promise<string> {
   vi.resetModules();
-  const { createGemini } = await import("@/lib/gemini");
-  return createGemini("test-key").apiClient.apiClient.getBaseUrl();
+  const { createReviewRunner } = await import("@/lib/agent");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const runner = createReviewRunner("test-key") as any;
+  return runner.config.agent.config.model.apiClient.apiClient.getBaseUrl();
 }
 
 describe("free-tier Gemini endpoint", () => {
