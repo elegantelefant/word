@@ -65,7 +65,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               . Stored locally, never sent to Elefant.
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-              On unpaid keys, Google may use prompts to improve its products (
+              Outside the EEA, Switzerland and UK, Google uses prompts and responses sent with unpaid keys to improve its
+              products, and human reviewers may read them (
               <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener" className="text-blue-500 hover:underline">
                 Gemini API terms
               </a>

@@ -71,9 +71,9 @@ describe("SettingsPanel", () => {
     expect(link.getAttribute("href")).toBe("https://aistudio.google.com/apikey");
   });
 
-  it("warns that unpaid keys may have prompts used by Google, linking the terms", () => {
+  it("warns that Google uses prompts sent with unpaid keys, linking the terms", () => {
     renderSettings();
-    expect(screen.getByText(/On unpaid keys, Google may use prompts to improve its products/)).toBeInTheDocument();
+    expect(screen.getByText(/Google uses prompts and responses sent with unpaid keys to improve its products, and human reviewers may read them/)).toBeInTheDocument();
     expect(screen.getByText("Gemini API terms").getAttribute("href")).toBe("https://ai.google.dev/gemini-api/terms");
   });
 
