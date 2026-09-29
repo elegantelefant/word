@@ -34,7 +34,7 @@ function ClausesContent({
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-    const refreshDatabases = useCallback(async () => {
+  const refreshDatabases = useCallback(async () => {
     setLoadingDatabases(true);
     setError(null);
 
@@ -95,7 +95,7 @@ function ClausesContent({
 
   return (
     <div className="space-y-3">
-            <div className="flex justify-end">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => void refreshAll()}

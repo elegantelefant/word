@@ -65,7 +65,8 @@ function TabContent({ activeTab }: { activeTab: TabId }) {
       <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
       <TabPane active={activeTab === "history"}>
         <HistoryPanel active={activeTab === "history"} />
-      </TabPane>    </>
+      </TabPane>
+    </>
   );
 }
 

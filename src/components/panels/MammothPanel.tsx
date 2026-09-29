@@ -89,7 +89,7 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
         >
           + New
         </button>
-                <button
+        <button
           type="button"
           onClick={() => void refresh()}
           disabled={loading}
