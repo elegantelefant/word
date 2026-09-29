@@ -65,9 +65,17 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
 
   useRefreshOnActive(active, refresh);
 
-  if (loading) return <p className="text-xs text-gray-400">Loading history...</p>;
-  if (error) return <p className="text-xs text-red-600">{error}</p>;
-  if (jobs.length === 0) return <EmptyState message="No jobs found in your account." />;
+  if (loading && jobs.length === 0) {
+    return <p className="text-xs text-gray-400">Loading history...</p>;
+  }
+
+  if (error && jobs.length === 0) {
+    return <p className="text-xs text-red-600">{error}</p>;
+  }
+
+  if (!loading && jobs.length === 0) {
+    return <EmptyState message="No jobs found in your account." />;
+  }
 
   return (
     <div className="space-y-2">
@@ -82,7 +90,11 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
-      </div>      {jobs.map((job) => (
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {jobs.map((job) => (
         <div key={job.id} className="rounded border border-gray-200 p-2">
           <div className="flex items-start justify-between">
             <span className="text-xs font-medium text-gray-700">{job.type}</span>
