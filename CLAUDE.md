@@ -79,7 +79,7 @@ Not yet in place: a `scripts/premerge-check.sh` that runs the block above on the
 
 ## Asking the owner (owner-gated protocol)
 
-Owner-gated = only the owner can do it: money, prod/IAM/credentials (Cloud Run deploy, the Cloud Build trigger, the GCP project), privacy defaults (#10: BYOK keys transit `gateway.pydantic.dev`), product and design taste, contract ownership (#9). Everything else: decide, state the decision in the PR, ship; a reviewer can overturn.
+Owner-gated = only the owner can do it: money, prod/IAM/credentials (Cloud Run deploy, the Cloud Build trigger, the GCP project), privacy defaults (#10: BYOK traffic goes direct to Google; a `VITE_GEMINI_BASE_URL` proxy is opt-in only), product and design taste, contract ownership (#9). Everything else: decide, state the decision in the PR, ship; a reviewer can overturn.
 
 When you do need him: one comment on the issue under `## OWNER QUESTIONS <date>`, numbered, each with the question, your recommendation, what it blocks, and the default you will take if there is no answer by a stated date. Batch — one such comment per issue per day. Slack carries a one-line pointer to it, never the question itself. Whoever receives the answer pastes it verbatim into the issue body under `## OWNER DECISION <date>` in the same turn. Never re-ask a decided question; never "raise it with Ian" out of band and leave the issue silent (rumble#17: "raised with Ian rather than addressed here" — nothing on the issue).
 
