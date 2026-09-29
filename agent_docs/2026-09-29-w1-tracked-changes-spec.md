@@ -13,7 +13,7 @@ the plan, non-negotiable:
 
 Builds on the **PR #27** shapes (`ReviewIssue` = `category / severity / recommendation /
 clauseReference / sourceFilename / description / explanation`, mirroring contract
-`ReviewIssueResult`, elefant-api 0.305.0). #27 is still DRAFT; W1 implementation is
+`ReviewIssueResult`, elefant-api 0.312.0 — schema unchanged since 0.305.0). #27 is still DRAFT; W1 implementation is
 gated on it merging. Spec only — no code changes in this PR. All API claims cite
 learn.microsoft.com (fetched 2026-09-29) or OfficeDev/office-js issues.
 
@@ -107,7 +107,8 @@ returns a `Word.Comment`, WordApi 1.4 [R4][R13].
 
 - **Why `TrackAll`:** `TrackMineOnly` is not reliably applied (#6450); for one
   add-in-authored insertion the two are equivalent. If `prior` is already `TrackAll`,
-  skip both writes.
+  the initial set is skipped; the `finally` restore still runs and rewrites the same
+  value (a harmless no-op, keeping the diagram's single exit path).
 - **Anchor before mutate:** the quote is located *before* touching the tracking mode, so
   a miss never flips the user's setting.
 - **Comments** (`addComment(quote, text)` where text = `description`, plus `explanation`
@@ -231,19 +232,25 @@ Comment fallback when `insertComment` throws `NotAllowed` on the web (#6746):
 |---|---|---|
 | `src/lib/office.ts` | `insertText(text, "replace" \| "end")` replaces **whatever the user has selected**, with the user's own tracking mode as-is (untracked unless they have Track Changes on — the code never touches the mode) | Remove `insertText`. Add `capabilities()` (§1 detection), `showQuote(quote)`, `applyTracked(quote \| "selection", replacement)`, `applyUntracked(…)` (only reachable from the §4 confirm), `addComment(quote, text)`. Keep `getSelectedText`, `getDocumentBody`, `isOfficeReady`. |
 | `src/lib/quote-anchor.ts` (new) | — | `norm`, `findQuote`, `escapeSearch`. Pure; no `Word` global. |
-| `src/components/panels/ReviewPanel.tsx` | `handleInsert(text)` → `insertText(text)`; `ReviewResults`/`IssueCard` take `onInsert(text: string)`; post-#27 `IssueCard` passes `issue.recommendation` | `handleInsert` → `handleApply(issue, action)`; `ReviewResults`/`IssueCard` take the issue + `capabilities`; `IssueCard` renders Show / Apply / Comment / fallback per §4; banner in `ReviewPanel`. Quote = `issue.clauseReference`; comment text = `issue.description` (+ `explanation`); `recommendation` renders as a verdict badge only. |
+| `src/components/panels/ReviewPanel.tsx` | `handleInsert(text)` → `insertText(text)`; `ReviewResults`/`IssueCard` take `onInsert(text: string)`; at #27's current head `IssueCard` renders `recommendation` as a badge and inserts only the free tier's `suggestion` | `handleInsert` → `handleApply(issue, action)`; `ReviewResults`/`IssueCard` take the issue + `capabilities`; `IssueCard` renders Show / Apply / Comment / fallback per §4; banner in `ReviewPanel`. Quote = `issue.clauseReference`; comment text = `issue.description` (+ `explanation`); `recommendation` renders as a verdict badge only. |
 | `src/lib/agent.ts` (`reviewSchema`) | `location`: "Where in the text this issue appears"; `suggestion`: "Suggested fix or improvement" | `location` described as "exact verbatim quote copied from the text, ≤ 1 sentence"; add optional `replacement` ("verbatim replacement for the quoted text"). Prompt says never give offsets. |
 | `src/api/review.ts` (`reviewFree`, #27) | maps `location → clauseReference`; `suggestion` stays a word-local view field (never mapped into `recommendation`) | carries the insertable text; `replacement` from monorepo#4449 later. |
-| `src/components/panels/ClausesPanel.tsx:8,60` | also imports and calls `insertText` to insert a selected clause | route through `applyTracked("selection", clauseText)` so clause insertion is tracked too; update the mocks in `agent_tests/clauses-panel.test.tsx:12` and `agent_tests/app.test.tsx:23`. |
+| `src/components/panels/ClausesPanel.tsx:8,90` (line post-#28) | also imports and calls `insertText` to insert a selected clause at the cursor | clause insertion is USER-CHOSEN content at the user's own cursor — a different consent model from AI edits, so §3.4's "no insertion at the cursor" rule does not apply to it. On 1.4 hosts route through a tracked insert-at-cursor (`applyTracked("cursor", clauseText)`); below 1.4 keep today's plain insert (user-initiated, not confirmation-gated). Update the mocks in `agent_tests/clauses-panel.test.tsx:12` and `agent_tests/app.test.tsx:23`. Acceptance: on a 1.4 host an inserted clause appears as a tracked insertion; below 1.4 behaviour is unchanged. |
 | `agent_tests/review-panel.test.tsx` | mocks `insertText` | mocks the new office functions; asserts no mutating call without anchor or confirm. |
 
 **Gap that changes scope — paid path.** Contract `ReviewResult.issues` is
 `ReviewIssueResult` (`clauseReference`, `recommendation`, …), not `ReviewIssue`
 (`location`, `suggestion`) — the latter exists in the spec but `ReviewResult` doesn't
 use it. `clauseReference` reads as a section label (#27's own fixture uses
-`"Section 3.1"`), and `recommendation` is a **verdict enum** — `"accept" | "negotiate" |
-"reject"` (monorepo `domain_types.py:175`, `prompts.py:1502`) — so it is never comment or
-replacement text; render it as a badge only. Comment text comes from `description` +
+`"Section 3.1"`), and `recommendation` is a **verdict** — `"accept" | "negotiate" |
+"reject"` by backend convention on a plain string (monorepo `domain_types.py:175`,
+`prompts.py:1502`; the contract does not enum it — treat unknown or blank as no-verdict)
+— so it is never comment or replacement text; render it as a badge only. **Partial
+escape hatch that narrows monorepo#4449:** `ReviewResult.clauseDeviations[]`
+(`ClauseDeviationResult`) already carries `documentLanguage` (a quote or near-quote)
+and `suggestedText` (replacement language), so deviation-type findings can get tracked
+replacement TODAY via the §2 flow with `documentLanguage` as the anchor quote; #4449
+remains needed only for the `issues[]` array. Comment text comes from `description` +
 `explanation`. On the paid tier: comments anchor only if the backend puts a verbatim
 quote in `clauseReference`; tracked replacement needs a new contract field
 (filed: monorepo#4449, verbatim `targetQuote` + `replacement`). Both are
