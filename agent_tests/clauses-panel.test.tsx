@@ -479,6 +479,20 @@ describe("ClausesPanel — reloads and races", () => {
     ).toBeInTheDocument();
   });
 
+  it("falls back to the first database when the selected one disappears on refresh", async () => {
+    await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
+    await settle(dbList, { databases: [dbs[1], { id: "db3", name: "Other", clause_count: 0 }] });
+    while (pending.some((p) => p.url.includes("/db1/clauses"))) {
+      await settle("/db1/clauses", clausesFor("db1"));
+    }
+    await settle("/db2/clauses", clausesFor("db2"));
+
+    expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe("db2");
+    expect(screen.getByText("db2 Clause")).toBeInTheDocument();
+    expect(screen.queryByText("db1 Clause")).not.toBeInTheDocument();
+  });
+
   it("reloads with the new token when the token changes", async () => {
     const view = await mount("tok-1");
     view.rerender(<AuthContext value={authFor("tok-2")}><ClausesPanel active /></AuthContext>);

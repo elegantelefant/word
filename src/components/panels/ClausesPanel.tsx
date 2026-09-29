@@ -45,9 +45,9 @@ function ClausesContent({
       const dbs = await listClauseDatabases(token);
       if (!isLatest()) return;
       setDatabases(dbs);
-      if (dbs[0]) {
-        setActiveDb((current) => current ?? dbs[0]!.id);
-      }
+      setActiveDb((current) =>
+        dbs.some((db) => db.id === current) ? current : (dbs[0]?.id ?? null),
+      );
     } catch (err) {
       if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load databases");
     } finally {
