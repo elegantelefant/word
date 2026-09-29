@@ -6,8 +6,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { HistoryPanel } from "@/components/panels/HistoryPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 
-const noop = () => { };
-const noopAsync = async () => { };
+const noop = () => {};
+const noopAsync = async () => {};
 
 function makeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {

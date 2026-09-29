@@ -12,6 +12,7 @@ import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 export function HistoryPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
+
   return tier === "paid" && token
     ? <ApiHistory token={token} active={active} />
     : <LocalHistory active={active} />;

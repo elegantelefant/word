@@ -12,8 +12,8 @@ vi.mock("@/lib/office", () => ({
   insertText: vi.fn(),
 }));
 
-const noop = () => { };
-const noopAsync = async () => { };
+const noop = () => {};
+const noopAsync = async () => {};
 
 function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
   const auth: AuthContextValue = {
@@ -42,6 +42,7 @@ describe("ClausesPanel — free tier", () => {
 
 describe("ClausesPanel — paid tier", () => {
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
+
   it("loads databases on mount", async () => {
     const dbs = [{ id: "db1", name: "Standard Clauses", clause_count: 42 }];
     const clauses = [

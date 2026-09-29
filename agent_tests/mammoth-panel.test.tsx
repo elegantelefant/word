@@ -12,8 +12,8 @@ vi.mock("@/lib/office", () => ({
   getSelectedText: vi.fn(),
 }));
 
-const noop = () => { };
-const noopAsync = async () => { };
+const noop = () => {};
+const noopAsync = async () => {};
 
 function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
   const auth: AuthContextValue = {

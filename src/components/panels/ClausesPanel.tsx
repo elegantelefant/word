@@ -8,6 +8,7 @@ import { listClauseDatabases, listClauses, type Clause, type ClauseDatabase } fr
 import { insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
+
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
