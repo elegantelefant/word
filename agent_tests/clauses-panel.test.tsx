@@ -493,6 +493,21 @@ describe("ClausesPanel — reloads and races", () => {
     expect(screen.queryByText("db1 Clause")).not.toBeInTheDocument();
   });
 
+  it("keeps a failed database reload visible when the user then switches database", async () => {
+    await mount();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
+    await waitFor(() => expect(pending.some((p) => p.url.endsWith(dbList))).toBe(true));
+    const [dbLoad] = pending.splice(pending.findIndex((p) => p.url.endsWith(dbList)), 1);
+    await act(async () => { dbLoad!.resolve(new Response("Server Error", { status: 500 })); });
+    await settle("/db1/clauses", clausesFor("db1"));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "db2" } });
+    await settle("/db2/clauses", clausesFor("db2"));
+
+    expect(
+      screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+    ).toBeInTheDocument();
+  });
+
   it("reloads with the new token when the token changes", async () => {
     const view = await mount("tok-1");
     view.rerender(<AuthContext value={authFor("tok-2")}><ClausesPanel active /></AuthContext>);

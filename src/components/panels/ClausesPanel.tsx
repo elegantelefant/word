@@ -33,13 +33,14 @@ function ClausesContent({
   const [loadingClauses, setLoadingClauses] = useState(false);
   const beginDatabases = useLatestRequest();
   const beginClauses = useLatestRequest();
+  const [databasesError, setDatabasesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const refreshDatabases = useCallback(async () => {
     const isLatest = beginDatabases();
     setLoadingDatabases(true);
-    setError(null);
+    setDatabasesError(null);
 
     try {
       const dbs = await listClauseDatabases(token);
@@ -49,7 +50,7 @@ function ClausesContent({
         dbs.some((db) => db.id === current) ? current : (dbs[0]?.id ?? null),
       );
     } catch (err) {
-      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load databases");
+      if (isLatest()) setDatabasesError(err instanceof Error ? err.message : "Failed to load databases");
     } finally {
       if (isLatest()) setLoadingDatabases(false);
     }
@@ -133,6 +134,7 @@ function ClausesContent({
       />
 
       {loading && <p className="text-xs text-gray-400">Loading clauses...</p>}
+      {databasesError && <p className="text-xs text-red-600">{databasesError}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       {/* Results */}
