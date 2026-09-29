@@ -67,7 +67,7 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
     }
   }, [token]);
 
-  useRefreshOnActive(active, refresh);
+  useRefreshOnActive(active, refresh, [token]);
 
   return (
     <div className="space-y-3">

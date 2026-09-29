@@ -2,7 +2,7 @@
 // ABOUTME: Verifies upgrade prompt for free tier and paid-tier data flow.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ClausesPanel } from "@/components/panels/ClausesPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
@@ -412,6 +412,51 @@ describe("ClausesPanel — paid tier", () => {
         screen.getByText("Something went wrong while contacting Elefant. Please try again."),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Server Error|500/)).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe("ClausesPanel — overlapping loads", () => {
+  const dbs = [
+    { id: "db1", name: "Standard", clause_count: 1 },
+    { id: "db2", name: "Custom", clause_count: 1 },
+  ];
+  const dbList = "/clause-databases";
+  const clausesFor = (db: string) => ({ clauses: [{ id: db, name: `${db} Clause`, content: db }] });
+  const authFor = (token: string) => ({ ...AUTH_INITIAL, tier: "paid" as const, token, login: noopAsync, logout: noop });
+
+  type Pending = { url: string; auth: string | null; resolve: (r: Response) => void };
+  let pending: Pending[];
+
+  beforeEach(() => {
+    pending = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) =>
+      new Promise<Response>((resolve) => {
+        pending.push({ url: String(input), auth: new Headers(init?.headers).get("Authorization"), resolve });
+      }),
+    );
+  });
+
+  async function settle(match: string, body: unknown) {
+    await waitFor(() => expect(pending.some((p) => p.url.includes(match))).toBe(true));
+    const [p] = pending.splice(pending.findIndex((q) => q.url.includes(match)), 1);
+    await act(async () => { p!.resolve(new Response(JSON.stringify(body))); });
+  }
+
+  async function mount(token = "tok-1") {
+    const view = render(<AuthContext value={authFor(token)}><ClausesPanel active /></AuthContext>);
+    await settle(dbList, { databases: dbs });
+    await settle("/db1/clauses", clausesFor("db1"));
+    await screen.findByText("db1 Clause");
+    return view;
+  }
+
+  it("reloads with the new token when the token changes", async () => {
+    const view = await mount("tok-1");
+    view.rerender(<AuthContext value={authFor("tok-2")}><ClausesPanel active /></AuthContext>);
+
+    await waitFor(() => {
+      expect(pending.map((p) => p.auth)).toContain("Bearer tok-2");
     });
   });
 });

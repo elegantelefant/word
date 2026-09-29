@@ -304,3 +304,18 @@ describe("HistoryPanel — paid tier (API history)", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });
+describe("HistoryPanel — token change", () => {
+  it("reloads jobs with the new token", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () => new Response(JSON.stringify({ jobs: [] })),
+    );
+    const { rerender } = render(<AuthContext value={makeAuth({ tier: "paid", token: "tok-1" })}><HistoryPanel active /></AuthContext>);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+
+    rerender(<AuthContext value={makeAuth({ tier: "paid", token: "tok-2" })}><HistoryPanel active /></AuthContext>);
+
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls.map(([, init]) => new Headers(init?.headers).get("Authorization"))).toContain("Bearer tok-2");
+    });
+  });
+});

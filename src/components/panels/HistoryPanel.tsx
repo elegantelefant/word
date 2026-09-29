@@ -63,7 +63,7 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
     }
   }, [token]);
 
-  useRefreshOnActive(active, refresh);
+  useRefreshOnActive(active, refresh, [token]);
 
   const header = (
     <div className="flex items-center justify-between">

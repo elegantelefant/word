@@ -302,3 +302,20 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 });
+
+describe("MammothPanel — token change", () => {
+  it("reloads requests with the new token", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () => new Response(JSON.stringify({ requests: [], total: 0 })),
+    );
+    const authFor = (token: string): AuthContextValue => ({ ...AUTH_INITIAL, tier: "paid", token, login: noopAsync, logout: noop });
+    const { rerender } = render(<AuthContext value={authFor("tok-1")}><MammothPanel active /></AuthContext>);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+
+    rerender(<AuthContext value={authFor("tok-2")}><MammothPanel active /></AuthContext>);
+
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls.map(([, init]) => new Headers(init?.headers).get("Authorization"))).toContain("Bearer tok-2");
+    });
+  });
+});
