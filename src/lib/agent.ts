@@ -1,7 +1,7 @@
 // ABOUTME: ADK-JS review agent that runs entirely in the browser.
 // ABOUTME: Uses Gemini via user's API key (BYOK) for free-tier document review.
 
-import { LlmAgent, InMemoryRunner, Gemini } from "@google/adk";
+import { LlmAgent, InMemoryRunner } from "@google/adk";
 import { z } from "zod";
 
 const REVIEW_SYSTEM_PROMPT = `You are a legal document reviewer. Analyze the provided text and return a structured review.
@@ -30,18 +30,10 @@ export const reviewSchema = z.object({
 export type ReviewResult = z.infer<typeof reviewSchema>;
 
 import { DEFAULT_MODEL } from "./models";
-
-const GEMINI_BASE_URL = import.meta.env.VITE_GEMINI_BASE_URL || "";
+import { createGemini } from "./gemini";
 
 export function createReviewRunner(apiKey: string, model: string = DEFAULT_MODEL) {
-  const llm = new Gemini({ model, apiKey });
-
-  if (GEMINI_BASE_URL) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const target = llm as any;
-    const orig = target.getHttpOptions.bind(llm);
-    target.getHttpOptions = () => ({ ...orig(), baseUrl: GEMINI_BASE_URL });
-  }
+  const llm = createGemini(apiKey, model);
 
   const agent = new LlmAgent({
     name: "legal_reviewer",

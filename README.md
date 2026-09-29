@@ -25,7 +25,7 @@ src/
 
 **Stack:** React 19, Tailwind CSS 4, Vite 7, TypeScript 5, Vitest, Playwright
 
-**Backend:** Calls the Elefant API via the `elefant.legal/api/v4` proxy (paid tier) or Gemini via `gateway.pydantic.dev` (free BYOK tier).
+**Backend:** Calls the Elefant API via the `elefant.legal/api/v4` proxy (paid tier) or Gemini directly at Google's endpoint (free BYOK tier; `VITE_GEMINI_BASE_URL` opts into a proxy).
 
 ## Deployment
 
@@ -114,7 +114,9 @@ Copy `.env.example` → `.env`:
 
 ```
 VITE_API_URL=https://elefant.legal/api/v4
-VITE_GEMINI_BASE_URL=https://gateway.pydantic.dev/proxy/google
+# VITE_GEMINI_BASE_URL=
 ```
+
+`VITE_GEMINI_BASE_URL` is an optional proxy override for the free tier. Unset (the default, and in `.env.production`), the add-in calls Google's Gemini API directly. When set, requests and the user's Gemini key go through that host.
 
 These are baked into the build at compile time via Vite's `import.meta.env`.
