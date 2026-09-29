@@ -33,7 +33,7 @@ src/
 
 - Docker with buildx (for `--platform linux/amd64`)
 - `gcloud` CLI, authenticated: `gcloud auth login`
-- Project set: `gcloud config set project psychic-mason-409615`
+- Project set: `gcloud config set project $GCP_PROJECT` (project id: ask the owner)
 - Artifact Registry access: `gcloud auth configure-docker us-central1-docker.pkg.dev`
 
 ### Deploy to Cloud Run
@@ -46,7 +46,7 @@ This single command:
 1. Type-checks with `tsc`
 2. Builds the SPA with Vite → `dist/`
 3. Builds a Docker image (nginx:alpine + dist + production manifest)
-4. Pushes to Artifact Registry (`us-central1-docker.pkg.dev/psychic-mason-409615/cloud-run-source-deploy/elefant-word`)
+4. Pushes to Artifact Registry (`us-central1-docker.pkg.dev/$GCP_PROJECT/cloud-run-source-deploy/elefant-word`)
 5. Deploys to Cloud Run (`elefant-word`, `us-central1`, port 8080, public)
 
 **Service URL:** `https://elefant-word-245916757771.us-central1.run.app`

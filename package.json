@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "certs": "office-addin-dev-certs install",
-    "deploy": "tsc -b && vite build && docker buildx build --platform linux/amd64 -t us-central1-docker.pkg.dev/psychic-mason-409615/cloud-run-source-deploy/elefant-word:latest --push . && gcloud run deploy elefant-word --image us-central1-docker.pkg.dev/psychic-mason-409615/cloud-run-source-deploy/elefant-word:latest --allow-unauthenticated --port 8080 --region us-central1"
+    "deploy": "tsc -b && vite build && docker buildx build --platform linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --push . && gcloud run deploy elefant-word --image us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --allow-unauthenticated --port 8080 --region us-central1"
   },
   "packageManager": "pnpm@10.20.0",
   "dependencies": {
