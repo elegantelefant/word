@@ -2,7 +2,7 @@
 // ABOUTME: Verifies local history (free tier) and API history (paid tier) display.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { HistoryPanel } from "@/components/panels/HistoryPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 
@@ -76,6 +76,88 @@ describe("HistoryPanel — paid tier (API history)", () => {
     expect(screen.getByText("review")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
   });
+  it("keeps existing jobs visible while refreshing", async () => {
+    const runningJob = {
+      id: "j1",
+      type: "review",
+      status: "running",
+      created_at: "2025-06-01T10:00:00Z",
+    };
+
+    const completedJob = {
+      ...runningJob,
+      status: "completed",
+    };
+
+    let resolveRefresh!: (response: Response) => void;
+    const refreshResponse = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [runningJob] })),
+      )
+      .mockImplementationOnce(() => refreshResponse);
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("running")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh history" }),
+    );
+
+    expect(screen.getByText("running")).toBeInTheDocument();
+    expect(screen.getByText("Refreshing...")).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    resolveRefresh(
+      new Response(JSON.stringify({ jobs: [completedJob] })),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("completed")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps existing jobs visible when refresh fails", async () => {
+    const runningJob = {
+      id: "j1",
+      type: "review",
+      status: "running",
+      created_at: "2025-06-01T10:00:00Z",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [runningJob] })),
+      )
+      .mockResolvedValueOnce(
+        new Response("Server Error", { status: 500 }),
+      );
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("running")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh history" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Something went wrong while contacting Elefant. Please try again.")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("running")).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
 
   it("shows empty state when API returns no jobs", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -101,6 +183,139 @@ describe("HistoryPanel — paid tier (API history)", () => {
           screen.getByText("Something went wrong while contacting Elefant. Please try again."),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Server Error/)).not.toBeInTheDocument();
+    });
+  });
+
+  it("retries from the error state when the user clicks Refresh", async () => {
+    const job = { id: "j1", type: "review", status: "completed", created_at: "2025-06-01T10:00:00Z" };
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("Server Error", { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [job] })));
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Something went wrong while contacting Elefant. Please try again.")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh history" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("review")).toBeInTheDocument();
+    });
+  });
+
+  it("offers Refresh from the empty state", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ jobs: [] })),
+    );
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no jobs found/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Refresh history" })).toBeEnabled();
+  });
+
+  it("refetches jobs when the panel becomes active again", async () => {
+    const runningJob = {
+      id: "j1",
+      type: "review",
+      status: "running",
+      created_at: "2025-06-01T10:00:00Z",
+    };
+    const completedJob = {
+      ...runningJob,
+      status: "completed",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [runningJob] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [completedJob] })),
+      );
+
+    const auth = makeAuth({ tier: "paid", token: "tok-123" });
+
+    const { rerender } = render(
+      <AuthContext value={auth}>
+        <HistoryPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("running")).toBeInTheDocument();
+    });
+
+    rerender(
+      <AuthContext value={auth}>
+        <HistoryPanel active={false} />
+      </AuthContext>,
+    );
+    rerender(
+      <AuthContext value={auth}>
+        <HistoryPanel active />
+      </AuthContext>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("completed")).toBeInTheDocument();
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes jobs when the user clicks Refresh", async () => {
+    const runningJob = {
+      id: "j1",
+      type: "review",
+      status: "running",
+      created_at: "2025-06-01T10:00:00Z",
+    };
+    const completedJob = {
+      ...runningJob,
+      status: "completed",
+    };
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [runningJob] })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ jobs: [completedJob] })),
+      );
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("running")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh history" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("completed")).toBeInTheDocument();
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+});
+describe("HistoryPanel — token change", () => {
+  it("reloads jobs with the new token", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () => new Response(JSON.stringify({ jobs: [] })),
+    );
+    const { rerender } = render(<AuthContext value={makeAuth({ tier: "paid", token: "tok-1" })}><HistoryPanel active /></AuthContext>);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+
+    rerender(<AuthContext value={makeAuth({ tier: "paid", token: "tok-2" })}><HistoryPanel active /></AuthContext>);
+
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls.map(([, init]) => new Headers(init?.headers).get("Authorization"))).toContain("Bearer tok-2");
     });
   });
 });

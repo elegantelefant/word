@@ -1,25 +1,31 @@
 // ABOUTME: History panel — shows past activity (local for free, API for paid).
 // ABOUTME: Free tier stores reviews in localStorage; paid tier fetches from API.
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { listJobs } from "@/api/jobs";
 import { getLocalHistory } from "@/lib/history";
 import type { LocalHistoryItem } from "@/lib/history";
 import type { Job } from "@/types/api";
+import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 
-export function HistoryPanel() {
+export function HistoryPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
-  return tier === "paid" && token ? <ApiHistory token={token} /> : <LocalHistory />;
+  return tier === "paid" && token
+    ? <ApiHistory token={token} active={active} />
+    : <LocalHistory active={active} />;
 }
 
-function LocalHistory() {
+function LocalHistory({ active }: { active: boolean }) {
   const [items, setItems] = useState<LocalHistoryItem[]>([]);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     setItems(getLocalHistory());
   }, []);
+
+  useRefreshOnActive(active, refresh);
 
   if (items.length === 0) {
     return <EmptyState message="No review history yet. Run a review to get started." />;
@@ -41,26 +47,66 @@ function LocalHistory() {
   );
 }
 
-function ApiHistory({ token }: { token: string }) {
+function ApiHistory({ token, active }: { token: string; active: boolean }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    listJobs(token)
-      .then(setJobs)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [token]);
+  const begin = useLatestRequest();
 
-  if (loading) return <p className="text-xs text-gray-400">Loading history...</p>;
-  if (error) return <p className="text-xs text-red-600">{error}</p>;
-  if (jobs.length === 0) return <EmptyState message="No jobs found in your account." />;
+  const refresh = useCallback(async () => {
+    const isLatest = begin();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await listJobs(token);
+      if (isLatest()) setJobs(result);
+    } catch (err) {
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load history");
+    } finally {
+      if (isLatest()) setLoading(false);
+    }
+  }, [token, begin]);
+
+  useRefreshOnActive(active, refresh, [token]);
+
+  const header = (
+    <div className="flex items-center justify-between">
+      <h4 className="text-xs font-semibold text-gray-600">Activity Feed</h4>
+      <button
+        type="button"
+        onClick={() => void refresh()}
+        disabled={loading}
+        aria-label="Refresh history"
+        className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+      >
+        {loading ? "Refreshing..." : "Refresh"}
+      </button>
+    </div>
+  );
+
+  if (jobs.length === 0) {
+    return (
+      <div className="space-y-2">
+        {header}
+        {loading ? (
+          <p className="text-xs text-gray-400">Loading history...</p>
+        ) : error ? (
+          <p className="text-xs text-red-600">{error}</p>
+        ) : (
+          <EmptyState message="No jobs found in your account." />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      <h4 className="text-xs font-semibold text-gray-600">Activity Feed</h4>
+      {header}
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
       {jobs.map((job) => (
         <div key={job.id} className="rounded border border-gray-200 p-2">
           <div className="flex items-start justify-between">

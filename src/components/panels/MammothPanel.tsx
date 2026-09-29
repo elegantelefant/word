@@ -1,7 +1,7 @@
 // ABOUTME: Mammoth panel — create and track legal requests from Word.
 // ABOUTME: Paid-only; shows create form + request list with status tracking.
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
@@ -12,6 +12,8 @@ import {
   type RequestPriority,
 } from "@/api/mammoth";
 import { getSelectedText, isOfficeReady } from "@/lib/office";
+import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 const REQUEST_TYPES: { value: RequestType; label: string }[] = [
   { value: "review", label: "Review" },
@@ -37,31 +39,40 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-gray-100 text-gray-500",
 };
 
-export function MammothPanel() {
+export function MammothPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
   if (tier !== "paid" || !token) {
     return <UpgradePrompt feature="Mammoth" />;
   }
 
-  return <MammothContent token={token} />;
+  return <MammothContent token={token} active={active} />;
 }
 
-function MammothContent({ token }: { token: string }) {
+function MammothContent({ token, active }: { token: string; active: boolean }) {
   const [view, setView] = useState<"create" | "list">("list");
   const [requests, setRequests] = useState<LegalRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = () => {
-    setLoading(true);
-    listLegalRequests(token)
-      .then(setRequests)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
+  const begin = useLatestRequest();
 
-  useEffect(() => { refresh(); }, [token]);
+  const refresh = useCallback(async () => {
+    const isLatest = begin();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await listLegalRequests(token);
+      if (isLatest()) setRequests(result);
+    } catch (err) {
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load requests");
+    } finally {
+      if (isLatest()) setLoading(false);
+    }
+  }, [token, begin]);
+
+  useRefreshOnActive(active, refresh, [token]);
 
   return (
     <div className="space-y-3">
@@ -82,6 +93,15 @@ function MammothContent({ token }: { token: string }) {
           }`}
         >
           + New
+        </button>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading}
+          aria-label="Refresh requests"
+          className="ml-auto rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+        >
+          {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
