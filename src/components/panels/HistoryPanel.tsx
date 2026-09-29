@@ -65,32 +65,39 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
 
   useRefreshOnActive(active, refresh);
 
-  if (loading && jobs.length === 0) {
-    return <p className="text-xs text-gray-400">Loading history...</p>;
-  }
+  const header = (
+    <div className="flex items-center justify-between">
+      <h4 className="text-xs font-semibold text-gray-600">Activity Feed</h4>
+      <button
+        type="button"
+        onClick={() => void refresh()}
+        disabled={loading}
+        aria-label="Refresh history"
+        className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+      >
+        {loading ? "Refreshing..." : "Refresh"}
+      </button>
+    </div>
+  );
 
-  if (error && jobs.length === 0) {
-    return <p className="text-xs text-red-600">{error}</p>;
-  }
-
-  if (!loading && jobs.length === 0) {
-    return <EmptyState message="No jobs found in your account." />;
+  if (jobs.length === 0) {
+    return (
+      <div className="space-y-2">
+        {header}
+        {loading ? (
+          <p className="text-xs text-gray-400">Loading history...</p>
+        ) : error ? (
+          <p className="text-xs text-red-600">{error}</p>
+        ) : (
+          <EmptyState message="No jobs found in your account." />
+        )}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-gray-600">Activity Feed</h4>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          disabled={loading}
-          aria-label="Refresh history"
-          className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
+      {header}
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 

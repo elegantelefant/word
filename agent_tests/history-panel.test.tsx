@@ -182,6 +182,38 @@ describe("HistoryPanel — paid tier (API history)", () => {
       expect(screen.getByText(/Server Error/)).toBeInTheDocument();
     });
   });
+
+  it("retries from the error state when the user clicks Refresh", async () => {
+    const job = { id: "j1", type: "review", status: "completed", created_at: "2025-06-01T10:00:00Z" };
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("Server Error", { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [job] })));
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Server Error/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh history" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("review")).toBeInTheDocument();
+    });
+  });
+
+  it("offers Refresh from the empty state", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ jobs: [] })),
+    );
+
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no jobs found/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Refresh history" })).toBeEnabled();
+  });
+
   it("refetches jobs when the panel becomes active again", async () => {
     const runningJob = {
       id: "j1",
