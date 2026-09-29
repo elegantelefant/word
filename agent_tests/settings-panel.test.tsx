@@ -71,6 +71,12 @@ describe("SettingsPanel", () => {
     expect(link.getAttribute("href")).toBe("https://aistudio.google.com/apikey");
   });
 
+  it("warns that unpaid keys may have prompts used by Google, linking the terms", () => {
+    renderSettings();
+    expect(screen.getByText(/On unpaid keys, Google may use prompts to improve its products/)).toBeInTheDocument();
+    expect(screen.getByText("Gemini API terms").getAttribute("href")).toBe("https://ai.google.dev/gemini-api/terms");
+  });
+
   it("calls updateSettings when model changes", () => {
     const { settings } = renderSettings();
     const select = screen.getByRole("combobox");
