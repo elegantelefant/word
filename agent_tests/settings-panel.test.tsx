@@ -100,8 +100,7 @@ describe("SettingsPanel", () => {
       token: "tok-123",
       user: {
         user: { id: "u1", email: "test@acme.com", name: "Jane Doe" },
-        org: { id: "o1", name: "Acme Corp", slug: "acme", account_type: "pro" },
-        entitlements: {},
+        org: { id: "o1", name: "Acme Corp", slug: "acme", accountType: "pro" },
       },
     });
 

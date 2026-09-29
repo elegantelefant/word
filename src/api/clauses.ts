@@ -1,4 +1,4 @@
-// ABOUTME: Clauses API — list databases, list/search clauses, suggest.
+// ABOUTME: Clauses API — list databases and clauses.
 // ABOUTME: All endpoints require Elefant auth (paid tier only).
 
 import { apiFetch } from "./client";
@@ -6,7 +6,7 @@ import { apiFetch } from "./client";
 export interface ClauseDatabase {
   id: string;
   name?: string;
-  clause_count?: number;
+  clauseCount?: number;
 }
 
 export interface Clause {
@@ -15,7 +15,7 @@ export interface Clause {
   content: string;
   category?: string | null;
   tags?: string[];
-  created_at?: string | null;
+  createdAt?: string | null;
 }
 
 interface ClauseDatabaseListResponse {
@@ -34,17 +34,4 @@ export async function listClauseDatabases(token: string): Promise<ClauseDatabase
 export async function listClauses(databaseId: string, token: string): Promise<Clause[]> {
   const res = await apiFetch<ClauseListResponse>(`/clause-databases/${databaseId}/clauses`, token);
   return res.clauses;
-}
-
-export async function suggestClause(
-  databaseId: string,
-  context: string,
-  token: string,
-): Promise<Clause[]> {
-  const res = await apiFetch<{ suggestions: Clause[] }>(
-    `/clause-databases/${databaseId}/suggest`,
-    token,
-    { method: "POST", body: { context } },
-  );
-  return res.suggestions ?? [];
 }

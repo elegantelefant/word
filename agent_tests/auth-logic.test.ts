@@ -45,7 +45,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", account_type: "professional" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -82,12 +82,12 @@ describe("useAuthProvider — state machine", () => {
     expect(getSavedToken()).toBeNull();
   });
 
-  it("detects free account_type correctly", async () => {
+  it("detects free accountType correctly", async () => {
     saveToken("free-token");
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Free User" },
-      org: { id: "o1", name: "Free Org", slug: "free", account_type: "free" },
+      org: { id: "o1", name: "Free Org", slug: "free", accountType: "personal" },
       entitlements: {},
     };
 
@@ -104,17 +104,42 @@ describe("useAuthProvider — state machine", () => {
     expect(result.current.tier).toBe("free");
   });
 
-  it("detects trial account_type as free", async () => {
+  it("detects trial accountType as free", async () => {
     saveToken("trial-token");
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Trial User" },
-      org: { id: "o1", name: "Trial Org", slug: "trial", account_type: "trial" },
+      org: { id: "o1", name: "Trial Org", slug: "trial", accountType: "trial" },
       entitlements: {},
     };
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify(meResponse)),
+    );
+
+    const { result } = renderHook(() => useAuthProvider());
+
+    await vi.waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.tier).toBe("free");
+  });
+
+  it("pins tier detection to the camelCase org.accountType field (contract 0.305.0)", async () => {
+    saveToken("legacy-shape-token");
+
+    // A snake_case account_type — the pre-W0 field name — must NOT be read as tier
+    // signal. Contract's MeOrg only has accountType; without positive evidence of a
+    // commercial account, tier falls closed to "free" — paid panels never unlock on
+    // a missing or unrecognised field (staging smoke 2026-09-22).
+    const legacyShapedResponse = {
+      user: { id: "u1", email: "test@test.com", name: "Legacy Shape User" },
+      org: { id: "o1", name: "Org", slug: "org", account_type: "free" },
+    };
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify(legacyShapedResponse)),
     );
 
     const { result } = renderHook(() => useAuthProvider());
@@ -131,7 +156,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", account_type: "enterprise" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -158,7 +183,7 @@ describe("useAuthProvider — state machine", () => {
   it("login with token directly loads user", async () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Direct Login" },
-      org: { id: "o1", name: "Org", slug: "org", account_type: "professional" },
+      org: { id: "o1", name: "Org", slug: "org", accountType: "commercial" },
       entitlements: {},
     };
 

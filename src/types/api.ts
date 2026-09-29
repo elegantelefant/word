@@ -1,5 +1,5 @@
-// ABOUTME: TypeScript types derived from the Elefant API OpenAPI spec.
-// ABOUTME: Covers review, jobs, account, clauses, and auth contracts.
+// ABOUTME: TypeScript types for the Elefant API, scoped to contract 0.305.0.
+// ABOUTME: Covers only operations word actually calls — see agent_docs/2026-09-22-w0-callsite-inventory.md.
 
 // -- Review --
 
@@ -14,13 +14,15 @@ export interface ReviewRequest {
   };
 }
 
-export type IssueKind = "risk" | "ambiguity" | "missing" | "style" | "other";
-
+/** Mirrors contract `ReviewIssueResult` — one red-flag finding within a review result. */
 export interface ReviewIssue {
-  message: string;
-  kind?: IssueKind;
-  location?: string | null;
-  suggestion?: string | null;
+  category: string;
+  severity: string;
+  recommendation: string;
+  clauseReference: string;
+  sourceFilename: string;
+  description: string;
+  explanation: string;
 }
 
 export interface ReviewResponse {
@@ -28,28 +30,40 @@ export interface ReviewResponse {
   issues?: ReviewIssue[];
 }
 
+// -- Research --
+
+/** Mirrors contract `ResearchRequest`, trimmed to the field word sends. */
+export interface ResearchRequest {
+  question: string;
+}
+
 // -- Jobs --
 
-export type JobStatus = "queued" | "running" | "completed" | "failed";
+export type JobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type JobType = "review" | "draft" | "research" | "citation_check" | "translate" | "process" | "mammoth";
 
+/** Mirrors contract `JobCreatedResponse`. */
 export interface JobCreated {
-  job_id: string;
-  poll_url: string;
+  jobId: string;
+  pollUrl: string;
   status: "queued";
 }
 
+/** Mirrors contract `JobResponse`, trimmed to fields word reads. */
 export interface Job {
   id: string;
   type: JobType;
   status: JobStatus;
-  created_at: string;
+  createdAt: string;
   query?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
   error?: string | null;
 }
 
+/**
+ * Mirrors contract `JobResultResponse`. `result` is left generic — its real shape is a
+ * job-type-specific discriminated union (ReviewResult, ResearchResult, ...) that callers
+ * cast explicitly once they know which job they polled.
+ */
 export interface JobResult {
   id: string;
   status: JobStatus;
@@ -62,64 +76,18 @@ export interface MeUser {
   id: string;
   email: string;
   name: string;
-  role?: string | null;
-  org_role?: string | null;
 }
 
 export interface MeOrg {
   id: string;
   name: string;
   slug: string;
-  account_type: string;
+  accountType: string;
 }
 
 export interface MeResponse {
   user: MeUser;
   org: MeOrg;
-  entitlements: Record<string, unknown>;
-  preferences?: { data_training_opt_out?: boolean };
-}
-
-// -- Auth --
-
-export interface WhoamiResponse {
-  user_id: string;
-  org_id: string;
-}
-
-export interface AuthError {
-  detail: string;
-  hint?: string | null;
-}
-
-// -- Clauses --
-
-export interface ClauseSearchRequest {
-  query: string;
-  limit?: number;
-}
-
-export interface ClauseSearchResponse {
-  query?: string | null;
-  results?: Record<string, unknown>[];
-  status?: string;
-}
-
-// -- Gateway (BYOK) --
-
-export interface GatewayMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-export interface GatewayRequest {
-  model: string;
-  messages: GatewayMessage[];
-  result_type?: string;
-}
-
-export interface GatewayResponse {
-  content: string;
 }
 
 // -- Tier --

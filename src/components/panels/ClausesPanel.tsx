@@ -74,7 +74,7 @@ function ClausesContent({ token }: { token: string }) {
         >
           {databases.map((db) => (
             <option key={db.id} value={db.id}>
-              {db.name ?? db.id} ({db.clause_count ?? 0})
+              {db.name ?? db.id} ({db.clauseCount ?? 0})
             </option>
           ))}
         </select>

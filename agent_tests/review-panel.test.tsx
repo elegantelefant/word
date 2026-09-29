@@ -130,8 +130,25 @@ describe("ReviewPanel — free-tier review", () => {
     vi.mocked(reviewFree).mockResolvedValue({
       summary: "Generally well-drafted contract.",
       issues: [
-        { message: "Ambiguous termination clause", kind: "ambiguity", location: "Section 3.1", suggestion: "Add 30-day notice period" },
-        { message: "Missing force majeure", kind: "missing" },
+        {
+          description: "Ambiguous termination clause",
+          category: "ambiguity",
+          severity: "",
+          clauseReference: "Section 3.1",
+          recommendation: "",
+          sourceFilename: "",
+          explanation: "",
+          suggestion: "Add 30-day notice period",
+        },
+        {
+          description: "Missing force majeure",
+          category: "missing",
+          severity: "",
+          clauseReference: "",
+          recommendation: "",
+          sourceFilename: "",
+          explanation: "",
+        },
       ],
     });
 
@@ -151,13 +168,47 @@ describe("ReviewPanel — free-tier review", () => {
     expect(screen.getByText("Missing force majeure")).toBeInTheDocument();
     expect(screen.getByText("missing")).toBeInTheDocument();
 
-    // Check location and suggestion
+    // Check clauseReference and recommendation
     expect(screen.getByText(/"Section 3.1"/)).toBeInTheDocument();
     expect(screen.getByText("Add 30-day notice period")).toBeInTheDocument();
     expect(screen.getByText("Insert")).toBeInTheDocument();
 
     // Check issues count header
     expect(screen.getByText("Issues (2)")).toBeInTheDocument();
+  });
+
+  it("renders a paid verdict as a badge with no Insert button", async () => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Clause text.");
+
+    const { reviewPaid } = await import("@/api/review");
+    vi.mocked(reviewPaid).mockResolvedValue({
+      summary: "One issue found.",
+      issues: [
+        {
+          description: "Indemnity is uncapped",
+          category: "risk",
+          severity: "high",
+          clauseReference: "Section 9",
+          recommendation: "negotiate",
+          sourceFilename: "",
+          explanation: "Liability should be capped at fees paid.",
+        },
+      ],
+    });
+
+    renderPanel({}, { tier: "paid", token: "tok" });
+    fireEvent.click(screen.getByText("Review Document"));
+
+    await waitFor(() => {
+      expect(screen.getByText("One issue found.")).toBeInTheDocument();
+    });
+    // The verdict enum renders as a badge; nothing on a paid issue is insertable
+    // until monorepo#4449 ships replacement text.
+    expect(screen.getByText("negotiate")).toBeInTheDocument();
+    expect(screen.getByText("Liability should be capped at fees paid.")).toBeInTheDocument();
+    expect(screen.queryByText("Insert")).not.toBeInTheDocument();
   });
 
   it("saves to local history on free-tier review", async () => {
@@ -238,7 +289,7 @@ describe("ReviewPanel — error handling", () => {
 });
 
 describe("ReviewPanel — issue cards", () => {
-  it("renders issue without location or suggestion", async () => {
+  it("renders issue without clauseReference or recommendation", async () => {
     const { isOfficeReady, getSelectedText } = await import("@/lib/office");
     vi.mocked(isOfficeReady).mockReturnValue(true);
     vi.mocked(getSelectedText).mockResolvedValue("Text to review for issues");
@@ -246,7 +297,17 @@ describe("ReviewPanel — issue cards", () => {
     const { reviewFree } = await import("@/api/review");
     vi.mocked(reviewFree).mockResolvedValue({
       summary: "Issues found.",
-      issues: [{ message: "Plain issue, no extras", kind: "other" }],
+      issues: [
+        {
+          description: "Plain issue, no extras",
+          category: "other",
+          severity: "",
+          clauseReference: "",
+          recommendation: "",
+          sourceFilename: "",
+          explanation: "",
+        },
+      ],
     });
 
     renderPanel();
@@ -260,24 +321,65 @@ describe("ReviewPanel — issue cards", () => {
     expect(screen.queryByText("Insert")).not.toBeInTheDocument();
   });
 
-  it("defaults kind to 'other' when missing", async () => {
+  it("defaults category to 'other' when blank", async () => {
     const { isOfficeReady, getSelectedText } = await import("@/lib/office");
     vi.mocked(isOfficeReady).mockReturnValue(true);
-    vi.mocked(getSelectedText).mockResolvedValue("Text for review with unkinded issue");
+    vi.mocked(getSelectedText).mockResolvedValue("Text for review with uncategorized issue");
 
     const { reviewFree } = await import("@/api/review");
     vi.mocked(reviewFree).mockResolvedValue({
       summary: "Found issue.",
-      issues: [{ message: "No kind set" }],
+      issues: [
+        {
+          description: "No category set",
+          category: "",
+          severity: "",
+          clauseReference: "",
+          recommendation: "",
+          sourceFilename: "",
+          explanation: "",
+        },
+      ],
     });
 
     renderPanel();
     fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
-      expect(screen.getByText("No kind set")).toBeInTheDocument();
+      expect(screen.getByText("No category set")).toBeInTheDocument();
     });
 
     expect(screen.getByText("other")).toBeInTheDocument();
+  });
+
+  it("renders the severity badge when present", async () => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Text for review with a severity rating");
+
+    const { reviewFree } = await import("@/api/review");
+    vi.mocked(reviewFree).mockResolvedValue({
+      summary: "Found issue.",
+      issues: [
+        {
+          description: "High-risk indemnity gap",
+          category: "risk",
+          severity: "high",
+          clauseReference: "",
+          recommendation: "",
+          sourceFilename: "",
+          explanation: "",
+        },
+      ],
+    });
+
+    renderPanel();
+    fireEvent.click(screen.getByText("Review Document"));
+
+    await waitFor(() => {
+      expect(screen.getByText("High-risk indemnity gap")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("high")).toBeInTheDocument();
   });
 });

@@ -17,7 +17,7 @@ vi.mock("@/lib/polling", () => ({
 }));
 
 describe("reviewFree", () => {
-  it("calls runReview and maps result to ReviewResponse", async () => {
+  it("calls runReview and maps result to the review view (suggestion stays insertable, no verdict)", async () => {
     const { runReview } = await import("@/lib/agent");
     vi.mocked(runReview).mockResolvedValueOnce({
       summary: "Contract looks solid.",
@@ -33,16 +33,23 @@ describe("reviewFree", () => {
     expect(result.summary).toBe("Contract looks solid.");
     expect(result.issues).toHaveLength(2);
     expect(result.issues[0]).toEqual({
-      message: "Vague termination",
-      kind: "ambiguity",
-      location: "Section 3",
+      description: "Vague termination",
+      category: "ambiguity",
+      clauseReference: "Section 3",
+      recommendation: "",
       suggestion: "Add specifics",
+      severity: "",
+      sourceFilename: "",
+      explanation: "",
     });
     expect(result.issues[1]).toEqual({
-      message: "Missing indemnity",
-      kind: "missing",
-      location: null,
-      suggestion: null,
+      description: "Missing indemnity",
+      category: "missing",
+      clauseReference: "",
+      recommendation: "",
+      severity: "",
+      sourceFilename: "",
+      explanation: "",
     });
   });
 
@@ -68,7 +75,7 @@ describe("reviewPaid", () => {
     const { pollForResult } = await import("@/lib/polling");
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ job_id: "j1" })),
+      new Response(JSON.stringify({ jobId: "j1", pollUrl: "/jobs/j1" })),
     );
     vi.mocked(pollForResult).mockResolvedValueOnce({
       id: "j1",
