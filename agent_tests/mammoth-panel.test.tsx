@@ -265,8 +265,11 @@ describe("MammothPanel — paid tier", () => {
     renderWithAuth(paidAuth);
 
     await waitFor(() => {
-      expect(screen.getByText(/Server Error/)).toBeInTheDocument();
-    });
+      expect(
+        screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Server Error/)).not.toBeInTheDocument();
+      });
   });
 
   it("shows request description when present", async () => {

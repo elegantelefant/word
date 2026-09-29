@@ -56,15 +56,52 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
     if (res.status === 401) {
       throw new ApiError(401, "Session expired. Please sign in again.");
     }
+
     if (res.status === 429) {
       throw new ApiError(429, "Too many requests. Please wait a moment.");
     }
-    throw new ApiError(res.status, text);
+
+    let message = "Something went wrong while contacting Elefant. Please try again.";
+
+    try {
+      const body: unknown = JSON.parse(await res.text());
+
+      if (
+        typeof body === "object" &&
+        body !== null &&
+        "message" in body &&
+        typeof body.message === "string"
+      ) {
+        message = body.message;
+      }
+    } catch {
+      // Non-JSON and unreadable bodies use the safe generic message.
+    }
+
+    console.error("Elefant API request failed", {
+      path,
+      status: res.status,
+    });
+
+    throw new ApiError(res.status, message);
   }
 
-  return res.json() as Promise<T>;
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    console.error("Elefant API returned invalid JSON", {
+      path,
+      status: res.status,
+    });
+
+    throw new ApiError(
+      res.status,
+      "Elefant returned an invalid response. Please try again.",
+    );
+  }
 }

@@ -408,7 +408,10 @@ describe("ClausesPanel — paid tier", () => {
     renderWithAuth(paidAuth);
 
     await waitFor(() => {
-      expect(screen.getByText(/Server Error|500/)).toBeInTheDocument();
+      expect(
+        screen.getByText("Something went wrong while contacting Elefant. Please try again."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Server Error|500/)).not.toBeInTheDocument();
     });
   });
 });
