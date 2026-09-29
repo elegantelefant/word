@@ -110,7 +110,8 @@ returns a `Word.Comment`, WordApi 1.4 [R4][R13].
   skip both writes.
 - **Anchor before mutate:** the quote is located *before* touching the tracking mode, so
   a miss never flips the user's setting.
-- **Comments** (`addComment(quote, recommendation)`): anchor, `range.insertComment(text)`,
+- **Comments** (`addComment(quote, text)` where text = `description`, plus `explanation`
+  when present — never `recommendation`, which is a verdict enum, see §7): anchor, `range.insertComment(text)`,
   sync. No tracking-mode change — comments are not tracked edits.
 - **Error mapping** (`Word.ErrorCodes` [R14]): `AccessDenied` / `NotAllowed` → "Word
   didn't allow this edit — the document may be protected or read-only." and, for
@@ -196,8 +197,9 @@ Per card, in order of prominence:
 
 1. **Show in document** — `range.select()` (WordApi 1.1 [R4]) on the anchored quote.
    Non-mutating. Disabled on miss.
-2. **Copy suggestion** — clipboard write of the replacement text (or the recommendation
-   for comment-type issues); on failure, the text is already selectable in the card.
+2. **Copy suggestion** — clipboard write of the replacement text (free tier's
+   `suggestion`; paid tier copies `description`/`explanation` — `recommendation` is a
+   verdict enum, never copy-as-fix text); on failure, the text is already selectable in the card.
 3. **Insert without tracking…** (secondary, text-style button) — opens an inline confirm
    inside the card. Only replacement-type issues; never for comments (inserting advice
    as document text is wrong).
@@ -227,20 +229,24 @@ Comment fallback when `insertComment` throws `NotAllowed` on the web (#6746):
 
 | File | Today | W1 change |
 |---|---|---|
-| `src/lib/office.ts` | `insertText(text, "replace" \| "end")` replaces **whatever the user has selected**, untracked | Remove `insertText`. Add `capabilities()` (§1 detection), `showQuote(quote)`, `applyTracked(quote \| "selection", replacement)`, `applyUntracked(…)` (only reachable from the §4 confirm), `addComment(quote, text)`. Keep `getSelectedText`, `getDocumentBody`, `isOfficeReady`. |
+| `src/lib/office.ts` | `insertText(text, "replace" \| "end")` replaces **whatever the user has selected**, with the user's own tracking mode as-is (untracked unless they have Track Changes on — the code never touches the mode) | Remove `insertText`. Add `capabilities()` (§1 detection), `showQuote(quote)`, `applyTracked(quote \| "selection", replacement)`, `applyUntracked(…)` (only reachable from the §4 confirm), `addComment(quote, text)`. Keep `getSelectedText`, `getDocumentBody`, `isOfficeReady`. |
 | `src/lib/quote-anchor.ts` (new) | — | `norm`, `findQuote`, `escapeSearch`. Pure; no `Word` global. |
-| `src/components/panels/ReviewPanel.tsx` | `handleInsert(text)` → `insertText(text)`; `ReviewResults`/`IssueCard` take `onInsert(text: string)`; post-#27 `IssueCard` passes `issue.recommendation` | `handleInsert` → `handleApply(issue, action)`; `ReviewResults`/`IssueCard` take the issue + `capabilities`; `IssueCard` renders Show / Apply / Comment / fallback per §4; banner in `ReviewPanel`. Quote = `issue.clauseReference`; comment text = `issue.recommendation`. |
+| `src/components/panels/ReviewPanel.tsx` | `handleInsert(text)` → `insertText(text)`; `ReviewResults`/`IssueCard` take `onInsert(text: string)`; post-#27 `IssueCard` passes `issue.recommendation` | `handleInsert` → `handleApply(issue, action)`; `ReviewResults`/`IssueCard` take the issue + `capabilities`; `IssueCard` renders Show / Apply / Comment / fallback per §4; banner in `ReviewPanel`. Quote = `issue.clauseReference`; comment text = `issue.description` (+ `explanation`); `recommendation` renders as a verdict badge only. |
 | `src/lib/agent.ts` (`reviewSchema`) | `location`: "Where in the text this issue appears"; `suggestion`: "Suggested fix or improvement" | `location` described as "exact verbatim quote copied from the text, ≤ 1 sentence"; add optional `replacement` ("verbatim replacement for the quoted text"). Prompt says never give offsets. |
-| `src/api/review.ts` (`reviewFree`, #27) | maps `location → clauseReference`, `suggestion → recommendation` | also carry `replacement` (word-local field on the UI type; not in contract). |
+| `src/api/review.ts` (`reviewFree`, #27) | maps `location → clauseReference`; `suggestion` stays a word-local view field (never mapped into `recommendation`) | carries the insertable text; `replacement` from monorepo#4449 later. |
+| `src/components/panels/ClausesPanel.tsx:8,60` | also imports and calls `insertText` to insert a selected clause | route through `applyTracked("selection", clauseText)` so clause insertion is tracked too; update the mocks in `agent_tests/clauses-panel.test.tsx:12` and `agent_tests/app.test.tsx:23`. |
 | `agent_tests/review-panel.test.tsx` | mocks `insertText` | mocks the new office functions; asserts no mutating call without anchor or confirm. |
 
 **Gap that changes scope — paid path.** Contract `ReviewResult.issues` is
 `ReviewIssueResult` (`clauseReference`, `recommendation`, …), not `ReviewIssue`
 (`location`, `suggestion`) — the latter exists in the spec but `ReviewResult` doesn't
 use it. `clauseReference` reads as a section label (#27's own fixture uses
-`"Section 3.1"`), and `recommendation` is advice prose, not replacement text. So on the
-paid tier: comments anchor only if the backend puts a verbatim quote in
-`clauseReference`; tracked replacement needs a new contract field. Both are
+`"Section 3.1"`), and `recommendation` is a **verdict enum** — `"accept" | "negotiate" |
+"reject"` (monorepo `domain_types.py:175`, `prompts.py:1502`) — so it is never comment or
+replacement text; render it as a badge only. Comment text comes from `description` +
+`explanation`. On the paid tier: comments anchor only if the backend puts a verbatim
+quote in `clauseReference`; tracked replacement needs a new contract field
+(filed: monorepo#4449, verbatim `targetQuote` + `replacement`). Both are
 elefant_monorepo changes (`RedFlag` prompt + contract bump), owner Daniel/backend. Until
 then the paid tier gets Show/Comment when the reference happens to match, and misses
 otherwise — honestly, via §3.4.
@@ -273,7 +279,7 @@ otherwise — honestly, via §3.4.
 | Phase | Scope | Effort |
 |---|---|---|
 | 1 Insert-with-tracking | `quote-anchor.ts` + fixture, `capabilities()`, `applyTracked` with save/restore, free-tier `reviewSchema` `replacement` + verbatim `location`, `IssueCard` Show/Apply, miss fallback, remove `insertText` | **M** |
-| 2 Comments | `addComment`, `recommendation` as comment, #6746 fallback | **S** |
+| 2 Comments | `addComment`, `description`/`explanation` as comment, #6746 fallback | **S** |
 | 3 Non-mutating fallback | banner, Copy, confirm-gated `applyUntracked`, LTSC 2021 sideload (A6) | **S** |
 | (dep) Paid-tier anchoring | backend emits verbatim quote + replacement; contract bump; word re-pin | **M, elefant_monorepo** |
 
