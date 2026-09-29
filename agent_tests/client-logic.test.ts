@@ -87,17 +87,78 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
-  it("uses statusText when response body is unreadable", async () => {
-    const res = new Response(null, { status: 502, statusText: "Bad Gateway" });
-    vi.spyOn(res, "text").mockRejectedValueOnce(new Error("body stream already read"));
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(res);
+  it("uses a safe message for a non-JSON error body", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("Server Error", { status: 502 }),
+    );
 
     try {
       await apiFetch("/test", "token");
       expect.fail("Should throw");
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
-      expect((err as ApiError).message).toBe("Bad Gateway");
+      expect((err as ApiError).message).toBe(
+        "Something went wrong while contacting Elefant. Please try again.",
+      );
+    }
+  });
+
+  it("uses a meaningful message from a JSON 4xx error response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: true,
+          upstream_status: 400,
+          error_class: "ClientError",
+          code: "BAD_REQUEST",
+          message: "This document type is not supported.",
+          path: "/api/v4/test",
+          request_id: "req-test",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(apiFetch("/test", "token")).rejects.toMatchObject({
+      status: 400,
+      message: "This document type is not supported.",
+    });
+  });
+
+  it("uses a meaningful message from a JSON error response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: true,
+          upstream_status: 500,
+          error_class: "ServerError",
+          code: "INTERNAL_ERROR",
+          message: "Internal server error",
+          detail: {
+            traceback: ["SECRET_INTERNAL_TRACE"],
+          },
+          path: "/api/v4/test",
+          request_id: "req-test",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    try {
+      await apiFetch("/test", "token");
+      expect.fail("Should throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(500);
+      expect((err as ApiError).message).toBe("Internal server error");
+      expect((err as ApiError).message).not.toContain("SECRET_INTERNAL_TRACE");
+      expect((err as ApiError).message).not.toContain("traceback");
     }
   });
 
