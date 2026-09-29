@@ -208,6 +208,30 @@ describe("ClausesPanel — paid tier", () => {
     expect(options[1]!.textContent).toContain("Custom");
   });
 
+  it("loads the selected database's clauses when switching databases", async () => {
+    const dbs = [
+      { id: "db1", name: "Standard", clause_count: 1 },
+      { id: "db2", name: "Custom", clause_count: 1 },
+    ];
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: dbs })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [{ id: "c1", name: "Standard Clause", content: "a" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [{ id: "c2", name: "Custom Clause", content: "b" }] })));
+
+    renderWithAuth(paidAuth);
+
+    await waitFor(() => {
+      expect(screen.getByText("Standard Clause")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "db2" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Custom Clause")).toBeInTheDocument();
+    });
+  });
+
   it("filters clauses by search text", async () => {
     const clauses = [
       { id: "c1", name: "Indemnity", content: "indemnify and hold harmless" },

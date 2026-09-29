@@ -68,7 +68,7 @@ function ClausesContent({
     await refreshClauses();
   }, [refreshDatabases, refreshClauses]);
   useRefreshOnActive(active, refreshDatabases);
-  useRefreshOnActive(active && Boolean(activeDb), refreshClauses);
+  useRefreshOnActive(active && Boolean(activeDb), refreshClauses, activeDb);
 
   const filtered = search
     ? clauses.filter(
