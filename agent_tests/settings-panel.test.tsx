@@ -1,5 +1,5 @@
 // ABOUTME: Tests for SettingsPanel component rendering and interactions.
-// ABOUTME: Verifies Gemini model picker, API key input, and sign-in button.
+// ABOUTME: Verifies Gemini settings, API-key data-use copy, and sign-in behavior.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
