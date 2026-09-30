@@ -89,14 +89,14 @@ sequenceDiagram
   alt not found
     O-->>P: Miss (nothing changed)
   else found
-    O->>W: run#1 changeTrackingMode = "TrackAll"
+    O->>W: run#1 changeTrackingMode = "TrackAll" (skipped if prior is already TrackAll)
     O->>W: run#1 range.insertText(replacement, "Replace"); sync
-  end
-  O->>W: finally run#2 changeTrackingMode = prior; load; sync
-  alt reloaded mode ≠ prior
-    O-->>P: Applied + "Couldn't restore your Track Changes setting" notice
-  else
-    O-->>P: Applied
+    O->>W: finally run#2 changeTrackingMode = prior; load; sync
+    alt reloaded mode ≠ prior
+      O-->>P: Applied + "Couldn't restore your Track Changes setting" notice
+    else
+      O-->>P: Applied
+    end
   end
 ```
 
@@ -112,7 +112,7 @@ returns a `Word.Comment`, WordApi 1.4 [R4][R13].
 - **Anchor before mutate:** the quote is located *before* touching the tracking mode, so
   a miss never flips the user's setting.
 - **Comments** (`addComment(quote, text)` where text = `description`, plus `explanation`
-  when present — never `recommendation`, which is a verdict enum, see §7): anchor, `range.insertComment(text)`,
+  when present — never `recommendation`, a verdict by backend convention, see §5): anchor, `range.insertComment(text)`,
   sync. No tracking-mode change — comments are not tracked edits.
 - **Error mapping** (`Word.ErrorCodes` [R14]): `AccessDenied` / `NotAllowed` → "Word
   didn't allow this edit — the document may be protected or read-only." and, for
@@ -200,7 +200,7 @@ Per card, in order of prominence:
    Non-mutating. Disabled on miss.
 2. **Copy suggestion** — clipboard write of the replacement text (free tier's
    `suggestion`; paid tier copies `description`/`explanation` — `recommendation` is a
-   verdict enum, never copy-as-fix text); on failure, the text is already selectable in the card.
+   verdict by backend convention, never copy-as-fix text); on failure, the text is already selectable in the card.
 3. **Insert without tracking…** (secondary, text-style button) — opens an inline confirm
    inside the card. Only replacement-type issues; never for comments (inserting advice
    as document text is wrong).
@@ -230,12 +230,12 @@ Comment fallback when `insertComment` throws `NotAllowed` on the web (#6746):
 
 | File | Today | W1 change |
 |---|---|---|
-| `src/lib/office.ts` | `insertText(text, "replace" \| "end")` replaces **whatever the user has selected**, with the user's own tracking mode as-is (untracked unless they have Track Changes on — the code never touches the mode) | Remove `insertText`. Add `capabilities()` (§1 detection), `showQuote(quote)`, `applyTracked(quote \| "selection", replacement)`, `applyUntracked(…)` (only reachable from the §4 confirm), `addComment(quote, text)`. Keep `getSelectedText`, `getDocumentBody`, `isOfficeReady`. |
+| `src/lib/office.ts` | `insertText(text, "replace" \| "end")` replaces **whatever the user has selected**, with the user's own tracking mode as-is (untracked unless they have Track Changes on — the code never touches the mode) | Remove `insertText`. Add `capabilities()` (§1 detection), `showQuote(quote)`, `applyTracked(quote \| "selection" \| "cursor", replacement)`, `applyUntracked(…)` (reachable from the §4 confirm for AI edits, and directly from ClausesPanel's user-chosen insert below 1.4), `addComment(quote, text)`. Keep `getSelectedText`, `getDocumentBody`, `isOfficeReady`. |
 | `src/lib/quote-anchor.ts` (new) | — | `norm`, `findQuote`, `escapeSearch`. Pure; no `Word` global. |
 | `src/components/panels/ReviewPanel.tsx` | `handleInsert(text)` → `insertText(text)`; `ReviewResults`/`IssueCard` take `onInsert(text: string)`; at #27's current head `IssueCard` renders `recommendation` as a badge and inserts only the free tier's `suggestion` | `handleInsert` → `handleApply(issue, action)`; `ReviewResults`/`IssueCard` take the issue + `capabilities`; `IssueCard` renders Show / Apply / Comment / fallback per §4; banner in `ReviewPanel`. Quote = `issue.clauseReference`; comment text = `issue.description` (+ `explanation`); `recommendation` renders as a verdict badge only. |
 | `src/lib/agent.ts` (`reviewSchema`) | `location`: "Where in the text this issue appears"; `suggestion`: "Suggested fix or improvement" | `location` described as "exact verbatim quote copied from the text, ≤ 1 sentence"; add optional `replacement` ("verbatim replacement for the quoted text"). Prompt says never give offsets. |
 | `src/api/review.ts` (`reviewFree`, #27) | maps `location → clauseReference`; `suggestion` stays a word-local view field (never mapped into `recommendation`) | carries the insertable text; `replacement` from monorepo#4449 later. |
-| `src/components/panels/ClausesPanel.tsx:8,90` (line post-#28) | also imports and calls `insertText` to insert a selected clause at the cursor | clause insertion is USER-CHOSEN content at the user's own cursor — a different consent model from AI edits, so §3.4's "no insertion at the cursor" rule does not apply to it. On 1.4 hosts route through a tracked insert-at-cursor (`applyTracked("cursor", clauseText)`); below 1.4 keep today's plain insert (user-initiated, not confirmation-gated). Update the mocks in `agent_tests/clauses-panel.test.tsx:12` and `agent_tests/app.test.tsx:23`. Acceptance: on a 1.4 host an inserted clause appears as a tracked insertion; below 1.4 behaviour is unchanged. |
+| `src/components/panels/ClausesPanel.tsx:8,94` (post-#28: import at :8, call at :94) | also imports and calls `insertText` to insert a selected clause at the cursor | clause insertion is USER-CHOSEN content at the user's own cursor — a different consent model from AI edits, so §3.4's "no insertion at the cursor" rule does not apply to it. On 1.4 hosts route through `applyTracked("cursor", clauseText)`; below 1.4 the insert goes through `applyUntracked` directly (user-chosen content needs no §4 confirm — see the office.ts row). Update the mocks in `agent_tests/clauses-panel.test.tsx:12` and `agent_tests/app.test.tsx:24`. Acceptance: on a 1.4 host an inserted clause appears as a tracked insertion; below 1.4 behaviour is unchanged. |
 | `agent_tests/review-panel.test.tsx` | mocks `insertText` | mocks the new office functions; asserts no mutating call without anchor or confirm. |
 
 **Gap that changes scope — paid path.** Contract `ReviewResult.issues` is
@@ -248,8 +248,8 @@ use it. `clauseReference` reads as a section label (#27's own fixture uses
 — so it is never comment or replacement text; render it as a badge only. **Partial
 escape hatch that narrows monorepo#4449:** `ReviewResult.clauseDeviations[]`
 (`ClauseDeviationResult`) already carries `documentLanguage` (a quote or near-quote)
-and `suggestedText` (replacement language), so deviation-type findings can get tracked
-replacement TODAY via the §2 flow with `documentLanguage` as the anchor quote; #4449
+and `suggestedText` (replacement language), so deviation-type findings are already unblocked by the contract — rendering them
+(a Phase 2 row below) uses the §2 flow with `documentLanguage` as the anchor quote; #4449
 remains needed only for the `issues[]` array. Comment text comes from `description` +
 `explanation`. On the paid tier: comments anchor only if the backend puts a verbatim
 quote in `clauseReference`; tracked replacement needs a new contract field
@@ -288,6 +288,7 @@ otherwise — honestly, via §3.4.
 | 1 Insert-with-tracking | `quote-anchor.ts` + fixture, `capabilities()`, `applyTracked` with save/restore, free-tier `reviewSchema` `replacement` + verbatim `location`, `IssueCard` Show/Apply, miss fallback, remove `insertText` | **M** |
 | 2 Comments | `addComment`, `description`/`explanation` as comment, #6746 fallback | **S** |
 | 3 Non-mutating fallback | banner, Copy, confirm-gated `applyUntracked`, LTSC 2021 sideload (A6) | **S** |
+| 4 Clause deviations | render `clauseDeviations[]`; `documentLanguage` anchors, `suggestedText` applies via §2. Acceptance: a deviation Applies as a tracked replacement | **S** |
 | (dep) Paid-tier anchoring | backend emits verbatim quote + replacement; contract bump; word re-pin | **M, elefant_monorepo** |
 
 Word total M + S + S ≈ **L**, as resized. Recommendation for the owner: phase 2
