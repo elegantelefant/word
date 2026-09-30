@@ -1,31 +1,63 @@
 // ABOUTME: Tests security headers in the production nginx configuration.
-// ABOUTME: Verifies the task pane enforces a restrictive Content Security Policy.
+// ABOUTME: Verifies the task pane enforces an exact server-level Content Security Policy.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const nginxConfig = readFileSync(resolve(process.cwd(), "nginx.conf"), "utf8");
+const nginxConfigPath = resolve(process.cwd(), "nginx.conf");
+
+const activeConfig = readFileSync(nginxConfigPath, "utf8").replace(
+  /^\s*#.*$/gm,
+  "",
+);
 
 describe("production nginx configuration", () => {
-  it("enforces a Content Security Policy for the task pane", () => {
-    expect(nginxConfig).toContain("add_header Content-Security-Policy");
-    expect(nginxConfig).toContain("default-src 'self'");
-    expect(nginxConfig).toContain(
-      "script-src 'self' https://appsforoffice.microsoft.com",
-    );
-    expect(nginxConfig).toContain("style-src 'self'");
-    expect(nginxConfig).toContain("img-src 'self' data:");
-    expect(nginxConfig).toContain(
-      "connect-src 'self' https://elefant.legal https://generativelanguage.googleapis.com",
-    );
-    expect(nginxConfig).toContain("object-src 'none'");
-    expect(nginxConfig).toContain("base-uri 'self'");
+  it("sets the exact CSP at server level", () => {
+    const matches = [
+      ...activeConfig.matchAll(
+        /^ {4}add_header Content-Security-Policy "([^"]+)" always;$/gm,
+      ),
+    ];
 
-    expect(nginxConfig).not.toContain("'unsafe-inline'");
-    expect(nginxConfig).not.toContain("'unsafe-eval'");
-    expect(nginxConfig).toMatch(
-      /add_header Content-Security-Policy "[^"]+" always;/,
+    expect(matches).toHaveLength(1);
+
+    const directives = Object.fromEntries(
+      matches[0]![1]!
+        .split(";")
+        .map((directive) => directive.trim())
+        .filter(Boolean)
+        .map((directive) => {
+          const [name, ...values] = directive.split(/\s+/);
+          return [name, values];
+        }),
     );
+
+    expect(directives).toEqual({
+      "default-src": ["'self'"],
+      "script-src": [
+        "'self'",
+        "https://appsforoffice.microsoft.com",
+      ],
+      "style-src": ["'self'"],
+      "img-src": ["'self'", "data:"],
+      "connect-src": [
+        "'self'",
+        "https://elefant.legal",
+        "https://generativelanguage.googleapis.com",
+      ],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+    });
+  });
+
+  it("lets the SPA location inherit the server-level CSP", () => {
+    const rootLocation = activeConfig.match(
+      /^ {4}location \/ \{\r?\n([\s\S]*?)^ {4}\}/m,
+    );
+
+    expect(rootLocation).not.toBeNull();
+    expect(rootLocation![1]).not.toMatch(/^\s+add_header\b/m);
   });
 });
