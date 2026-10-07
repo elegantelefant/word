@@ -62,7 +62,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-blue-500 hover:underline">
                 Google AI Studio
               </a>
-              . Stored locally, never sent to Elefant.
+              . Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
               Outside the EEA, Switzerland and UK, Google uses prompts and responses sent with unpaid keys to improve its
