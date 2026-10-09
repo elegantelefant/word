@@ -5,6 +5,10 @@ import { isOfficeReady } from "@/lib/office";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
+// Auth lives in the web app, outside the versioned API: this page signs the user in,
+// then hands the token back over Office.context.ui.messageParent.
+const SIGN_IN_URL = `${new URL(API_URL).origin}/integrations/word/callback`;
+
 export function getSavedToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY);
@@ -27,13 +31,11 @@ export function clearToken(): void {
  * Falls back to window.open() outside Office.
  */
 export function openLoginDialog(): Promise<string> {
-  const loginUrl = `${API_URL}/auth/login?redirect=office-addin`;
-
   if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
-    return openOfficeDialog(loginUrl);
+    return openOfficeDialog(SIGN_IN_URL);
   }
 
-  return openBrowserDialog(loginUrl);
+  return openBrowserDialog(SIGN_IN_URL);
 }
 
 function openOfficeDialog(url: string): Promise<string> {
