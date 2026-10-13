@@ -16,7 +16,7 @@ Elefant helps legal professionals review documents, identify risks, explore clau
 - Insert suggested changes into the document.
 - Search and browse clause databases with Elefant Pro.
 - Access legal requests, full analysis, and review history.
-- Use your own Gemini API key or sign in to Elefant Pro.
+- Use your own Gemini API key. Elefant Pro sign-in is not yet available.
 
 ## Free BYOK and Elefant Pro
 
@@ -29,6 +29,8 @@ Elefant helps legal professionals review documents, identify risks, explore clau
 | Mammoth legal requests | — | Yes |
 | Full analysis | — | Yes |
 | History | Local review history | Elefant account job history |
+
+Elefant Pro is not yet available: sign-in is still being completed. The Pro column shows what it will include.
 
 BYOK means **bring your own key**. Free-tier users can create a Gemini API key through [Google AI Studio](https://aistudio.google.com/apikey).
 
@@ -77,7 +79,7 @@ For detailed platform-specific instructions, see the [user installation guide](a
 
 - The Gemini API key is stored locally in browser storage.
 - When a free review runs, the API key and selected text or document content are sent to Google Gemini.
-- Google’s handling of unpaid API usage may depend on the user’s location and account terms. See the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
+- Outside the EEA, Switzerland and the UK, Google uses prompts and responses sent with unpaid keys to improve its products, and human reviewers may read them. See the [Gemini API terms](https://ai.google.dev/gemini-api/terms). Use a paid-tier key for client work.
 - Users should review their organisation’s policies before processing client material.
 
 ### Elefant Pro
@@ -103,7 +105,7 @@ pnpm run certs
 pnpm dev
 ```
 
-The development server runs at `https://localhost:5173`.
+The development server runs at `https://localhost:3000`.
 
 Open Word, sideload `manifest.xml`, and open Elefant from the ribbon. The task pane will load from the local development server.
 
@@ -237,7 +239,7 @@ GitHub Actions runs the repository’s automated test and build checks for pushe
 
 | File | Purpose | Task-pane origin |
 |---|---|---|
-| `manifest.xml` | Local development | `https://localhost:5173` |
+| `manifest.xml` | Local development | `https://localhost:3000` |
 | `manifest.prod.xml` | Production | `https://elefant-word-245916757771.us-central1.run.app` |
 
 The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml`. Production therefore serves the correct manifest from `/manifest.xml`.
