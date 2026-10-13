@@ -87,6 +87,7 @@ The Dockerfile copies `manifest.prod.xml` → `/usr/share/nginx/html/manifest.xm
 
 `nginx.conf` handles:
 - CORS headers for Office.js (`Access-Control-Allow-Origin: *`)
+- Restrictive Content Security Policy for Office.js, the Elefant API, and Google Gemini
 - `application/xml` content type for the manifest
 - `Content-Disposition: attachment` on `.command` and `.bat` installer scripts
 - SPA fallback (`try_files → /index.html`)

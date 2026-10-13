@@ -1,5 +1,5 @@
 // ABOUTME: Tests for SettingsPanel component rendering and interactions.
-// ABOUTME: Verifies Gemini model picker, API key input, and sign-in button.
+// ABOUTME: Verifies Gemini settings, API-key data-use copy, and sign-in behavior.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -75,6 +75,23 @@ describe("SettingsPanel", () => {
     renderSettings();
     expect(screen.getByText(/Google uses prompts and responses sent with unpaid keys to improve its products, and human reviewers may read them/)).toBeInTheDocument();
     expect(screen.getByText("Gemini API terms").getAttribute("href")).toBe("https://ai.google.dev/gemini-api/terms");
+  });
+
+  it("explains where the API key and document content are sent", () => {
+    renderSettings();
+
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "P" &&
+          element.textContent?.includes(
+            "Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.",
+          ) === true,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/never sent to Elefant/i),
+    ).not.toBeInTheDocument();
   });
 
   it("calls updateSettings when model changes", () => {
