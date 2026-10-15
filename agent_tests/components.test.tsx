@@ -1,7 +1,7 @@
 // ABOUTME: Component render tests for Layout, UpgradePrompt, and ErrorBoundary.
 // ABOUTME: Verifies basic rendering and user interactions.
 
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Layout } from "@/components/Layout";
@@ -33,7 +33,11 @@ function renderLayoutPaid(ui: ReactNode) {
 }
 
 describe("Layout", () => {
-  it("renders header and all tab labels", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("hides the Analysis tab by default", () => {
     renderLayout(
       <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
         <div>content</div>
@@ -44,9 +48,20 @@ describe("Layout", () => {
     expect(screen.getByText("Review")).toBeInTheDocument();
     expect(screen.getByText("Clauses")).toBeInTheDocument();
     expect(screen.getByText("Mammoth")).toBeInTheDocument();
-    expect(screen.getByText("Analysis")).toBeInTheDocument();
+    expect(screen.queryByText("Analysis")).not.toBeInTheDocument();
     expect(screen.getByText("History")).toBeInTheDocument();
     expect(screen.getByText("content")).toBeInTheDocument();
+  });
+
+  it("renders the Analysis tab when the feature flag is true", () => {
+    vi.stubEnv("VITE_FULL_ANALYSIS", "true");
+    renderLayout(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    expect(screen.getByText("Analysis")).toBeInTheDocument();
   });
 
   it("renders version and tier in footer", () => {
