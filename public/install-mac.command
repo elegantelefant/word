@@ -2,7 +2,7 @@
 # Elefant Word Add-in Installer for Mac
 # Downloads the manifest to Word's sideload folder.
 
-MANIFEST_URL="https://elefant-word-245916757771.us-central1.run.app/manifest.xml"
+MANIFEST_URL="https://addin.elefant.legal/manifest.xml"
 WEF_DIR="$HOME/Library/Containers/com.microsoft.Word/Data/Documents/wef"
 
 echo "Installing Elefant Word Add-in..."

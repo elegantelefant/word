@@ -49,7 +49,7 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ### Word on the web
 
-1. Download the [production manifest](https://elefant-word-245916757771.us-central1.run.app/manifest.xml).
+1. Download the [production manifest](https://addin.elefant.legal/manifest.xml).
 2. Open a document in Word on the web.
 3. Open **Add-ins** and select **More Add-ins**.
 4. Choose **My Add-ins** → **Upload My Add-in**.
@@ -59,7 +59,7 @@ Always review AI-generated legal output before relying on or inserting it.
 
 Download and run:
 
-[Install Elefant for Windows](https://elefant-word-245916757771.us-central1.run.app/install-windows.bat)
+[Install Elefant for Windows](https://addin.elefant.legal/install-windows.bat)
 
 You can also sideload the production manifest manually through Microsoft Word.
 
@@ -67,7 +67,7 @@ You can also sideload the production manifest manually through Microsoft Word.
 
 Download and run:
 
-[Install Elefant for macOS](https://elefant-word-245916757771.us-central1.run.app/install-mac.command)
+[Install Elefant for macOS](https://addin.elefant.legal/install-mac.command)
 
 You can also sideload the production manifest manually.
 
@@ -191,27 +191,27 @@ This command:
 
 **Production service:**
 
-`https://elefant-word-245916757771.us-central1.run.app`
+`https://addin.elefant.legal`
 
 ### Verify after deployment
 
 ```bash
 # SPA loads
 curl -s -o /dev/null -w "%{http_code}" \
-  https://elefant-word-245916757771.us-central1.run.app/
+  https://addin.elefant.legal/
 
 # Manifest is served
 curl -s \
-  https://elefant-word-245916757771.us-central1.run.app/manifest.xml |
+  https://addin.elefant.legal/manifest.xml |
   head -5
 
 # macOS installer is downloadable
 curl -s -o /dev/null -w "%{http_code}" \
-  https://elefant-word-245916757771.us-central1.run.app/install-mac.command
+  https://addin.elefant.legal/install-mac.command
 
 # Windows installer is downloadable
 curl -s -o /dev/null -w "%{http_code}" \
-  https://elefant-word-245916757771.us-central1.run.app/install-windows.bat
+  https://addin.elefant.legal/install-windows.bat
 ```
 
 ## CI/CD
@@ -240,7 +240,7 @@ GitHub Actions runs the repository’s automated test and build checks for pushe
 | File | Purpose | Task-pane origin |
 |---|---|---|
 | `manifest.xml` | Local development | `https://localhost:3000` |
-| `manifest.prod.xml` | Production | `https://elefant-word-245916757771.us-central1.run.app` |
+| `manifest.prod.xml` | Production | `https://addin.elefant.legal` |
 
 The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml`. Production therefore serves the correct manifest from `/manifest.xml`.
 
