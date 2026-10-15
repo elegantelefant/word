@@ -45,6 +45,17 @@ export function createReviewRunner(apiKey: string, model: string = DEFAULT_MODEL
   return new InMemoryRunner({ agent, appName: "elefant" });
 }
 
+/** Turns an ADK error event into a message that says what actually happened. */
+function describeReviewError(errorCode: string | undefined, errorMessage: string): string {
+  if (errorCode === "400" && /api key/i.test(errorMessage)) {
+    return "Your Gemini API key wasn't accepted. Check it in Settings.";
+  }
+  if (errorCode === "429") {
+    return "Gemini's usage limit was reached. Try again in a little while.";
+  }
+  return `Gemini returned an error (code ${errorCode}). Try again.`;
+}
+
 export async function runReview(
   apiKey: string,
   model: string,
@@ -68,6 +79,9 @@ export async function runReview(
     sessionId: session.id,
     newMessage: { role: "user", parts: [{ text: prompt }] },
   })) {
+    if (event.errorMessage !== undefined) {
+      throw new Error(describeReviewError(event.errorCode, event.errorMessage));
+    }
     if (event.actions?.stateDelta?.review_result) {
       result = event.actions.stateDelta.review_result as ReviewResult;
     }
