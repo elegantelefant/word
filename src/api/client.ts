@@ -7,6 +7,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public reason?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -65,17 +66,27 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
     }
 
     let message = "Something went wrong while contacting Elefant. Please try again.";
+    let reason: string | undefined;
 
     try {
       const body: unknown = JSON.parse(await res.text());
 
-      if (
-        typeof body === "object" &&
-        body !== null &&
-        "message" in body &&
-        typeof body.message === "string"
-      ) {
-        message = body.message;
+      if (typeof body === "object" && body !== null) {
+        const data = "data" in body && typeof body.data === "object" && body.data !== null
+          ? body.data
+          : undefined;
+
+        if ("message" in body && typeof body.message === "string") {
+          message = body.message;
+        } else if (data && "message" in data && typeof data.message === "string") {
+          message = data.message;
+        }
+
+        if ("statusMessage" in body && typeof body.statusMessage === "string") {
+          reason = body.statusMessage;
+        } else if (data && "reason" in data && typeof data.reason === "string") {
+          reason = data.reason;
+        }
       }
     } catch {
       // Non-JSON and unreadable bodies use the safe generic message.
@@ -86,7 +97,7 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       status: res.status,
     });
 
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, reason);
   }
 
   const text = await res.text();

@@ -258,6 +258,34 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
+  it("shows the server denial when Mammoth creation is feature-disabled", async () => {
+    const denial = "Mammoth is available on custom plans. Talk to us.";
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ requests: [], total: 0 })))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            statusCode: 403,
+            statusMessage: "feature_disabled",
+            data: { error: true, code: "FORBIDDEN", message: denial },
+          }),
+          { status: 403 },
+        ),
+      );
+
+    renderWithAuth(paidAuth);
+    await waitFor(() => fireEvent.click(screen.getByText("+ New")));
+    fireEvent.change(screen.getByPlaceholderText("Request title..."), {
+      target: { value: "Custom plan request" },
+    });
+    fireEvent.click(screen.getByText("Create Request"));
+
+    await waitFor(() => expect(screen.getByText(denial)).toBeInTheDocument());
+    expect(screen.getByText("Create Request")).toBeInTheDocument();
+    expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
+  });
+
   it("shows error when list load fails", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("Server Error", { status: 500 }));
