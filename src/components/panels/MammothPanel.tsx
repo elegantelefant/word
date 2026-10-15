@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
+import { ApiError } from "@/api/client";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
   createLegalRequest,
@@ -152,7 +153,11 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
       );
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create request");
+      if (err instanceof ApiError && err.status === 403 && err.reason === "feature_disabled") {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create request");
+      }
     } finally {
       setSubmitting(false);
     }
