@@ -6,14 +6,14 @@
   xsi:type="TaskPaneApp">
 
   <Id>b8799917-4c67-4488-a596-dd911959e1e7</Id>
-  <Version>1.0.1.0</Version>
+  <Version>1.0.2.0</Version>
   <ProviderName>Elegant Elephant Pte Ltd</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Elefant Legal Assistant"/>
   <Description DefaultValue="AI-powered legal document review and analysis"/>
 
-  <IconUrl DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-64.png"/>
+  <IconUrl DefaultValue="https://addin.elefant.legal/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://addin.elefant.legal/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://elefant.legal/resources/support"/>
 
   <AppDomains>
@@ -25,7 +25,7 @@
   </Hosts>
 
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://elefant-word-245916757771.us-central1.run.app/"/>
+    <SourceLocation DefaultValue="https://addin.elefant.legal/"/>
   </DefaultSettings>
 
   <Permissions>ReadWriteDocument</Permissions>
@@ -73,12 +73,12 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://addin.elefant.legal/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://addin.elefant.legal/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://addin.elefant.legal/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://elefant-word-245916757771.us-central1.run.app/"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://addin.elefant.legal/"/>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/integrations/word"/>
       </bt:Urls>
       <bt:ShortStrings>
