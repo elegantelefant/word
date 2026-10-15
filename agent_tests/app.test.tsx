@@ -34,6 +34,7 @@ vi.mock("@/hooks/useAuth", () => ({
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   localStorage.clear();
 
   vi.mocked(useAuthProvider).mockReturnValue({
@@ -47,19 +48,27 @@ beforeEach(() => {
 });
 
 describe("App", () => {
-  it("renders with all tabs and header", () => {
+  it("renders with the Analysis tab hidden by default", () => {
     render(<App />);
     expect(screen.getByText("Elefant")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /History/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
     // Review tab and Review Document button both exist
     expect(screen.getByText("Review Document")).toBeInTheDocument();
+  });
+
+  it("renders the Analysis tab when the feature flag is true", () => {
+    vi.stubEnv("VITE_FULL_ANALYSIS", "true");
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: /Analysis/ })).toBeInTheDocument();
   });
 
   it("disables paid-only tabs for free tier", () => {
     render(<App />);
     expect(screen.getByRole("button", { name: /Clauses/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Mammoth/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Analysis/ })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
   });
 
   it("keeps free tabs enabled", () => {

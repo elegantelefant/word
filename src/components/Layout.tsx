@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { useAuth } from "@/store/auth";
+import { isFullAnalysisEnabled } from "@/lib/features";
 
 export type TabId = "review" | "clauses" | "mammoth" | "analysis" | "history";
 
@@ -13,13 +14,17 @@ interface Tab {
   paidOnly?: boolean;
 }
 
-const TABS: Tab[] = [
-  { id: "review", label: "Review" },
-  { id: "clauses", label: "Clauses", paidOnly: true },
-  { id: "mammoth", label: "Mammoth", paidOnly: true },
-  { id: "analysis", label: "Analysis", paidOnly: true },
-  { id: "history", label: "History" },
-];
+function getTabs(): Tab[] {
+  return [
+    { id: "review", label: "Review" },
+    { id: "clauses", label: "Clauses", paidOnly: true },
+    { id: "mammoth", label: "Mammoth", paidOnly: true },
+    ...(isFullAnalysisEnabled(import.meta.env.VITE_FULL_ANALYSIS)
+      ? [{ id: "analysis" as const, label: "Analysis", paidOnly: true }]
+      : []),
+    { id: "history", label: "History" },
+  ];
+}
 
 interface LayoutProps {
   activeTab: TabId;
@@ -62,7 +67,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
       )}
 
       <nav className="flex border-b border-gray-200">
-        {TABS.map((tab) => {
+        {getTabs().map((tab) => {
           const locked = tab.paidOnly && tier !== "paid";
           const isDisabled = tab.disabled || locked;
           return (
