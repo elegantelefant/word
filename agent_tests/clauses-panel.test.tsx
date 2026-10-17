@@ -6,10 +6,12 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import { ClausesPanel } from "@/components/panels/ClausesPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
+import { insertText, isOfficeReady } from "@/lib/office";
 
 vi.mock("@/lib/office", () => ({
   isOfficeReady: vi.fn(() => false),
   insertText: vi.fn(),
+  getSelectedText: vi.fn(async () => "selected words"),
 }));
 
 const noop = () => {};
@@ -532,5 +534,55 @@ describe("ClausesPanel — reloads and races", () => {
 
     expect(pending.some((p) => p.url.endsWith(dbList))).toBe(true);
     expect(screen.getByRole("button", { name: "Refresh clauses" })).toBeDisabled();
+  });
+});
+
+describe("ClausesPanel — draft in place", () => {
+  const auth = { ...AUTH_INITIAL, tier: "paid" as const, token: "tok-123", login: noopAsync, logout: noop };
+
+  it("inserts the drafted clause at the end of the selection and tells the user how to undo", async () => {
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    const bodies: unknown[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/draft")) {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify({ jobId: "j1" }));
+      }
+      if (url.endsWith("/jobs/j1")) return new Response(JSON.stringify({ id: "j1", status: "completed" }));
+      if (url.endsWith("/jobs/j1/result")) {
+        return new Response(JSON.stringify({ id: "j1", status: "completed", result: { draft: "DRAFTED CLAUSE", warnings: [] } }));
+      }
+      if (url.endsWith("/clause-databases")) return new Response(JSON.stringify({ databases: [] }));
+      return new Response(JSON.stringify({ clauses: [] }));
+    });
+
+    render(<AuthContext value={auth}><ClausesPanel /></AuthContext>);
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a mutual NDA term" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+
+    expect(await screen.findByText("Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).")).toBeInTheDocument();
+    expect(insertText).toHaveBeenCalledWith("DRAFTED CLAUSE", "end");
+    expect(bodies).toEqual([{ prompt: "a mutual NDA term", supplementContext: "selected words" }]);
+  });
+
+  it("shows the error line and inserts nothing when drafting fails", async () => {
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(insertText).mockClear();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/draft")) return new Response("boom", { status: 500 });
+      if (url.endsWith("/clause-databases")) return new Response(JSON.stringify({ databases: [] }));
+      return new Response(JSON.stringify({ clauses: [] }));
+    });
+
+    render(<AuthContext value={auth}><ClausesPanel /></AuthContext>);
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+
+    expect(
+      await screen.findByText("Something went wrong while contacting Elefant. Please try again."),
+    ).toBeInTheDocument();
+    expect(insertText).not.toHaveBeenCalled();
   });
 });

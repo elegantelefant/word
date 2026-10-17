@@ -4,10 +4,12 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
-import { insertText, isOfficeReady } from "@/lib/office";
+import { draftClause, listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
+import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
+
+const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
 
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
@@ -37,6 +39,9 @@ function ClausesContent({
   const [databasesError, setDatabasesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [draftPrompt, setDraftPrompt] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
   const refreshDatabases = useCallback(async () => {
     const isLatest = beginDatabases();
@@ -97,6 +102,24 @@ function ClausesContent({
     }
   }
 
+  async function handleDraft() {
+    const prompt = draftPrompt.trim();
+    if (!prompt || !isOfficeReady()) return;
+    setDrafting(true);
+    setError(null);
+    setDraftNotice(null);
+    try {
+      const selected = await getSelectedText();
+      const draft = await draftClause(prompt, selected, token);
+      await insertText(draft, "end");
+      setDraftNotice(DRAFT_INSERTED_NOTICE);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to draft clause");
+    } finally {
+      setDrafting(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
@@ -110,6 +133,27 @@ function ClausesContent({
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
+      {/* Draft a clause */}
+      <div className="space-y-1.5">
+        <textarea
+          value={draftPrompt}
+          onChange={(e) => setDraftPrompt(e.target.value)}
+          placeholder="Describe the clause to draft..."
+          aria-label="Draft a clause"
+          rows={3}
+          className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => void handleDraft()}
+          disabled={drafting || !draftPrompt.trim()}
+          className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {drafting ? "Drafting..." : "Draft clause"}
+        </button>
+        {draftNotice && <p className="text-xs text-green-700">{draftNotice}</p>}
+      </div>
+
       {/* Database selector (if multiple) */}
       {databases.length > 1 && (
         <select
