@@ -9,6 +9,9 @@ const TOKEN_KEY = "elefant_token";
 // then hands the token back over Office.context.ui.messageParent.
 const SIGN_IN_URL = `${new URL(API_URL).origin}/integrations/word/callback`;
 
+// Office requires a dialog's first page on the pane's own domain; this page redirects to SIGN_IN_URL.
+const DIALOG_START_PATH = "/sign-in.html";
+
 export function getSavedToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY);
@@ -32,7 +35,7 @@ export function clearToken(): void {
  */
 export function openLoginDialog(): Promise<string> {
   if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
-    return openOfficeDialog(SIGN_IN_URL);
+    return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }
 
   return openBrowserDialog(SIGN_IN_URL);
@@ -43,7 +46,7 @@ function openOfficeDialog(url: string): Promise<string> {
     Office.context.ui.displayDialogAsync(
       url,
       { height: 60, width: 30, promptBeforeOpen: false },
-      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message?: string; error?: number }) => void) => void; close: () => void }; error?: { message: string } }) => {
+      (result: { status: string; value: { addEventHandler: (type: string, handler: (arg: { message?: string; origin?: string; error?: number }) => void) => void; close: () => void }; error?: { message: string } }) => {
         if (result.status !== "succeeded") {
           reject(new Error(result.error?.message ?? "Failed to open login dialog"));
           return;
@@ -51,7 +54,11 @@ function openOfficeDialog(url: string): Promise<string> {
         const dialog = result.value;
         dialog.addEventHandler(
           "DialogMessageReceived" as string,
-          (arg: { message?: string }) => {
+          (arg: { message?: string; origin?: string }) => {
+            if (arg.origin !== new URL(API_URL).origin) {
+              reject(new Error("Dialog message from an unexpected origin"));
+              return;
+            }
             try {
               const data = JSON.parse(arg.message ?? "");
               if (data.token) {
