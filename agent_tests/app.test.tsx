@@ -51,6 +51,7 @@ describe("App", () => {
   it("renders with the Analysis tab hidden by default", () => {
     render(<App />);
     expect(screen.getByText("Elefant")).toBeInTheDocument();
+    expect(screen.getByRole("main").children).toHaveLength(4);
     expect(screen.getByRole("button", { name: /History/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
     // Review tab and Review Document button both exist
@@ -62,6 +63,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByRole("button", { name: /Analysis/ })).toBeInTheDocument();
+    expect(screen.getByRole("main").children).toHaveLength(5);
   });
 
   it("disables paid-only tabs for free tier", () => {
