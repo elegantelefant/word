@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
+import { ApiError } from "@/api/client";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
   createLegalRequest,
@@ -152,7 +153,11 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
       );
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create request");
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create request");
+      }
     } finally {
       setSubmitting(false);
     }

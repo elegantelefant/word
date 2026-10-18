@@ -162,6 +162,29 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
+  it("uses the nested message and exposes the proxy denial reason", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          statusCode: 403,
+          statusMessage: "feature_disabled",
+          data: {
+            error: true,
+            code: "FORBIDDEN",
+            message: "Mammoth is available on custom plans. Talk to us.",
+          },
+        }),
+        { status: 403 },
+      ),
+    );
+
+    await expect(apiFetch("/legal-requests", "token")).rejects.toMatchObject({
+      status: 403,
+      reason: "feature_disabled",
+      message: "Mammoth is available on custom plans. Talk to us.",
+    });
+  });
+
   it("NetworkError wraps non-abort fetch failures", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("DNS failure"));
 

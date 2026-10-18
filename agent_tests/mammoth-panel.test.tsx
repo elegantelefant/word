@@ -258,6 +258,36 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
+  it.each(["feature_disabled", "backend_error"])("shows enablement copy without retry for the 403 %s fixture", async (reason) => {
+    const denial = "Mammoth is available on custom plans. Talk to us.";
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ requests: [], total: 0 })))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            statusCode: 403,
+            statusMessage: reason,
+            data: { error: true, code: "FORBIDDEN", message: denial },
+          }),
+          { status: 403 },
+        ),
+      );
+
+    renderWithAuth(paidAuth);
+    await waitFor(() => fireEvent.click(screen.getByText("+ New")));
+    fireEvent.change(screen.getByPlaceholderText("Request title..."), {
+      target: { value: "Custom plan request" },
+    });
+    fireEvent.click(screen.getByText("Create Request"));
+
+    await waitFor(() => expect(screen.getByText("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.")).toBeInTheDocument());
+    expect(screen.queryByText(/Talk to us/)).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Create Request")).toBeInTheDocument();
+    expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
+  });
+
   it("shows error when list load fails", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("Server Error", { status: 500 }));
