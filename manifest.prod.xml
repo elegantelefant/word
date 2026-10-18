@@ -5,16 +5,16 @@
   xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
   xsi:type="TaskPaneApp">
 
-  <Id>b2e5f8a0-1234-4abc-9def-0123456789ab</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>Elefant</ProviderName>
+  <Id>b8799917-4c67-4488-a596-dd911959e1e7</Id>
+  <Version>1.0.1.0</Version>
+  <ProviderName>Elegant Elephant Pte Ltd</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Elefant Legal Assistant"/>
   <Description DefaultValue="AI-powered legal document review and analysis"/>
 
   <IconUrl DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://elefant-word-245916757771.us-central1.run.app/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://elefant.legal/support"/>
+  <SupportUrl DefaultValue="https://elefant.legal/resources/support"/>
 
   <AppDomains>
     <AppDomain>https://elefant.legal</AppDomain>
@@ -79,7 +79,7 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://elefant-word-245916757771.us-central1.run.app/"/>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/word-addin"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/integrations/word"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Elefant Legal Assistant"/>

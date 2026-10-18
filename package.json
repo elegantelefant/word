@@ -1,6 +1,6 @@
 {
   "name": "elefant-word-addin",
-  "version": "0.1.0b",
+  "version": "0.1.0",
   "private": true,
   "description": "Elefant legal AI assistant for Microsoft Word",
   "type": "module",
