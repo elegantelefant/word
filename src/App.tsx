@@ -13,6 +13,7 @@ import { SettingsContext, loadSettings, saveSettings, type Settings } from "./st
 import { AuthContext } from "./store/auth";
 import { UIContext } from "./store/ui";
 import { useAuthProvider } from "./hooks/useAuth";
+import { isFullAnalysisEnabled } from "./lib/features";
 
 export function App() {
   // Settings state
@@ -53,6 +54,8 @@ export function App() {
 }
 
 function TabContent({ activeTab }: { activeTab: TabId }) {
+  const fullAnalysisEnabled = isFullAnalysisEnabled(import.meta.env.VITE_FULL_ANALYSIS);
+
   return (
     <>
       <TabPane active={activeTab === "review"}><ReviewPanel /></TabPane>
@@ -62,7 +65,9 @@ function TabContent({ activeTab }: { activeTab: TabId }) {
       <TabPane active={activeTab === "mammoth"}>
         <MammothPanel active={activeTab === "mammoth"} />
       </TabPane>
-      <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
+      {fullAnalysisEnabled && (
+        <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
+      )}
       <TabPane active={activeTab === "history"}>
         <HistoryPanel active={activeTab === "history"} />
       </TabPane>
