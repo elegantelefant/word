@@ -153,8 +153,8 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
       );
       onCreated();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 403 && err.reason === "feature_disabled") {
-        setError(err.message);
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.");
       } else {
         setError(err instanceof Error ? err.message : "Failed to create request");
       }

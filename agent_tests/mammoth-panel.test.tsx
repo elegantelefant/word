@@ -258,7 +258,7 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
-  it("shows the server denial when Mammoth creation is feature-disabled", async () => {
+  it.each(["feature_disabled", "backend_error"])("shows enablement copy without retry for the 403 %s fixture", async (reason) => {
     const denial = "Mammoth is available on custom plans. Talk to us.";
 
     vi.spyOn(globalThis, "fetch")
@@ -267,7 +267,7 @@ describe("MammothPanel — paid tier", () => {
         new Response(
           JSON.stringify({
             statusCode: 403,
-            statusMessage: "feature_disabled",
+            statusMessage: reason,
             data: { error: true, code: "FORBIDDEN", message: denial },
           }),
           { status: 403 },
@@ -281,7 +281,9 @@ describe("MammothPanel — paid tier", () => {
     });
     fireEvent.click(screen.getByText("Create Request"));
 
-    await waitFor(() => expect(screen.getByText(denial)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.")).toBeInTheDocument());
+    expect(screen.queryByText(/Talk to us/)).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(screen.getByText("Create Request")).toBeInTheDocument();
     expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
   });
