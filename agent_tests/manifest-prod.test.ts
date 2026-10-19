@@ -33,7 +33,7 @@ describe("production manifest metadata", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     expect(productionId).not.toBe(elementValue("Id", developmentManifest));
-    expect(elementValue("Version", productionManifest)).toBe("1.0.1.0");
+    expect(elementValue("Version", productionManifest)).toBe("1.0.2.0");
     expect(elementValue("ProviderName", productionManifest)).toBe(
       "Elegant Elephant Pte Ltd",
     );
@@ -43,6 +43,24 @@ describe("production manifest metadata", () => {
     expect(productionManifest).toContain(
       '<bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/integrations/word"',
     );
+  });
+
+  it("serves production resources from the stable host", () => {
+    const origin = "https://addin.elefant.legal";
+    expect(attributeValue("SourceLocation", "DefaultValue", productionManifest)).toBe(`${origin}/`);
+    expect(productionManifest).toContain(`<bt:Url id="Taskpane.Url" DefaultValue="${origin}/"`);
+    for (const file of ["manifest.prod.xml", "public/install-mac.command", "public/install-windows.bat", "README.md"]) {
+      const contents = readFileSync(resolve(process.cwd(), file), "utf8");
+      expect(contents).not.toContain("elefant-word-245916757771");
+      if (file.startsWith("public/")) {
+        expect(contents).toContain(`MANIFEST_URL=${file.endsWith(".command") ? '"' : ''}${origin}/manifest.xml`);
+      }
+      if (file === "README.md") {
+        for (const resource of ["manifest.xml", "install-mac.command", "install-windows.bat"]) {
+          expect(contents).toContain(`${origin}/${resource}`);
+        }
+      }
+    }
   });
 
   it("uses a semver package version", () => {

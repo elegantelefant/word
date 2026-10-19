@@ -6,7 +6,7 @@
   xsi:type="TaskPaneApp">
 
   <Id>b8799917-4c67-4488-a596-dd911959e1e7</Id>
-  <Version>1.0.3.0</Version>
+  <Version>1.0.2.0</Version>
   <ProviderName>Elegant Elephant Pte Ltd</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Elefant Legal Assistant"/>
