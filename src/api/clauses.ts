@@ -1,7 +1,8 @@
-// ABOUTME: Clauses API — list databases, list/search clauses, suggest.
+// ABOUTME: Clauses API — list databases, list/search clauses, suggest, draft.
 // ABOUTME: All endpoints require Elefant auth (paid tier only).
 
 import { apiFetch } from "./client";
+import { pollForResult } from "@/lib/polling";
 
 export interface ClauseDatabase {
   id: string;
@@ -47,4 +48,20 @@ export async function suggestClause(
     { method: "POST", body: { context } },
   );
   return res.suggestions ?? [];
+}
+
+export async function draftClause(
+  prompt: string,
+  context: string,
+  token: string,
+): Promise<string> {
+  // The draft endpoint answers in the camelCase wire (jobId), unlike the legacy snake_case routes.
+  const job = await apiFetch<{ jobId: string }>("/draft", token, {
+    method: "POST",
+    body: { prompt, supplementContext: context },
+  });
+  const result = await pollForResult(job.jobId, token);
+  const draft = result.result?.draft;
+  if (typeof draft !== "string" || !draft) throw new Error("The draft came back empty.");
+  return draft;
 }
