@@ -2,7 +2,7 @@
 REM Elefant Word Add-in Installer for Windows
 REM Downloads the manifest to Word's sideload folder.
 
-set MANIFEST_URL=https://elefant-word-245916757771.us-central1.run.app/manifest.xml
+set MANIFEST_URL=https://addin.elefant.legal/manifest.xml
 set WEF_DIR=%LOCALAPPDATA%\Microsoft\Office\16.0\Wef
 
 echo Installing Elefant Word Add-in...
