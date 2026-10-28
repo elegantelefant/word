@@ -121,6 +121,21 @@ describe("ReviewPanel — free-tier review", () => {
     });
   });
 
+  it("shows a document-specific message for an empty document in Full Document mode", async () => {
+    const { isOfficeReady, getDocumentBody } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getDocumentBody).mockResolvedValue("");
+
+    renderPanel();
+    fireEvent.click(screen.getByText("Full Document"));
+    fireEvent.click(screen.getByText("Review Document"));
+
+    await waitFor(() => {
+      expect(screen.getByText("This document doesn't have enough text to review (at least 10 characters).")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Please select some text/)).not.toBeInTheDocument();
+  });
+
   it("calls reviewFree and displays results", async () => {
     const { isOfficeReady, getSelectedText } = await import("@/lib/office");
     vi.mocked(isOfficeReady).mockReturnValue(true);

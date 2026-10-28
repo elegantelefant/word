@@ -48,7 +48,9 @@ export function ReviewPanel() {
       if (!text || text.trim().length < 10) {
         setError(
           inOffice
-            ? "Please select some text in your document (at least 10 characters)."
+            ? scope === "selection"
+              ? "Please select some text in your document (at least 10 characters)."
+              : "This document doesn't have enough text to review (at least 10 characters)."
             : "This feature requires Microsoft Word. Open this add-in from within Word to review documents.",
         );
         return;
