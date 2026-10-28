@@ -41,6 +41,9 @@ export function createReviewRunner(apiKey: string, model: string = DEFAULT_MODEL
     instruction: REVIEW_SYSTEM_PROMPT,
     outputSchema: reviewSchema,
     outputKey: "review_result",
+    // ADK requires both when outputSchema is set, else it warns and sets them itself.
+    disallowTransferToParent: true,
+    disallowTransferToPeers: true,
   });
   return new InMemoryRunner({ agent, appName: "elefant" });
 }
