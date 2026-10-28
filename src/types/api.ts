@@ -1,127 +1,35 @@
-// ABOUTME: TypeScript types derived from the Elefant API OpenAPI spec.
-// ABOUTME: Covers review, jobs, account, clauses, and auth contracts.
+// ABOUTME: API types for the operations Word uses, derived by Orval.
+// ABOUTME: Preserve the contract field names and optionality in every exported alias.
+import type {
+  JobCreatedResponse,
+  JobResponse,
+  JobResultResponse,
+  MeUser,
+  MeOrg,
+} from "@/api/generated/client";
 
-// -- Review --
+export type { ReviewRequest, ReviewResponse, ReviewIssue } from "@/api/generated/client";
+export type IssueKind = NonNullable<import("@/api/generated/client").ReviewIssue["kind"]>;
 
-export interface ReviewRequest {
-  text: string;
-  instructions?: string | null;
-  context?: {
-    jurisdiction?: string;
-    document_type?: string;
-    playbook_id?: string;
-    risk_tolerance?: "low" | "medium" | "high";
-  };
-}
+export type { MeResponse, MeUser, MeOrg } from "@/api/generated/client";
+export type JobCreated = JobCreatedResponse;
+export type Job = JobResponse;
+export type JobStatus = JobResponse["status"];
+export type JobType = JobResponse["type"];
 
-export type IssueKind = "risk" | "ambiguity" | "missing" | "style" | "other";
+// Existing polling exposes raw result dictionaries, before operation-specific decoding.
+// Derive all known result keys from the generated union while allowing callers to
+// inspect a property without first narrowing the backend's jobType discriminator.
+type UnionKeys<T> = T extends unknown ? keyof T : never;
+type UnionValue<T, K extends PropertyKey> = T extends unknown ? K extends keyof T ? T[K] : never : never;
+type Result = NonNullable<JobResultResponse["result"]>;
+export type JobResult = Omit<JobResultResponse, "result"> & {
+  result?: { [K in UnionKeys<Result>]?: UnionValue<Result, K> } | null;
+};
 
-export interface ReviewIssue {
-  message: string;
-  kind?: IssueKind;
-  location?: string | null;
-  suggestion?: string | null;
-}
+// /whoami is a legacy proxy operation absent from openapi.json; its identifiers
+// share the account schema's identifier types. Do not invent a generated route.
+export type WhoamiResponse = { user_id: MeUser["id"]; org_id: MeOrg["id"] };
 
-export interface ReviewResponse {
-  summary: string;
-  issues?: ReviewIssue[];
-}
-
-// -- Jobs --
-
-export type JobStatus = "queued" | "running" | "completed" | "failed";
-export type JobType = "review" | "draft" | "research" | "citation_check" | "translate" | "process" | "mammoth";
-
-export interface JobCreated {
-  job_id: string;
-  poll_url: string;
-  status: "queued";
-}
-
-export interface Job {
-  id: string;
-  type: JobType;
-  status: JobStatus;
-  created_at: string;
-  query?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
-  error?: string | null;
-}
-
-export interface JobResult {
-  id: string;
-  status: JobStatus;
-  result?: Record<string, unknown> | null;
-}
-
-// -- Account --
-
-export interface MeUser {
-  id: string;
-  email: string;
-  name: string;
-  role?: string | null;
-  org_role?: string | null;
-}
-
-export interface MeOrg {
-  id: string;
-  name: string;
-  slug: string;
-  account_type: string;
-}
-
-export interface MeResponse {
-  user: MeUser;
-  org: MeOrg;
-  entitlements: Record<string, unknown>;
-  preferences?: { data_training_opt_out?: boolean };
-}
-
-// -- Auth --
-
-export interface WhoamiResponse {
-  user_id: string;
-  org_id: string;
-}
-
-export interface AuthError {
-  detail: string;
-  hint?: string | null;
-}
-
-// -- Clauses --
-
-export interface ClauseSearchRequest {
-  query: string;
-  limit?: number;
-}
-
-export interface ClauseSearchResponse {
-  query?: string | null;
-  results?: Record<string, unknown>[];
-  status?: string;
-}
-
-// -- Gateway (BYOK) --
-
-export interface GatewayMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-export interface GatewayRequest {
-  model: string;
-  messages: GatewayMessage[];
-  result_type?: string;
-}
-
-export interface GatewayResponse {
-  content: string;
-}
-
-// -- Tier --
-
+// Local UI state, not an API schema.
 export type Tier = "free" | "paid";

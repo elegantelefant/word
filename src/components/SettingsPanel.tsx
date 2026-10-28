@@ -30,7 +30,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <section className="rounded-lg border border-gray-100 bg-gray-50 p-3">
             <h4 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Account</h4>
             <p className="text-sm font-medium text-gray-700">{user.user.name}</p>
-            <p className="text-xs text-gray-500">{user.org.name}</p>
+            {user.org && <p className="text-xs text-gray-500">{user.org.name}</p>}
             <button onClick={logout} className="mt-2.5 text-xs text-red-500 transition-colors hover:text-red-700">
               Sign out
             </button>

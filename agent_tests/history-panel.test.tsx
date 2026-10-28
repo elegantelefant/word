@@ -58,8 +58,8 @@ describe("HistoryPanel — free tier (local history)", () => {
 describe("HistoryPanel — paid tier (API history)", () => {
   it("shows loading then API jobs", async () => {
     const jobs = [
-      { id: "j1", type: "review", status: "completed", created_at: "2025-06-01T10:00:00Z" },
-      { id: "j2", type: "research", status: "running", created_at: "2025-06-02T10:00:00Z" },
+      { id: "j1", type: "review", status: "completed", createdAt: "2025-06-01T10:00:00Z" },
+      { id: "j2", type: "research", status: "running", createdAt: "2025-06-02T10:00:00Z" },
     ];
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -75,13 +75,15 @@ describe("HistoryPanel — paid tier (API history)", () => {
     });
     expect(screen.getByText("review")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
+    const expectedDate = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(jobs[0]!.createdAt));
+    expect(screen.getByText(expectedDate)).toBeInTheDocument();
   });
   it("keeps existing jobs visible while refreshing", async () => {
     const runningJob = {
       id: "j1",
       type: "review",
       status: "running",
-      created_at: "2025-06-01T10:00:00Z",
+      createdAt: "2025-06-01T10:00:00Z",
     };
 
     const completedJob = {
@@ -129,7 +131,7 @@ describe("HistoryPanel — paid tier (API history)", () => {
       id: "j1",
       type: "review",
       status: "running",
-      created_at: "2025-06-01T10:00:00Z",
+      createdAt: "2025-06-01T10:00:00Z",
     };
 
     const fetchSpy = vi
@@ -187,7 +189,7 @@ describe("HistoryPanel — paid tier (API history)", () => {
   });
 
   it("retries from the error state when the user clicks Refresh", async () => {
-    const job = { id: "j1", type: "review", status: "completed", created_at: "2025-06-01T10:00:00Z" };
+    const job = { id: "j1", type: "review", status: "completed", createdAt: "2025-06-01T10:00:00Z" };
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("Server Error", { status: 500 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [job] })));
@@ -222,7 +224,7 @@ describe("HistoryPanel — paid tier (API history)", () => {
       id: "j1",
       type: "review",
       status: "running",
-      created_at: "2025-06-01T10:00:00Z",
+      createdAt: "2025-06-01T10:00:00Z",
     };
     const completedJob = {
       ...runningJob,
@@ -272,7 +274,7 @@ describe("HistoryPanel — paid tier (API history)", () => {
       id: "j1",
       type: "review",
       status: "running",
-      created_at: "2025-06-01T10:00:00Z",
+      createdAt: "2025-06-01T10:00:00Z",
     };
     const completedJob = {
       ...runningJob,

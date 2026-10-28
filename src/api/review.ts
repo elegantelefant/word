@@ -39,7 +39,7 @@ export async function reviewPaid(
 ): Promise<ReviewResponse> {
   const body: ReviewRequest = { text, instructions, context };
   const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body });
-  const result = await pollForResult(job.job_id, token);
+  const result = await pollForResult(job.jobId, token);
   return (result.result as unknown as ReviewResponse) ?? { summary: "No result returned.", issues: [] };
 }
 
@@ -60,8 +60,8 @@ export async function runFullAnalysis(text: string, token: string, signal?: Abor
   ]);
 
   const [reviewResult, researchResult] = await Promise.all([
-    pollForResult(reviewJob.job_id, token, undefined, undefined, signal),
-    researchJob ? pollForResult(researchJob.job_id, token, undefined, undefined, signal).catch(() => null) : null,
+    pollForResult(reviewJob.jobId, token, undefined, undefined, signal),
+    researchJob ? pollForResult(researchJob.jobId, token, undefined, undefined, signal).catch(() => null) : null,
   ]);
 
   const results: FullAnalysisResult = {};

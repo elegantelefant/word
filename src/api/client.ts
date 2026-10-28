@@ -116,3 +116,24 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
     );
   }
 }
+
+/** Orval mutator: keep auth, errors and cancellation in the shared fetch wrapper. */
+export function contractFetch<T>(
+  config: { url: string; method: string; data?: unknown; params?: Record<string, unknown>; headers?: Record<string, string>; signal?: AbortSignal },
+  options: { token: string; signal?: AbortSignal } | undefined,
+): Promise<T> {
+  if (!options?.token) throw new Error("An API token is required.");
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(config.params ?? {})) {
+    if (value !== undefined && value !== null) params.set(key, String(value));
+  }
+  const query = params.toString();
+  // The contract describes the upstream v1 routes; API_URL is the versioned proxy.
+  const path = config.url.replace(/^\/api\/v1(?=\/)/, "");
+  return apiFetch<T>(`${path}${query ? `?${query}` : ""}`, options.token, {
+    method: config.method,
+    body: config.data,
+    headers: config.headers,
+    signal: options.signal ?? config.signal,
+  });
+}
