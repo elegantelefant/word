@@ -10,8 +10,8 @@ beforeEach(() => {
 
 describe("reviewPaid", () => {
   it("creates job then polls to completion", async () => {
-    const jobCreated = { job_id: "r1", poll_url: "/jobs/r1", status: "queued" };
-    const jobCompleted = { id: "r1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const jobCreated = { jobId: "r1", pollUrl: "/jobs/r1", status: "queued" };
+    const jobCompleted = { id: "r1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const jobResult = {
       id: "r1",
       status: "completed",
@@ -30,8 +30,8 @@ describe("reviewPaid", () => {
   });
 
   it("passes instructions and context to the API", async () => {
-    const jobCreated = { job_id: "r2", poll_url: "/jobs/r2", status: "queued" };
-    const jobCompleted = { id: "r2", type: "review", status: "completed", created_at: "2025-01-01" };
+    const jobCreated = { jobId: "r2", pollUrl: "/jobs/r2", status: "queued" };
+    const jobCompleted = { id: "r2", type: "review", status: "completed", createdAt: "2025-01-01" };
     const jobResult = { id: "r2", status: "completed", result: { summary: "Done", issues: [] } };
 
     vi.spyOn(globalThis, "fetch")
@@ -49,8 +49,8 @@ describe("reviewPaid", () => {
   });
 
   it("propagates job failure error", async () => {
-    const jobCreated = { job_id: "r3", poll_url: "/jobs/r3", status: "queued" };
-    const jobFailed = { id: "r3", type: "review", status: "failed", created_at: "2025-01-01", error: "Model overloaded" };
+    const jobCreated = { jobId: "r3", pollUrl: "/jobs/r3", status: "queued" };
+    const jobFailed = { id: "r3", type: "review", status: "failed", createdAt: "2025-01-01", error: "Model overloaded" };
 
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify(jobCreated)))
@@ -62,10 +62,10 @@ describe("reviewPaid", () => {
 
 describe("runFullAnalysis", () => {
   it("fires review + research in parallel and returns both", async () => {
-    const reviewJob = { job_id: "rev1", poll_url: "/jobs/rev1", status: "queued" };
-    const researchJob = { job_id: "res1", poll_url: "/jobs/res1", status: "queued" };
-    const revCompleted = { id: "rev1", type: "review", status: "completed", created_at: "2025-01-01" };
-    const resCompleted = { id: "res1", type: "research", status: "completed", created_at: "2025-01-01" };
+    const reviewJob = { jobId: "rev1", pollUrl: "/jobs/rev1", status: "queued" };
+    const researchJob = { jobId: "res1", pollUrl: "/jobs/res1", status: "queued" };
+    const revCompleted = { id: "rev1", type: "review", status: "completed", createdAt: "2025-01-01" };
+    const resCompleted = { id: "res1", type: "research", status: "completed", createdAt: "2025-01-01" };
     const revResult = { id: "rev1", status: "completed", result: { summary: "Review OK", issues: [] } };
     const resResult = { id: "res1", status: "completed", result: { report: "Research report" } };
 
@@ -86,8 +86,8 @@ describe("runFullAnalysis", () => {
   });
 
   it("handles research endpoint failure gracefully", async () => {
-    const reviewJob = { job_id: "rev2", poll_url: "/jobs/rev2", status: "queued" };
-    const revCompleted = { id: "rev2", type: "review", status: "completed", created_at: "2025-01-01" };
+    const reviewJob = { jobId: "rev2", pollUrl: "/jobs/rev2", status: "queued" };
+    const revCompleted = { id: "rev2", type: "review", status: "completed", createdAt: "2025-01-01" };
     const revResult = { id: "rev2", status: "completed", result: { summary: "Review only", issues: [] } };
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {

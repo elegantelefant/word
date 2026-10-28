@@ -45,7 +45,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", account_type: "professional" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "professional" },
       entitlements: {},
     };
 
@@ -82,12 +82,12 @@ describe("useAuthProvider — state machine", () => {
     expect(getSavedToken()).toBeNull();
   });
 
-  it("detects free account_type correctly", async () => {
+  it("detects free accountType correctly", async () => {
     saveToken("free-token");
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Free User" },
-      org: { id: "o1", name: "Free Org", slug: "free", account_type: "free" },
+      org: { id: "o1", name: "Free Org", slug: "free", accountType: "free" },
       entitlements: {},
     };
 
@@ -104,12 +104,12 @@ describe("useAuthProvider — state machine", () => {
     expect(result.current.tier).toBe("free");
   });
 
-  it("detects trial account_type as free", async () => {
+  it("detects trial accountType as free", async () => {
     saveToken("trial-token");
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Trial User" },
-      org: { id: "o1", name: "Trial Org", slug: "trial", account_type: "trial" },
+      org: { id: "o1", name: "Trial Org", slug: "trial", accountType: "trial" },
       entitlements: {},
     };
 
@@ -131,7 +131,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", account_type: "enterprise" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "enterprise" },
       entitlements: {},
     };
 
@@ -158,7 +158,7 @@ describe("useAuthProvider — state machine", () => {
   it("login with token directly loads user", async () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Direct Login" },
-      org: { id: "o1", name: "Org", slug: "org", account_type: "professional" },
+      org: { id: "o1", name: "Org", slug: "org", accountType: "professional" },
       entitlements: {},
     };
 

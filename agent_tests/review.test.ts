@@ -68,7 +68,7 @@ describe("reviewPaid", () => {
     const { pollForResult } = await import("@/lib/polling");
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ job_id: "j1" })),
+      new Response(JSON.stringify({ jobId: "j1" })),
     );
     vi.mocked(pollForResult).mockResolvedValueOnce({
       id: "j1",

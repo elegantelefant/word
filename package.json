@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "certs": "office-addin-dev-certs install",
-    "deploy": "tsc -b && vite build && docker buildx build --platform linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --push . && gcloud run deploy elefant-word --image us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --allow-unauthenticated --port 8080 --region us-central1"
+    "deploy": "tsc -b && vite build && docker buildx build --platform linux/amd64 -t us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --push . && gcloud run deploy elefant-word --image us-central1-docker.pkg.dev/${GCP_PROJECT:?set GCP_PROJECT}/cloud-run-source-deploy/elefant-word:latest --allow-unauthenticated --port 8080 --region us-central1",
+    "generate:api": "orval --config orval.config.ts"
   },
   "packageManager": "pnpm@10.20.0",
   "dependencies": {
@@ -33,6 +34,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "jsdom": "^28.1.0",
     "office-addin-dev-certs": "^2.0.6",
+    "orval": "7.13.2",
     "rollup-plugin-visualizer": "^7.0.0",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
