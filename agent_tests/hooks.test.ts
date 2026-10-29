@@ -18,7 +18,7 @@ describe("useJob", () => {
   });
 
   it("transitions to completed on successful poll", async () => {
-    const jobStatus = { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const jobStatus = { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const jobResult = { id: "j1", status: "completed", result: { summary: "Good" } };
 
     vi.spyOn(globalThis, "fetch")
@@ -37,7 +37,7 @@ describe("useJob", () => {
   });
 
   it("transitions to failed on poll error", async () => {
-    const failed = { id: "j1", type: "review", status: "failed", created_at: "2025-01-01", error: "Boom" };
+    const failed = { id: "j1", type: "review", status: "failed", createdAt: "2025-01-01", error: "Boom" };
 
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify(failed)));
@@ -57,7 +57,7 @@ describe("useJob", () => {
   });
 
   it("resets to idle state", async () => {
-    const jobStatus = { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const jobStatus = { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const jobResult = { id: "j1", status: "completed", result: { summary: "Good" } };
 
     vi.spyOn(globalThis, "fetch")

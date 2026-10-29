@@ -25,7 +25,7 @@ describe("pollForResult — abort", () => {
 
   it("stops polling when signal is aborted between attempts", async () => {
     const controller = new AbortController();
-    const running = { id: "j1", type: "review", status: "running", created_at: "2025-01-01" };
+    const running = { id: "j1", type: "review", status: "running", createdAt: "2025-01-01" };
 
     let callCount = 0;
     vi.spyOn(globalThis, "fetch").mockImplementation(() => {
@@ -44,7 +44,7 @@ describe("pollForResult — abort", () => {
 
   it("completes normally if signal is never aborted", async () => {
     const controller = new AbortController();
-    const completed = { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const completed = { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const result = { id: "j1", status: "completed", result: { summary: "OK" } };
 
     vi.spyOn(globalThis, "fetch")

@@ -44,7 +44,7 @@ it("generated review sends auth, body and cancellation through the fetch wrapper
   const controller = new AbortController();
   const body = { text: "Review this contract", instructions: "Check risks" };
   await expect(wordReview(body, { token: "secret", signal: controller.signal })).resolves.toEqual({ jobId: "job", pollUrl: "/jobs/job" });
-  expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v4\/review$/), expect.objectContaining({
+  expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v4\/api\/v1\/review$/), expect.objectContaining({
     method: "POST", signal: controller.signal, body: JSON.stringify(body),
     headers: expect.objectContaining({ Authorization: "Bearer secret", "Content-Type": "application/json" }),
   }));
@@ -88,7 +88,7 @@ it("public account and job aliases preserve the generated contract exactly", () 
 
 it("paid review and full analysis poll the jobId returned by the contract", async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-    const path = new URL(String(input)).pathname.replace("/api/v4", "");
+    const path = new URL(String(input)).pathname.replace(/^\/api\/v4\/api\/v1(?=\/)/, "");
     if (path === "/review" || path === "/research") {
       return new Response(JSON.stringify({ jobId: path.slice(1), pollUrl: `/jobs${path}` }));
     }

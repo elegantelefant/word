@@ -2,6 +2,9 @@
 // ABOUTME: Verifies auth headers, error handling, network errors, and token expiry.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { spawnSync } from "node:child_process";
 import { apiFetch, ApiError, NetworkError } from "@/api/client";
 
 beforeEach(() => {
@@ -11,21 +14,21 @@ beforeEach(() => {
 describe("apiFetch", () => {
   it("sends GET request with auth header", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ user_id: "123" }), { status: 200 }),
+      new Response(JSON.stringify({ id: "123" }), { status: 200 }),
     );
 
-    const result = await apiFetch<{ user_id: string }>("/whoami", "test-token");
+    const result = await apiFetch<{ id: string }>("/me", "test-token");
 
-    expect(result.user_id).toBe("123");
+    expect(result.id).toBe("123");
     const call = vi.mocked(fetch).mock.calls[0]!;
-    expect(call[0]).toContain("/whoami");
+    expect(call[0]).toBe("https://elefant.legal/api/v4/api/v1/me");
     expect(call[1]!.method).toBe("GET");
     expect((call[1]!.headers as Record<string, string>)["Authorization"]).toBe("Bearer test-token");
   });
 
   it("sends POST with JSON body", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ job_id: "abc" }), { status: 200 }),
+      new Response(JSON.stringify({ jobId: "abc" }), { status: 200 }),
     );
 
     await apiFetch("/review", "token", {
@@ -141,6 +144,42 @@ describe("apiFetch", () => {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).status).toBe(200);
       expect((err as ApiError).message).not.toContain("Proxy error");
+    }
+  });
+});
+
+describe("contract drift checker", () => {
+  it("rejects renamed contract and TypeScript fields", () => {
+    // A bounded fixture of the checker inputs; always remove it after the check.
+    const root = mkdtempSync(join(process.cwd(), ".contract-check-"));
+    try {
+      const files = [
+        "scripts/check-contract-drift.mjs", "openapi.json", "src/types/api.ts",
+        "src/api/jobs.ts", "src/api/clauses.ts", "src/api/mammoth.ts",
+        "src/api/generated/client.ts",
+      ];
+      for (const file of files) {
+        mkdirSync(dirname(join(root, file)), { recursive: true });
+        writeFileSync(join(root, file), readFileSync(join(process.cwd(), file)));
+      }
+      const check = () => spawnSync(process.execPath, [join(root, files[0]!)], { encoding: "utf8" });
+      expect(check().status).toBe(0);
+
+      const specPath = join(root, "openapi.json");
+      const originalSpec = readFileSync(specPath, "utf8");
+      writeFileSync(specPath, originalSpec.replaceAll('"accountType"', '"renamedAccountType"'));
+      const contractDrift = check();
+      expect(contractDrift.status).toBe(1);
+      expect(contractDrift.stderr).toContain("MeOrg: manifest field(s) [accountType]");
+      writeFileSync(specPath, originalSpec);
+
+      const typesPath = join(root, "src/api/generated/client.ts");
+      writeFileSync(typesPath, readFileSync(typesPath, "utf8").replace("accountType:", "renamedAccountType:"));
+      const typeDrift = check();
+      expect(typeDrift.status).toBe(1);
+      expect(typeDrift.stderr).toContain("interface MeOrg fields");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });

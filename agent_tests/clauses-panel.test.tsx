@@ -46,7 +46,7 @@ describe("ClausesPanel — paid tier", () => {
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
 
   it("loads databases on mount", async () => {
-    const dbs = [{ id: "db1", name: "Standard Clauses", clause_count: 42 }];
+    const dbs = [{ id: "db1", name: "Standard Clauses", clauseCount: 42 }];
     const clauses = [
       { id: "c1", name: "Indemnity", content: "The party shall indemnify...", category: "Liability" },
       { id: "c2", name: "Force Majeure", content: "Neither party shall be liable...", category: null },
@@ -68,7 +68,7 @@ describe("ClausesPanel — paid tier", () => {
     const database = {
       id: "db1",
       name: "Standard Clauses",
-      clause_count: 1,
+      clauseCount: 1,
     };
     const initialClause = {
       id: "c1",
@@ -131,7 +131,7 @@ describe("ClausesPanel — paid tier", () => {
     const database = {
       id: "db1",
       name: "Standard Clauses",
-      clause_count: 1,
+      clauseCount: 1,
     };
 
     const initialClause = {
@@ -191,8 +191,8 @@ describe("ClausesPanel — paid tier", () => {
   });
   it("shows database selector when multiple databases", async () => {
     const dbs = [
-      { id: "db1", name: "Standard", clause_count: 10 },
-      { id: "db2", name: "Custom", clause_count: 5 },
+      { id: "db1", name: "Standard", clauseCount: 10 },
+      { id: "db2", name: "Custom", clauseCount: 5 },
     ];
 
     vi.spyOn(globalThis, "fetch")
@@ -207,14 +207,14 @@ describe("ClausesPanel — paid tier", () => {
 
     const options = [...screen.getByRole("combobox").querySelectorAll("option")];
     expect(options).toHaveLength(2);
-    expect(options[0]!.textContent).toContain("Standard");
-    expect(options[1]!.textContent).toContain("Custom");
+    expect(options[0]!.textContent).toBe("Standard (10)");
+    expect(options[1]!.textContent).toBe("Custom (5)");
   });
 
   it("loads the selected database's clauses when switching databases", async () => {
     const dbs = [
-      { id: "db1", name: "Standard", clause_count: 1 },
-      { id: "db2", name: "Custom", clause_count: 1 },
+      { id: "db1", name: "Standard", clauseCount: 1 },
+      { id: "db2", name: "Custom", clauseCount: 1 },
     ];
 
     vi.spyOn(globalThis, "fetch")
@@ -237,8 +237,8 @@ describe("ClausesPanel — paid tier", () => {
 
   it("ignores a superseded database's clauses that resolve late", async () => {
     const dbs = [
-      { id: "db1", name: "Standard", clause_count: 1 },
-      { id: "db2", name: "Custom", clause_count: 1 },
+      { id: "db1", name: "Standard", clauseCount: 1 },
+      { id: "db2", name: "Custom", clauseCount: 1 },
     ];
     let resolveStale!: (response: Response) => void;
 
@@ -421,8 +421,8 @@ describe("ClausesPanel — paid tier", () => {
 
 describe("ClausesPanel — reloads and races", () => {
   const dbs = [
-    { id: "db1", name: "Standard", clause_count: 1 },
-    { id: "db2", name: "Custom", clause_count: 1 },
+    { id: "db1", name: "Standard", clauseCount: 1 },
+    { id: "db2", name: "Custom", clauseCount: 1 },
   ];
   const dbList = "/clause-databases";
   const clausesFor = (db: string) => ({ clauses: [{ id: db, name: `${db} Clause`, content: db }] });
@@ -485,7 +485,7 @@ describe("ClausesPanel — reloads and races", () => {
   it("falls back to the first database when the selected one disappears on refresh", async () => {
     await mount();
     fireEvent.click(screen.getByRole("button", { name: "Refresh clauses" }));
-    await settle(dbList, { databases: [dbs[1], { id: "db3", name: "Other", clause_count: 0 }] });
+    await settle(dbList, { databases: [dbs[1], { id: "db3", name: "Other", clauseCount: 0 }] });
     while (pending.some((p) => p.url.includes("/db1/clauses"))) {
       await settle("/db1/clauses", clausesFor("db1"));
     }

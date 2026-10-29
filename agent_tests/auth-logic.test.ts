@@ -45,7 +45,7 @@ describe("useAuthProvider — state machine", () => {
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", accountType: "professional" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -126,12 +126,26 @@ describe("useAuthProvider — state machine", () => {
     expect(result.current.tier).toBe("free");
   });
 
+  it.each(["personal", "pro", "professional", "enterprise", "unknown", "", undefined])(
+    "keeps non-commercial accountType %s on free tier",
+    async (accountType) => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+        user: { id: "u1", email: "test@test.com", name: "Test User" },
+        org: { id: "o1", name: "Org", slug: "org", accountType },
+      })));
+      const { result } = renderHook(() => useAuthProvider());
+      await act(async () => { await result.current.login("valid-token"); });
+      expect(result.current.token).toBe("valid-token");
+      expect(result.current.tier).toBe("free");
+    },
+  );
+
   it("logout clears state and token", async () => {
     saveToken("valid-token");
 
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Test Org", slug: "test", accountType: "enterprise" },
+      org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
       entitlements: {},
     };
 
@@ -158,7 +172,7 @@ describe("useAuthProvider — state machine", () => {
   it("login with token directly loads user", async () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Direct Login" },
-      org: { id: "o1", name: "Org", slug: "org", accountType: "professional" },
+      org: { id: "o1", name: "Org", slug: "org", accountType: "commercial" },
       entitlements: {},
     };
 

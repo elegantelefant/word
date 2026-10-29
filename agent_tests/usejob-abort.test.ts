@@ -11,7 +11,7 @@ beforeEach(() => {
 
 describe("useJob — abort behavior", () => {
   it("reset cancels in-flight poll via AbortController", async () => {
-    const running = { id: "j1", type: "review", status: "running", created_at: "2025-01-01" };
+    const running = { id: "j1", type: "review", status: "running", createdAt: "2025-01-01" };
 
     let fetchCount = 0;
     let lastSignal: AbortSignal | undefined;
@@ -42,8 +42,8 @@ describe("useJob — abort behavior", () => {
   });
 
   it("starting a new poll cancels the previous one", async () => {
-    const running = { id: "j1", type: "review", status: "running", created_at: "2025-01-01" };
-    const completed = { id: "j2", type: "review", status: "completed", created_at: "2025-01-01" };
+    const running = { id: "j1", type: "review", status: "running", createdAt: "2025-01-01" };
+    const completed = { id: "j2", type: "review", status: "completed", createdAt: "2025-01-01" };
     const resultJ2 = { id: "j2", status: "completed", result: { summary: "Job 2" } };
 
     let firstSignal: AbortSignal | undefined;

@@ -45,7 +45,7 @@ describe("MammothPanel — paid tier", () => {
     it("refreshes requests when the user clicks Refresh", async () => {
     const pendingRequest = {
       id: "r1",
-      request_type: "review",
+      requestType: "review",
       status: "pending",
       priority: "normal",
       title: "Review NDA",
@@ -87,8 +87,8 @@ describe("MammothPanel — paid tier", () => {
 
   it("loads request list on mount", async () => {
     const requests = [
-      { id: "r1", request_type: "review", status: "completed", priority: "normal", title: "Review NDA" },
-      { id: "r2", request_type: "research", status: "pending", priority: "high", title: "IP Research" },
+      { id: "r1", requestType: "review", status: "completed", priority: "normal", title: "Review NDA" },
+      { id: "r2", requestType: "research", status: "pending", priority: "high", title: "IP Research" },
     ];
 
     vi.spyOn(globalThis, "fetch")
@@ -100,6 +100,8 @@ describe("MammothPanel — paid tier", () => {
       expect(screen.getByText("Review NDA")).toBeInTheDocument();
     });
     expect(screen.getByText("IP Research")).toBeInTheDocument();
+    expect(screen.getByText("review")).toBeInTheDocument();
+    expect(screen.getByText("research")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
   });
@@ -107,7 +109,7 @@ describe("MammothPanel — paid tier", () => {
   it("refetches requests when the panel becomes active again", async () => {
     const pendingRequest = {
       id: "r1",
-      request_type: "review",
+      requestType: "review",
       status: "pending",
       priority: "normal",
       title: "Review NDA",
@@ -237,7 +239,7 @@ describe("MammothPanel — paid tier", () => {
   });
 
   it("submits create form and refreshes list", async () => {
-    const created = { id: "r1", request_type: "review", status: "draft", priority: "normal", title: "New Request" };
+    const created = { id: "r1", requestType: "review", status: "pending", priority: "normal", title: "New Request" };
 
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response(JSON.stringify({ requests: [], total: 0 })))  // initial load
@@ -255,6 +257,10 @@ describe("MammothPanel — paid tier", () => {
 
     await waitFor(() => {
       expect(screen.getByText("New Request")).toBeInTheDocument();
+    });
+    const createCall = vi.mocked(fetch).mock.calls.find(([, options]) => options?.method === "POST")!;
+    expect(JSON.parse(createCall[1]!.body as string)).toEqual({
+      requestType: "review", title: "New Request", priority: "normal",
     });
   });
 
@@ -304,7 +310,7 @@ describe("MammothPanel — paid tier", () => {
 
   it("shows request description when present", async () => {
     const requests = [
-      { id: "r1", request_type: "review", status: "completed", priority: "normal", title: "NDA Review", description: "Please check indemnity clauses" },
+      { id: "r1", requestType: "review", status: "completed", priority: "normal", title: "NDA Review", description: "Please check indemnity clauses" },
     ];
 
     vi.spyOn(globalThis, "fetch")
@@ -319,7 +325,7 @@ describe("MammothPanel — paid tier", () => {
 
   it("shows 'Result available' when request has result", async () => {
     const requests = [
-      { id: "r1", request_type: "review", status: "completed", priority: "normal", title: "Done", result: { summary: "ok" } },
+      { id: "r1", requestType: "review", status: "completed", priority: "normal", title: "Done", result: { summary: "ok" } },
     ];
 
     vi.spyOn(globalThis, "fetch")

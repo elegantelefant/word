@@ -10,7 +10,7 @@ beforeEach(() => {
 
 describe("pollForResult", () => {
   it("returns result when job completes", async () => {
-    const jobResponse = { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const jobResponse = { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const resultResponse = { id: "j1", status: "completed", result: { summary: "All good" } };
 
     vi.spyOn(globalThis, "fetch")
@@ -22,8 +22,8 @@ describe("pollForResult", () => {
   });
 
   it("polls multiple times before completion", async () => {
-    const running = { id: "j1", type: "review", status: "running", created_at: "2025-01-01" };
-    const completed = { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" };
+    const running = { id: "j1", type: "review", status: "running", createdAt: "2025-01-01" };
+    const completed = { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" };
     const resultResponse = { id: "j1", status: "completed", result: { summary: "Done" } };
 
     vi.spyOn(globalThis, "fetch")
@@ -38,7 +38,7 @@ describe("pollForResult", () => {
   });
 
   it("throws on job failure", async () => {
-    const failed = { id: "j1", type: "review", status: "failed", created_at: "2025-01-01", error: "Boom" };
+    const failed = { id: "j1", type: "review", status: "failed", createdAt: "2025-01-01", error: "Boom" };
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify(failed)));
 
@@ -46,7 +46,7 @@ describe("pollForResult", () => {
   });
 
   it("throws on timeout", async () => {
-    const running = { id: "j1", type: "review", status: "running", created_at: "2025-01-01" };
+    const running = { id: "j1", type: "review", status: "running", createdAt: "2025-01-01" };
 
     vi.spyOn(globalThis, "fetch").mockImplementation(
       () => Promise.resolve(new Response(JSON.stringify(running))),

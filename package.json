@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "check:contract": "node scripts/check-contract-drift.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "certs": "office-addin-dev-certs install",

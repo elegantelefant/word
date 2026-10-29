@@ -1,9 +1,19 @@
 // ABOUTME: Review API — dispatches to ADK-JS agent in-browser (free) or Elefant API (paid).
 // ABOUTME: Free tier uses Gemini via BYOK key; paid path creates a job and polls for results.
 
-import type { JobCreated, JobResult, ReviewRequest, ReviewResponse } from "@/types/api";
+import type { JobCreated, JobResult, ReviewRequest, ReviewResponse, ResearchRequest } from "@/types/api";
 import { apiFetch } from "./client";
 import { pollForResult } from "@/lib/polling";
+
+export interface FreeReviewResponse {
+  summary: string;
+  issues: {
+    message: string;
+    kind?: "risk" | "ambiguity" | "missing" | "style" | "other";
+    location?: string | null;
+    suggestion?: string | null;
+  }[];
+}
 
 export interface FullAnalysisResult {
   review?: ReviewResponse;
@@ -16,7 +26,7 @@ export async function reviewFree(
   apiKey: string,
   model: string,
   instructions?: string,
-): Promise<ReviewResponse> {
+): Promise<FreeReviewResponse> {
   const { runReview } = await import("@/lib/agent");
   const result = await runReview(apiKey, model, text, instructions);
   return {
@@ -54,7 +64,7 @@ export async function runFullAnalysis(text: string, token: string, signal?: Abor
     apiFetch<JobCreated>("/review", token, { method: "POST", body: { text }, signal }),
     apiFetch<JobCreated>("/research", token, {
       method: "POST",
-      body: { query: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` },
+      body: { question: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` } satisfies ResearchRequest,
       signal,
     }).catch(() => null),
   ]);
