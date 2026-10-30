@@ -6,9 +6,11 @@ import type {
   JobResultResponse,
   MeUser,
   MeOrg,
+  ReviewResult,
 } from "@/api/generated/client";
 
-export type { ReviewRequest, ReviewResponse, ReviewIssue } from "@/api/generated/client";
+export type { ReviewRequest, ResearchRequest, ReviewIssueResult as ReviewIssue } from "@/api/generated/client";
+export type ReviewResponse = Omit<ReviewResult, "jobType">;
 export type IssueKind = NonNullable<import("@/api/generated/client").ReviewIssue["kind"]>;
 
 export type { MeResponse, MeUser, MeOrg } from "@/api/generated/client";

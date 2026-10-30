@@ -11,8 +11,8 @@ beforeEach(() => {
 describe("listJobs", () => {
   it("fetches jobs list from API", async () => {
     const jobs = [
-      { id: "j1", type: "review", status: "completed", created_at: "2025-01-01" },
-      { id: "j2", type: "research", status: "running", created_at: "2025-01-02" },
+      { id: "j1", type: "review", status: "completed", createdAt: "2025-01-01" },
+      { id: "j2", type: "research", status: "running", createdAt: "2025-01-02" },
     ];
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(

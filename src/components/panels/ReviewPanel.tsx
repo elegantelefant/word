@@ -2,23 +2,48 @@
 // ABOUTME: Free tier uses ADK-JS + Gemini in-browser; paid tier uses Elefant API with job polling.
 
 import { useState } from "react";
-import type { ReviewResponse, ReviewIssue, IssueKind } from "@/types/api";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
-import { reviewFree, reviewPaid } from "@/api/review";
+import { reviewFree, reviewPaid, type FreeReviewResponse } from "@/api/review";
+import type { ReviewIssue, ReviewResponse } from "@/types/api";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
 
+type ReviewIssueView = ReviewIssue & { suggestion?: string };
+type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
+
+function freeReviewView(result: FreeReviewResponse): ReviewView {
+  return {
+    summary: result.summary,
+    issues: result.issues.map((issue) => ({
+      category: issue.kind ?? "other",
+      severity: "",
+      recommendation: "",
+      clauseReference: issue.location ?? "",
+      sourceFilename: "",
+      description: issue.message,
+      explanation: "",
+      suggestion: issue.suggestion || undefined,
+    })),
+  };
+}
+
 type Scope = "selection" | "document";
 
-const SEVERITY_COLORS: Record<IssueKind, string> = {
+// category is a freeform string per the contract (ReviewIssueResult.category), not a
+// closed enum — known values get a color, anything else falls back to gray.
+const CATEGORY_COLORS: Record<string, string> = {
   risk: "bg-red-100 text-red-700",
   ambiguity: "bg-yellow-100 text-yellow-700",
   missing: "bg-orange-100 text-orange-700",
   style: "bg-blue-100 text-blue-700",
   other: "bg-gray-100 text-gray-600",
 };
+
+function categoryColor(category: string): string {
+  return CATEGORY_COLORS[category] ?? "bg-gray-100 text-gray-600";
+}
 
 export function ReviewPanel() {
   const { settings } = useSettings();
@@ -28,7 +53,7 @@ export function ReviewPanel() {
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ReviewResponse | null>(null);
+  const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
   const inOffice = isOfficeReady();
@@ -56,10 +81,10 @@ export function ReviewPanel() {
         return;
       }
 
-      const response =
+      const response: ReviewView =
         tier === "paid" && token
           ? await reviewPaid(text, token, instructions || undefined)
-          : await reviewFree(text, settings.apiKey, settings.model, instructions || undefined);
+          : freeReviewView(await reviewFree(text, settings.apiKey, settings.model, instructions || undefined));
 
       setResult(response);
 
@@ -149,7 +174,7 @@ export function ReviewPanel() {
   );
 }
 
-function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert: (text: string) => void }) {
+function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
@@ -169,22 +194,36 @@ function ReviewResults({ result, onInsert }: { result: ReviewResponse; onInsert:
   );
 }
 
-function IssueCard({ issue, onInsert }: { issue: ReviewIssue; onInsert: (text: string) => void }) {
-  const kind = issue.kind ?? "other";
+function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (text: string) => void }) {
+  const category = issue.category || "other";
+  const suggestion = issue.suggestion;
   return (
     <div className="rounded-md border border-gray-200 p-2.5">
       <div className="mb-1 flex items-start gap-1.5">
-        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${SEVERITY_COLORS[kind]}`}>
-          {kind}
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${categoryColor(category)}`}>
+          {category}
         </span>
-        <p className="flex-1 text-xs text-gray-700">{issue.message}</p>
+        {issue.severity && (
+          <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+            {issue.severity}
+          </span>
+        )}
+        <p className="flex-1 text-xs text-gray-700">{issue.description}</p>
       </div>
-      {issue.location && <p className="text-[10px] italic text-gray-400">"{issue.location}"</p>}
-      {issue.suggestion && (
+      {issue.clauseReference && <p className="text-[10px] italic text-gray-400">"{issue.clauseReference}"</p>}
+      {issue.explanation && <p className="mt-1 text-xs text-gray-600">{issue.explanation}</p>}
+      {issue.sourceFilename && <p className="text-[10px] text-gray-400">{issue.sourceFilename}</p>}
+      {/* Recommendations describe a verdict; only BYOK suggestions are insertable. */}
+      {issue.recommendation && (
+        <span className="mt-1.5 inline-block rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-green-700">
+          {issue.recommendation}
+        </span>
+      )}
+      {suggestion && (
         <div className="mt-1.5 flex items-start gap-1">
-          <p className="flex-1 text-xs text-green-700">{issue.suggestion}</p>
+          <p className="flex-1 text-xs text-green-700">{suggestion}</p>
           <button
-            onClick={() => onInsert(issue.suggestion!)}
+            onClick={() => onInsert(suggestion)}
             className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
           >
             Insert

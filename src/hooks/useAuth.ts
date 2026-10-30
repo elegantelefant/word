@@ -9,9 +9,7 @@ import { getMe } from "@/api/account";
 import { getSavedToken, clearToken, openLoginDialog, saveToken } from "@/api/auth";
 
 function determineTier(me: MeResponse): Tier {
-  const accountType = me.org?.accountType?.toLowerCase();
-  if (accountType === "free" || accountType === "trial") return "free";
-  return "paid";
+  return me.org?.accountType === "commercial" ? "paid" : "free";
 }
 
 export function useAuthProvider(): AuthContextValue {

@@ -148,7 +148,7 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
     setError(null);
     try {
       await createLegalRequest(
-        { request_type: requestType, title, description: description || undefined, priority },
+        { requestType: requestType, title, description: description || undefined, priority },
         token,
       );
       onCreated();
@@ -239,7 +239,7 @@ function RequestList({ requests, loading }: { requests: LegalRequest[]; loading:
             </span>
           </div>
           <div className="mt-1 flex gap-2 text-[10px] text-gray-400">
-            <span>{req.request_type}</span>
+            <span>{req.requestType}</span>
             <span>{req.priority}</span>
           </div>
           {req.description && (

@@ -83,6 +83,13 @@ describe("runFullAnalysis", () => {
     const result = await runFullAnalysis("Legal text", "token");
     expect(result.review?.summary).toBe("Review OK");
     expect(result.research?.report).toBe("Research report");
+    const researchCall = vi.mocked(fetch).mock.calls.find(([url]) => String(url).endsWith("/research"))!;
+    expect(JSON.parse(researchCall[1]!.body as string)).toEqual({
+      question: "Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\nLegal text",
+    });
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls).toContain("https://elefant.legal/api/v4/api/v1/jobs/rev1/result");
+    expect(urls).toContain("https://elefant.legal/api/v4/api/v1/jobs/res1/result");
   });
 
   it("handles research endpoint failure gracefully", async () => {

@@ -100,6 +100,43 @@ describe("App", () => {
     expect(screen.getByText("Clauses")).toBeInTheDocument();
   });
 
+  it("renders paid review contract fields without inserting a recommendation", async () => {
+    vi.mocked(useAuthProvider).mockReturnValue({
+      token: "paid-token", user: null, tier: "paid", loading: false,
+      login: vi.fn(), logout: vi.fn(),
+    });
+    const { isOfficeReady, getSelectedText, insertText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Contract text with an unlimited liability clause.");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      jobId: "review-job", pollUrl: "/api/v1/jobs/review-job", status: "queued",
+    })));
+    const { pollForResult } = await import("@/lib/polling");
+    vi.mocked(pollForResult).mockResolvedValueOnce({
+      id: "review-job", status: "completed", result: {
+        summary: "Review completed.",
+        issues: [{
+          category: "liability", severity: "high", recommendation: "negotiate",
+          clauseReference: "Section 7.2", sourceFilename: "contract.docx",
+          description: "Liability is unlimited.", explanation: "The clause has no financial cap.",
+        }],
+      },
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
+    expect(await screen.findByText("Liability is unlimited.")).toBeInTheDocument();
+    expect(screen.getByText("liability")).toHaveClass("bg-gray-100");
+    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.getByText('"Section 7.2"')).toBeInTheDocument();
+    expect(screen.getByText("contract.docx")).toBeInTheDocument();
+    expect(screen.getByText("The clause has no financial cap.")).toBeInTheDocument();
+    expect(screen.getByText("negotiate")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Insert", exact: true })).not.toBeInTheDocument();
+    expect(insertText).not.toHaveBeenCalled();
+    expect(pollForResult).toHaveBeenCalledWith("review-job", "paid-token");
+  });
+
   it("refetches clauses when returning to the Clauses tab", async () => {
     vi.mocked(useAuthProvider).mockReturnValue({
       token: "tok-123",
@@ -113,7 +150,7 @@ describe("App", () => {
     const database = {
       id: "db1",
       name: "Standard Clauses",
-      clause_count: 1,
+      clauseCount: 1,
     };
 
     const initialClause = {

@@ -7,7 +7,7 @@ import { pollForResult } from "@/lib/polling";
 export interface ClauseDatabase {
   id: string;
   name?: string;
-  clause_count?: number;
+  clauseCount?: number;
 }
 
 export interface Clause {
@@ -16,7 +16,7 @@ export interface Clause {
   content: string;
   category?: string | null;
   tags?: string[];
-  created_at?: string | null;
+  createdAt?: string | null;
 }
 
 interface ClauseDatabaseListResponse {
@@ -55,7 +55,6 @@ export async function draftClause(
   context: string,
   token: string,
 ): Promise<string> {
-  // The draft endpoint answers in the camelCase wire (jobId), unlike the legacy snake_case routes.
   const job = await apiFetch<{ jobId: string }>("/draft", token, {
     method: "POST",
     body: { prompt, supplementContext: context },

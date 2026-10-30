@@ -22,7 +22,7 @@ beforeEach(() => {
 
 const PAID_ME = {
   user: { id: "u1", email: "a@b.com", name: "Alice" },
-  org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "pro" },
+  org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "commercial" },
   entitlements: ["review", "clauses"],
 };
 
