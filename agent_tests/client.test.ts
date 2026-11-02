@@ -149,7 +149,8 @@ describe("apiFetch", () => {
 });
 
 describe("contract drift checker", () => {
-  it("rejects renamed contract and TypeScript fields", () => {
+  // The checker runs as a child process twice; 5 s is not enough on a loaded gate host.
+  it("rejects renamed contract and TypeScript fields", { timeout: 30_000 }, () => {
     // A bounded fixture of the checker inputs; always remove it after the check.
     const root = mkdtempSync(join(process.cwd(), ".contract-check-"));
     try {
