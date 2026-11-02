@@ -124,3 +124,71 @@ describe("runFullAnalysis", () => {
     ).rejects.toThrow();
   });
 });
+
+
+describe("runFullAnalysis partial results", () => {
+  it("returns an empty analysis when completed jobs have no payload", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (!path.includes("/jobs/")) {
+        return new Response(JSON.stringify({ jobId: path.endsWith("/review") ? "review" : "research" }));
+      }
+      return new Response(JSON.stringify({ status: "completed", result: null }));
+    });
+
+    await expect(runFullAnalysis("Legal text", "token")).resolves.toEqual({});
+    expect(fetch).toHaveBeenCalledTimes(6);
+  });
+
+  it.each(["create", "poll"])("returns research when review rejects during %s", async (stage) => {
+    const research = { report: "Completed paid research" };
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (!path.includes("/jobs/") && path.endsWith("/review")) {
+        if (stage === "create") throw new TypeError("Review unavailable");
+        return new Response(JSON.stringify({ jobId: "review" }));
+      }
+      if (!path.includes("/jobs/") && path.endsWith("/research")) return new Response(JSON.stringify({ jobId: "research" }));
+      if (path.endsWith("/jobs/review")) {
+        return new Response(JSON.stringify({ status: "failed", error: "Review failed" }));
+      }
+      if (path.endsWith("/jobs/research")) return new Response(JSON.stringify({ status: "completed" }));
+      if (path.endsWith("/jobs/research/result")) return new Response(JSON.stringify({ result: research }));
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await expect(runFullAnalysis("Legal text", "token")).resolves.toEqual({ research });
+    expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/jobs/research/result"))).toBe(true);
+  });
+
+  it("returns review when research polling fails", async () => {
+    const review = { summary: "Completed paid review", issues: [] };
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (!path.includes("/jobs/") && path.endsWith("/review")) return new Response(JSON.stringify({ jobId: "review" }));
+      if (!path.includes("/jobs/") && path.endsWith("/research")) return new Response(JSON.stringify({ jobId: "research" }));
+      if (path.endsWith("/jobs/research")) return new Response(JSON.stringify({ status: "failed", error: "Research failed" }));
+      if (path.endsWith("/jobs/review")) return new Response(JSON.stringify({ status: "completed" }));
+      if (path.endsWith("/jobs/review/result")) return new Response(JSON.stringify({ result: review }));
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await expect(runFullAnalysis("Legal text", "token")).resolves.toEqual({ review });
+  });
+
+  it.each(["create", "poll"])("throws the review error when both jobs fail during %s", async (stage) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      const kind = path.endsWith("/review") ? "review" : "research";
+      if (!path.includes("/jobs/") && stage === "poll") {
+        return new Response(JSON.stringify({ jobId: kind }));
+      }
+      if (stage === "create") {
+        return new Response(JSON.stringify({ message: `${kind} create failed` }), { status: 400 });
+      }
+      return new Response(JSON.stringify({ status: "failed", error: `${kind} poll failed` }));
+    });
+
+    await expect(runFullAnalysis("Legal text", "token")).rejects.toThrow(`review ${stage} failed`);
+  });
+});
