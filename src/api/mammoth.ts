@@ -15,7 +15,7 @@ export interface LegalRequest {
   title: string;
   description?: string | null;
   category?: string | null;
-  result?: Record<string, unknown> | null;
+  result?: { output?: string | null } | null;
   error?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

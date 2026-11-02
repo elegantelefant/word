@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { insertText, isOfficeReady } from "@/lib/office";
 import { MammothPanel } from "@/components/panels/MammothPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
@@ -10,6 +11,7 @@ import { AUTH_INITIAL } from "@/store/auth";
 vi.mock("@/lib/office", () => ({
   isOfficeReady: vi.fn(() => false),
   getSelectedText: vi.fn(),
+  insertText: vi.fn(),
 }));
 
 const noop = () => {};
@@ -323,9 +325,9 @@ describe("MammothPanel — paid tier", () => {
     });
   });
 
-  it("shows 'Result available' when request has result", async () => {
+  it("opens completed output and inserts it at the cursor", async () => {
     const requests = [
-      { id: "r1", requestType: "review", status: "completed", priority: "normal", title: "Done", result: { summary: "ok" } },
+      { id: "r1", requestType: "review", status: "completed", priority: "normal", title: "Done", result: { output: "First line\nSecond line" } },
     ];
 
     vi.spyOn(globalThis, "fetch")
@@ -333,9 +335,16 @@ describe("MammothPanel — paid tier", () => {
 
     renderWithAuth(paidAuth);
 
-    await waitFor(() => {
-      expect(screen.getByText("Result available")).toBeInTheDocument();
-    });
+    fireEvent.click(await screen.findByRole("button", { name: "View result" }));
+    expect(screen.getByText(/First line/)).toHaveClass("whitespace-pre-wrap");
+    expect(screen.getByText(/First line/).textContent).toBe("First line\nSecond line");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(insertText).mockResolvedValueOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Insert at cursor" }));
+    await waitFor(() => expect(insertText).toHaveBeenCalledWith("First line\nSecond line"));
+    vi.mocked(insertText).mockRejectedValueOnce(new Error("Insertion failed"));
+    fireEvent.click(screen.getByRole("button", { name: "Insert at cursor" }));
+    expect(await screen.findByText("Insertion failed")).toHaveClass("text-red-600");
   });
 });
 
