@@ -2,10 +2,11 @@
 // ABOUTME: Polls GET /jobs/{id} until completed or failed, then fetches result.
 
 import type { Job, JobResult } from "@/types/api";
-import { apiFetch } from "@/api/client";
+import { apiFetch, ApiError, NetworkError } from "@/api/client";
 
 const POLL_INTERVAL_MS = 2_000;
 const MAX_ATTEMPTS = 60;
+const MAX_CONSECUTIVE_ERRORS = 3;
 
 export async function pollForResult(
   jobId: string,
@@ -14,15 +15,24 @@ export async function pollForResult(
   intervalMs = POLL_INTERVAL_MS,
   signal?: AbortSignal,
 ): Promise<JobResult> {
+  let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
     signal?.throwIfAborted();
-    const job = await apiFetch<Job>(`/jobs/${jobId}`, token, { signal });
+    let job: Job | undefined;
+    try {
+      job = await apiFetch<Job>(`/jobs/${jobId}`, token, { signal });
+      consecutiveErrors = 0;
+    } catch (error) {
+      signal?.throwIfAborted();
+      const transient = error instanceof NetworkError || (error instanceof ApiError && error.status >= 500);
+      if (!transient || ++consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) throw error;
+    }
 
-    if (job.status === "completed") {
+    if (job?.status === "completed") {
       return apiFetch<JobResult>(`/jobs/${jobId}/result`, token, { signal });
     }
 
-    if (job.status === "failed") {
+    if (job?.status === "failed") {
       throw new Error(job.error ?? "Job failed");
     }
 

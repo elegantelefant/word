@@ -60,24 +60,33 @@ export async function pollJobResult(jobId: string, token: string, signal?: Abort
 
 /** Full analysis: fires parallel review + research jobs, polls both. */
 export async function runFullAnalysis(text: string, token: string, signal?: AbortSignal): Promise<FullAnalysisResult> {
-  const [reviewJob, researchJob] = await Promise.all([
+  const jobs = await Promise.allSettled([
     apiFetch<JobCreated>("/review", token, { method: "POST", body: { text }, signal }),
     apiFetch<JobCreated>("/research", token, {
       method: "POST",
       body: { question: `Analyze the following legal text and identify all legal risks, obligations, and key terms:\n\n${text}` } satisfies ResearchRequest,
       signal,
-    }).catch(() => null),
+    }),
   ]);
 
-  const [reviewResult, researchResult] = await Promise.all([
-    pollForResult(reviewJob.jobId, token, undefined, undefined, signal),
-    researchJob ? pollForResult(researchJob.jobId, token, undefined, undefined, signal).catch(() => null) : null,
+  const pollCreatedJob = async (job: PromiseSettledResult<JobCreated>) => {
+    if (job.status === "rejected") throw job.reason;
+    return pollForResult(job.value.jobId, token, undefined, undefined, signal);
+  };
+  const [reviewResult, researchResult] = await Promise.allSettled([
+    pollCreatedJob(jobs[0]),
+    pollCreatedJob(jobs[1]),
   ]);
 
   const results: FullAnalysisResult = {};
-  results.review = reviewResult.result as unknown as ReviewResponse;
-  if (researchResult?.result) {
-    results.research = researchResult.result as unknown as { report: string };
+  if (reviewResult.status === "fulfilled" && reviewResult.value.result) {
+    results.review = reviewResult.value.result as unknown as ReviewResponse;
+  }
+  if (researchResult.status === "fulfilled" && researchResult.value.result) {
+    results.research = researchResult.value.result as unknown as { report: string };
+  }
+  if (!results.review && !results.research && reviewResult.status === "rejected") {
+    throw reviewResult.reason;
   }
   return results;
 }
