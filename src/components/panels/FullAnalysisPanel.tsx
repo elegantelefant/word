@@ -6,7 +6,8 @@ import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { runFullAnalysis } from "@/api/review";
 import type { FullAnalysisResult } from "@/api/review";
-import { getSelectedText, getDocumentBody, isOfficeReady } from "@/lib/office";
+import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
+import { ReviewResults } from "./ReviewPanel";
 
 type AnalysisStatus = "idle" | "running" | "done" | "error";
 
@@ -59,6 +60,15 @@ function AnalysisContent({ token }: { token: string }) {
     }
   }
 
+  async function handleInsert(text: string) {
+    if (!isOfficeReady()) return;
+    try {
+      await insertText(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to insert text");
+    }
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-xs text-gray-500">
@@ -94,15 +104,18 @@ function AnalysisContent({ token }: { token: string }) {
 
       {error && <div className="rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">{error}</div>}
 
+      {status === "done" && !result?.review?.issues?.length && !result?.research?.report && (
+        <p className="rounded border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-700">
+          Analysis complete — no issues found.
+        </p>
+      )}
+
       {result && (
         <div className="space-y-3">
           {result.review && (
             <section className="rounded border border-gray-200 p-2">
               <h4 className="mb-1 text-xs font-semibold text-gray-600">Review Summary</h4>
-              <p className="text-xs text-gray-700">{result.review.summary}</p>
-              {result.review.issues && result.review.issues.length > 0 && (
-                <p className="mt-1 text-xs text-amber-600">{result.review.issues.length} issue(s) found</p>
-              )}
+              <ReviewResults result={result.review} onInsert={handleInsert} />
             </section>
           )}
           {result.research && (

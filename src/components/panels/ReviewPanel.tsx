@@ -11,7 +11,7 @@ import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/l
 import { addToLocalHistory } from "@/lib/history";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
-type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
+export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
 
 function freeReviewView(result: FreeReviewResponse): ReviewView {
   return {
@@ -174,7 +174,7 @@ export function ReviewPanel() {
   );
 }
 
-function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
+export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
