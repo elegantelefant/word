@@ -12,7 +12,7 @@ import {
   type RequestType,
   type RequestPriority,
 } from "@/api/mammoth";
-import { getSelectedText, isOfficeReady } from "@/lib/office";
+import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
 
@@ -117,7 +117,7 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
           }}
         />
       ) : (
-        <RequestList requests={requests} loading={loading} />
+        <RequestList requests={requests} loading={loading} onError={setError} />
       )}
     </div>
   );
@@ -221,7 +221,23 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
   );
 }
 
-function RequestList({ requests, loading }: { requests: LegalRequest[]; loading: boolean }) {
+function RequestList({ requests, loading, onError }: {
+  requests: LegalRequest[];
+  loading: boolean;
+  onError: (message: string | null) => void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  async function handleInsert(output: string) {
+    if (!isOfficeReady()) return;
+    onError(null);
+    try {
+      await insertText(output);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Failed to insert text");
+    }
+  }
+
   if (loading) return <p className="text-xs text-gray-400">Loading requests...</p>;
 
   if (requests.length === 0) {
@@ -245,8 +261,29 @@ function RequestList({ requests, loading }: { requests: LegalRequest[]; loading:
           {req.description && (
             <p className="mt-1 line-clamp-2 text-xs text-gray-500">{req.description}</p>
           )}
-          {req.result && (
-            <p className="mt-1 text-xs text-green-700">Result available</p>
+          {req.status === "completed" && req.result?.output && (
+            <div className="mt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => setExpanded(expanded === req.id ? null : req.id)}
+                aria-expanded={expanded === req.id}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                View result
+              </button>
+              {expanded === req.id && (
+                <div className="space-y-2">
+                  <p className="whitespace-pre-wrap text-xs text-gray-700">{req.result.output}</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleInsert(req.result!.output!)}
+                    className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100"
+                  >
+                    Insert at cursor
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       ))}

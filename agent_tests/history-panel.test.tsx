@@ -56,6 +56,54 @@ describe("HistoryPanel — free tier (local history)", () => {
 });
 
 describe("HistoryPanel — paid tier (API history)", () => {
+  it.each(["review", "research"])("opens a completed %s job result", async (type) => {
+    const job = { id: "j1", type, status: "completed", createdAt: "2025-06-01T10:00:00Z" };
+    const result = type === "review"
+      ? { jobType: "review", summary: "Reviewed NDA", issues: [{ category: "risk", severity: "high", description: "Uncapped liability", explanation: "Exposure is unlimited", recommendation: "negotiate", clauseReference: "3.1", sourceFilename: "NDA.docx" }] }
+      : { jobType: "research", report: "Research findings\nFurther details" };
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [job] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "j1", status: "completed", result })));
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open" }));
+    if (type === "review") {
+      expect(await screen.findByText("Reviewed NDA")).toBeInTheDocument();
+      expect(screen.getByText("Uncapped liability")).toBeInTheDocument();
+      expect(screen.getByText("negotiate")).toBeInTheDocument();
+    } else {
+      expect(await screen.findByText(/Research findings/)).toHaveClass("whitespace-pre-wrap");
+      expect(screen.getByText(/Research findings/).textContent).toBe("Research findings\nFurther details");
+    }
+    expect(fetchSpy.mock.calls[1]![0]).toContain("/jobs/j1/result");
+    expect(new Headers(fetchSpy.mock.calls[1]![1]?.headers).get("Authorization")).toBe("Bearer tok-123");
+  });
+
+  it("does not offer Open for unsupported or incomplete jobs", async () => {
+    const jobs = [
+      { id: "j1", type: "review", status: "running" },
+      { id: "j2", type: "research", status: "failed" },
+      { id: "j3", type: "mammoth", status: "completed" },
+    ].map((job) => ({ ...job, createdAt: "2025-06-01T10:00:00Z" }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ jobs })));
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+    await screen.findByText("mammoth");
+    expect(screen.queryByRole("button", { name: "Open" })).not.toBeInTheDocument();
+  });
+
+  it("shows result fetch errors and allows retry", async () => {
+    const job = { id: "j1", type: "research", status: "completed", createdAt: "2025-06-01T10:00:00Z" };
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [job] })))
+      .mockResolvedValueOnce(new Response("Server Error", { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "j1", status: "completed", result: { report: "Recovered report" } })));
+    renderWithAuth(makeAuth({ tier: "paid", token: "tok-123" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open" }));
+    expect(await screen.findByText("Something went wrong while contacting Elefant. Please try again.")).toHaveClass("text-red-600");
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(await screen.findByText("Recovered report")).toBeInTheDocument();
+    expect(screen.queryByText("Something went wrong while contacting Elefant. Please try again.")).not.toBeInTheDocument();
+  });
+
   it("shows loading then API jobs", async () => {
     const jobs = [
       { id: "j1", type: "review", status: "completed", createdAt: "2025-06-01T10:00:00Z" },

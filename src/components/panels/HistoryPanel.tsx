@@ -3,10 +3,12 @@
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
-import { listJobs } from "@/api/jobs";
+import { getJobResult, listJobs } from "@/api/jobs";
 import { getLocalHistory } from "@/lib/history";
 import type { LocalHistoryItem } from "@/lib/history";
-import type { Job } from "@/types/api";
+import { ReviewResults } from "./ReviewPanel";
+import { insertText, isOfficeReady } from "@/lib/office";
+import type { Job, JobResult } from "@/types/api";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
 
@@ -51,6 +53,39 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [opened, setOpened] = useState<{ id: string; type: string; result: JobResult["result"] } | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const beginResult = useLatestRequest();
+
+  async function openResult(job: Job) {
+    const isLatest = beginResult();
+    setOpening(job.id);
+    setOpened(null);
+    setError(null);
+    try {
+      const response = await getJobResult(job.id, token);
+      if (!isLatest()) return;
+      if (response.status !== "completed" || !response.result) {
+        throw new Error("Result is not available yet.");
+      }
+      setOpened({ id: job.id, type: job.type, result: response.result });
+    } catch (err) {
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to load result");
+    } finally {
+      if (isLatest()) setOpening(null);
+    }
+  }
+
+  async function handleInsert(text: string) {
+    if (!isOfficeReady()) return;
+    setError(null);
+    try {
+      await insertText(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to insert text");
+    }
+  }
 
   const begin = useLatestRequest();
 
@@ -117,6 +152,25 @@ function ApiHistory({ token, active }: { token: string; active: boolean }) {
             <span>{formatDate(job.createdAt)}</span>
             {job.query && <span className="line-clamp-1">{job.query}</span>}
           </div>
+          {job.status === "completed" && (job.type === "review" || job.type === "research") && (
+            <button
+              type="button"
+              onClick={() => void openResult(job)}
+              disabled={opening === job.id}
+              className="mt-2 text-xs text-blue-600 hover:underline disabled:opacity-50"
+            >
+              {opening === job.id ? "Opening..." : "Open"}
+            </button>
+          )}
+          {opened?.id === job.id && opened.result && (
+            <div className="mt-2">
+              {opened.type === "review" ? (
+                <ReviewResults result={{ ...opened.result, summary: opened.result.summary ?? "" }} onInsert={handleInsert} />
+              ) : typeof opened.result.report === "string" ? (
+                <p className="whitespace-pre-wrap text-xs text-gray-700">{opened.result.report}</p>
+              ) : null}
+            </div>
+          )}
         </div>
       ))}
     </div>
