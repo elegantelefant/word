@@ -11,6 +11,7 @@ vi.mock("@/lib/office", () => ({
   isOfficeReady: vi.fn(() => false),
   getSelectedText: vi.fn(),
   getDocumentBody: vi.fn(),
+  insertText: vi.fn(),
 }));
 
 vi.mock("@/lib/polling", () => ({
@@ -79,7 +80,13 @@ describe("FullAnalysisPanel — paid tier", () => {
     vi.mocked(pollForResult)
       .mockResolvedValueOnce({
         id: "j-review", status: "completed",
-        result: { summary: "Contract has risks.", issues: [{ description: "Issue 1", category: "risk" }] },
+        result: {
+          summary: "Contract has risks.",
+          issues: [
+            { description: "Ambiguous termination clause", category: "ambiguity", severity: "high", recommendation: "REVISE", clauseReference: "Section 3.1", explanation: "Notice period is unclear.", sourceFilename: "contract.docx" },
+            { description: "Missing force majeure", category: "missing" },
+          ],
+        },
       })
       .mockResolvedValueOnce({
         id: "j-research", status: "completed",
@@ -94,8 +101,71 @@ describe("FullAnalysisPanel — paid tier", () => {
     await waitFor(() => {
       expect(screen.getByText("Contract has risks.")).toBeInTheDocument();
     });
-    expect(screen.getByText("1 issue(s) found")).toBeInTheDocument();
+    expect(screen.getByText("Issues (2)")).toBeInTheDocument();
+    expect(screen.getByText("Ambiguous termination clause")).toBeInTheDocument();
+    expect(screen.getByText("Missing force majeure")).toBeInTheDocument();
+    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.getByText("REVISE")).toBeInTheDocument();
+    expect(screen.getByText('"Section 3.1"')).toBeInTheDocument();
+    expect(screen.getByText("Notice period is unclear.")).toBeInTheDocument();
+    expect(screen.getByText("contract.docx")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Insert" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Analysis complete — no issues found.")).not.toBeInTheDocument();
     expect(screen.getByText("Detailed research findings here.")).toBeInTheDocument();
+  });
+
+  it.each([
+    { label: "absent review", review: undefined },
+    { label: "empty issues", review: { summary: "No concerns.", issues: [] } },
+    { label: "absent issues", review: { summary: "No concerns." } },
+  ])("shows a neutral no-issues line for $label", async ({ review }) => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Enough document text for a complete analysis.");
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-review" })))
+      .mockResolvedValueOnce(new Response("Not Found", { status: 404 }));
+
+    const { pollForResult } = await import("@/lib/polling");
+    vi.mocked(pollForResult)
+      .mockResolvedValueOnce({ id: "j-review", status: "completed", result: review });
+
+    renderWithAuth(paidAuth);
+    expect(screen.queryByText("Analysis complete — no issues found.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Run Full Analysis"));
+    expect(screen.queryByText("Analysis complete — no issues found.")).not.toBeInTheDocument();
+
+    const message = await screen.findByText("Analysis complete — no issues found.");
+    expect(message).toHaveClass("bg-gray-50", "text-gray-700");
+    expect(message).not.toHaveClass("bg-red-50", "text-red-700");
+  });
+
+  it.each([
+    { label: "absent review", review: undefined },
+    { label: "empty issues", review: { summary: "No concerns.", issues: [] } },
+  ])("shows a research report without the no-issues line for $label", async ({ review }) => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Enough document text for a complete analysis.");
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-review" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-research" })));
+
+    const { pollForResult } = await import("@/lib/polling");
+    vi.mocked(pollForResult)
+      .mockResolvedValueOnce({ id: "j-review", status: "completed", result: review })
+      .mockResolvedValueOnce({
+        id: "j-research", status: "completed",
+        result: { report: "Research findings require attention." },
+      });
+
+    renderWithAuth(paidAuth);
+    fireEvent.click(screen.getByText("Run Full Analysis"));
+
+    expect(await screen.findByText("Research findings require attention.")).toBeInTheDocument();
+    expect(screen.queryByText("Analysis complete — no issues found.")).not.toBeInTheDocument();
   });
 
   it("handles research endpoint 404 gracefully", async () => {
