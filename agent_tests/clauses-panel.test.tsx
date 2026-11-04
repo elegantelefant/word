@@ -6,7 +6,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import { ClausesPanel } from "@/components/panels/ClausesPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
-import { insertText, isOfficeReady } from "@/lib/office";
+import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 
 vi.mock("@/lib/office", () => ({
   isOfficeReady: vi.fn(() => false),
@@ -44,6 +44,61 @@ describe("ClausesPanel — free tier", () => {
 
 describe("ClausesPanel — paid tier", () => {
   const paidAuth: Partial<AuthContextValue> = { tier: "paid", token: "tok-123" };
+
+  it("lists suggested clauses for the selected text in server order", async () => {
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("selected words");
+    vi.mocked(getSelectedText).mockClear();
+    vi.mocked(insertText).mockClear();
+    const suggestions = [
+      { id: "s2", name: "Zulu clause", content: "First suggested text", category: "Liability" },
+      { id: "s1", name: "Alpha clause", content: "Second suggested text" },
+    ];
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: [{ id: "db1" }, { id: "db2" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [{ id: "old", name: "Old clause", content: "old text" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ suggestions })));
+
+    renderWithAuth(paidAuth);
+    await screen.findByText("No clauses in this database.");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "db2" } });
+    await screen.findByText("Old clause");
+    fireEvent.change(screen.getByPlaceholderText("Search clauses..."), { target: { value: "old" } });
+    fireEvent.click(screen.getByRole("button", { name: "Suggest from selection" }));
+
+    await screen.findByText("Zulu clause");
+    expect(getSelectedText).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[3]!;
+    expect(String(url)).toMatch(/\/clause-databases\/db2\/suggest$/);
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({ context: "selected words" });
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok-123");
+    expect(screen.getAllByRole("button", { name: /Zulu clause|Alpha clause/ }).map((button) => button.textContent))
+      .toEqual(["Zulu clause+", "Alpha clause+"]);
+    expect(screen.queryByText("Old clause")).not.toBeInTheDocument();
+    expect(screen.getByText("Liability")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Zulu clause"));
+    expect(screen.getByText("First suggested text")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Insert into document" }));
+    await waitFor(() => expect(insertText).toHaveBeenCalledWith("First suggested text"));
+  });
+
+  it("shows the error line when suggestion fails", async () => {
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ databases: [{ id: "db1" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ clauses: [] })))
+      .mockResolvedValueOnce(new Response("Suggestion failed", { status: 500 }));
+
+    renderWithAuth(paidAuth);
+    await screen.findByText("No clauses in this database.");
+    fireEvent.click(screen.getByRole("button", { name: "Suggest from selection" }));
+
+    expect(await screen.findByText("Something went wrong while contacting Elefant. Please try again."))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Suggest from selection" })).toBeEnabled();
+  });
 
   it("loads databases on mount", async () => {
     const dbs = [{ id: "db1", name: "Standard Clauses", clauseCount: 42 }];

@@ -4,7 +4,7 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { draftClause, listClauseDatabases, listClauses, type Clause, type ClauseDatabase } from "@/api/clauses";
+import { draftClause, listClauseDatabases, listClauses, suggestClause, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
@@ -102,6 +102,26 @@ function ClausesContent({
     }
   }
 
+  async function handleSuggest() {
+    if (!activeDb || !isOfficeReady()) return;
+    const isLatest = beginClauses();
+    setLoadingClauses(true);
+    setError(null);
+    try {
+      const selected = await getSelectedText();
+      if (!isLatest()) return;
+      const suggestions = await suggestClause(activeDb, selected, token);
+      if (!isLatest()) return;
+      setClauses(suggestions);
+      setSearch("");
+      setExpanded(null);
+    } catch (err) {
+      if (isLatest()) setError(err instanceof Error ? err.message : "Failed to suggest clauses");
+    } finally {
+      if (isLatest()) setLoadingClauses(false);
+    }
+  }
+
   async function handleDraft() {
     const prompt = draftPrompt.trim();
     if (!prompt || !isOfficeReady()) return;
@@ -168,6 +188,15 @@ function ClausesContent({
           ))}
         </select>
       )}
+
+      <button
+        type="button"
+        onClick={() => void handleSuggest()}
+        disabled={loading || !activeDb}
+        className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        Suggest from selection
+      </button>
 
       {/* Search */}
       <input
