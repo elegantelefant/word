@@ -1,15 +1,18 @@
 // ABOUTME: Tests for useAuthProvider hook — login, logout, tier detection, saved token.
 // ABOUTME: Mocks api/account and api/auth to isolate hook state transitions.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act, cleanup } from "@testing-library/react";
 import { useAuthProvider } from "@/hooks/useAuth";
+import { getMe } from "@/api/account";
+import { getSavedToken, clearToken, openLoginDialog } from "@/api/auth";
 
 vi.mock("@/api/account", () => ({
   getMe: vi.fn(),
 }));
 
-vi.mock("@/api/auth", () => ({
+vi.mock("@/api/auth", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/api/auth")>(),
   getSavedToken: vi.fn(() => null),
   saveToken: vi.fn(),
   clearToken: vi.fn(),
@@ -18,6 +21,13 @@ vi.mock("@/api/auth", () => ({
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  vi.clearAllMocks();
+  vi.mocked(getSavedToken).mockReturnValue(null);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
 });
 
 const PAID_ME = {
@@ -185,5 +195,143 @@ describe("useAuthProvider", () => {
     expect(clearToken).toHaveBeenCalled();
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
+  });
+});
+
+function tokenExpiringIn(milliseconds: number): string {
+  return `header.${btoa(JSON.stringify({ exp: (Date.now() + milliseconds) / 1000 }))}.signature`;
+}
+
+describe("useAuthProvider token refresh", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
+    vi.mocked(getMe).mockResolvedValue(PAID_ME);
+  });
+
+  it("re-mints one minute before expiry and schedules the next token", async () => {
+    const saved = tokenExpiringIn(3_600_000);
+    const renewed = tokenExpiringIn(7_200_000);
+    const next = tokenExpiringIn(10_800_000);
+    vi.mocked(getSavedToken).mockReturnValue(saved);
+    vi.mocked(openLoginDialog).mockResolvedValueOnce(renewed).mockResolvedValueOnce(next);
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_539_999); });
+    expect(openLoginDialog).not.toHaveBeenCalled();
+    expect(result.current.token).toBe(saved);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(1);
+    expect(getMe).toHaveBeenLastCalledWith(renewed);
+    expect(result.current.token).toBe(renewed);
+    expect(result.current.tier).toBe("paid");
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_599_999); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(2);
+    expect(result.current.token).toBe(next);
+  });
+
+  it("logs out when re-minting fails", async () => {
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    vi.mocked(openLoginDialog).mockRejectedValue(new Error("Login dialog was closed"));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    expect(result.current.tier).toBe("paid");
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_540_000); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(1);
+    expect(clearToken).toHaveBeenCalledTimes(1);
+    expect(result.current.token).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(result.current.tier).toBe("free");
+    expect(result.current.loading).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_600_000); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([-1000, 0])("clears a saved token expired by %i ms without loading a profile", async (offset) => {
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(offset));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+
+    expect(clearToken).toHaveBeenCalledTimes(1);
+    expect(getMe).not.toHaveBeenCalled();
+    expect(openLoginDialog).not.toHaveBeenCalled();
+    expect(result.current.token).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("re-mints immediately when the saved token is inside the refresh window", async () => {
+    const renewed = tokenExpiringIn(3_600_000);
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(30_000));
+    vi.mocked(openLoginDialog).mockResolvedValue(renewed);
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(openLoginDialog).toHaveBeenCalledTimes(1);
+    expect(result.current.token).toBe(renewed);
+  });
+
+  it("cancels the refresh timer on logout", async () => {
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    act(() => { result.current.logout(); });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_600_000); });
+    expect(openLoginDialog).not.toHaveBeenCalled();
+    expect(result.current.token).toBeNull();
+  });
+
+  it("cancels the refresh timer on unmount", async () => {
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    const { unmount } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    unmount();
+
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(openLoginDialog).not.toHaveBeenCalled();
+  });
+
+  it("discards a refresh dialog result delivered after logout", async () => {
+    const renewed = tokenExpiringIn(7_200_000);
+    let finishDialog!: (token: string) => void;
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    vi.mocked(openLoginDialog).mockReturnValue(new Promise((resolve) => { finishDialog = resolve; }));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_540_000); });
+    act(() => { result.current.logout(); });
+
+    // The real dialog saves its token before resolving.
+    vi.mocked(getSavedToken).mockReturnValue(renewed);
+    await act(async () => { finishDialog(renewed); });
+    expect(clearToken).toHaveBeenCalledTimes(2);
+    expect(getMe).toHaveBeenCalledTimes(1);
+    expect(result.current.token).toBeNull();
+  });
+
+  it("does not restore a refreshed profile that arrives after logout", async () => {
+    let finishProfile!: (user: typeof PAID_ME) => void;
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    vi.mocked(getMe).mockResolvedValueOnce(PAID_ME)
+      .mockReturnValueOnce(new Promise((resolve) => { finishProfile = resolve; }));
+    vi.mocked(openLoginDialog).mockResolvedValue(tokenExpiringIn(7_200_000));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_540_000); });
+    expect(getMe).toHaveBeenCalledTimes(2);
+    act(() => { result.current.logout(); });
+
+    await act(async () => { finishProfile(PAID_ME); });
+    expect(result.current.token).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(result.current.loading).toBe(false);
   });
 });

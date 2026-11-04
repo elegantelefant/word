@@ -2,7 +2,7 @@
 // ABOUTME: Verifies localStorage round-trip for JWT tokens and that dialog messages come from Elefant.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getSavedToken, saveToken, clearToken, openLoginDialog } from "@/api/auth";
+import { getSavedToken, saveToken, clearToken, openLoginDialog, tokenExpiresAt } from "@/api/auth";
 
 beforeEach(() => {
   localStorage.clear();
@@ -10,6 +10,43 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+describe("JWT expiry", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
+  });
+
+  it("decodes exp from an unpadded base64url payload as epoch milliseconds", () => {
+    const expiresAt = Date.now() + 3_600_000;
+    const payload = btoa(JSON.stringify({ exp: expiresAt / 1000, note: ">>>???~~~".repeat(3) }))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    expect(payload).toMatch(/[-_]/);
+    expect(payload).not.toMatch(/=$/);
+
+    expect(tokenExpiresAt(`header.${payload}.signature`)).toBe(expiresAt);
+    vi.advanceTimersByTime(30_000);
+    expect(tokenExpiresAt(`header.${payload}.signature`)).toBe(expiresAt);
+  });
+
+  it("preserves an already expired timestamp, including zero", () => {
+    const payload = btoa(JSON.stringify({ exp: 0 }));
+    expect(tokenExpiresAt(`header.${payload}.signature`)).toBe(0);
+  });
+
+  it.each(["", "opaque-token", "header.%.signature", "header.bm90LWpzb24.signature"])(
+    "returns null for an unreadable token %s", (token) => {
+      expect(tokenExpiresAt(token)).toBeNull();
+    },
+  );
+
+  it.each([{}, { exp: "1793797200" }, { exp: null }, { exp: true }, { exp: 1e308 }, null])(
+    "returns null when the payload has no finite numeric expiry: %j", (payload) => {
+      expect(tokenExpiresAt(`header.${btoa(JSON.stringify(payload))}.signature`)).toBeNull();
+    },
+  );
 });
 
 describe("auth token persistence", () => {

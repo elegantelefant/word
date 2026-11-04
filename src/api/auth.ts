@@ -28,6 +28,21 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Reads the JWT expiry as epoch milliseconds; this does not verify its signature. */
+export function tokenExpiresAt(token: string): number | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const { exp } = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")));
+    return typeof exp === "number" && Number.isFinite(exp * 1000)
+      ? exp * 1000
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Opens the Elefant login page in an Office dialog.
  * The dialog posts back a token via Office.context.ui.messageParent().
