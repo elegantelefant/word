@@ -14,7 +14,7 @@ A Microsoft Word task-pane add-in: a small React SPA that Word loads through Off
 | `src/api/*.ts` | Paid-tier HTTP clients; `client.ts` adds auth, maps 401/429 |
 | `src/lib/polling.ts`, `src/hooks/useJob.ts` | Paid work is a job: create → `poll_url` → `completed`/`failed` |
 | `src/components/`, `src/store/`, `src/hooks/` | React UI, React Context state (no state library), hooks |
-| `src/types/api.ts` | Backend contract types, hand-derived from the vendored `openapi.json` (elefant-api 0.1.0) |
+| `src/api/generated`, `src/types/api.ts` | Orval output from vendored `openapi.json` (elefant-api 0.369.0) via `orval.config.ts`, aliased by `src/types/api.ts`; drift guarded by `pnpm check:contract` and `agent_tests/api-generation.test.ts` |
 | `agent_tests/` | Vitest (jsdom) — the suite CI runs; `setup.ts` + the `@google/adk` shim alias |
 | `e2e/` | Playwright against the Vite dev server on `https://localhost:3001` — a browser, not Word |
 | `manifest.xml` / `manifest.prod.xml` | Sideload manifests: localhost vs Cloud Run |
@@ -99,5 +99,5 @@ When you do need him: one comment on the issue under `## OWNER QUESTIONS <date>`
 - The Cloud Run URL is public; a browser visitor gets the task pane until #6 lands the landing page.
 - `determineTier` maps `trial` → `free`; gate "sign in" banners on the token, not the tier, and on `!loading` (#4).
 - `AUTH_INITIAL` is spread across six test files; a `makeAuth(overrides)` helper is the agreed follow-up (#4).
-- `openapi.json` here is elefant-api 0.1.0; birepo is at 0.207.0 with a camelCase wire. `src/types/api.ts` is hand-maintained — regenerating is a contract decision (#9), not a chore.
+- `openapi.json` here is elefant-api 0.369.0. `src/api/generated` is Orval output configured by `orval.config.ts`; `src/types/api.ts` aliases those generated types. Drift is guarded by `pnpm check:contract` and `agent_tests/api-generation.test.ts`. Comparing against birepo upstream stays with rumble#33.
 - `word_plugin-contract` beside the laptop checkout is a stale worktree on the closed PR #1 branch. Ignore it.
