@@ -140,6 +140,55 @@ describe("useAuthProvider — state machine", () => {
     },
   );
 
+  it("admin grant live on a personal org is paid", async () => {
+    for (const expiresAt of [null, new Date(Date.now() + 60_000).toISOString()]) {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+        user: { id: "u1", email: "test@test.com", name: "Test User" },
+        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
+        entitlements: { source: "admin_grant", expiresAt },
+      })));
+      const { result, unmount } = renderHook(() => useAuthProvider());
+      await act(async () => { await result.current.login("valid-token"); });
+      expect(result.current.tier).toBe("paid");
+      unmount();
+      clearToken();
+    }
+  });
+
+  it("admin grant expired on a personal org is free", async () => {
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    for (const expiresAt of [new Date(now - 60_000).toISOString(), new Date(now).toISOString()]) {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+        user: { id: "u1", email: "test@test.com", name: "Test User" },
+        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
+        entitlements: { source: "admin_grant", expiresAt },
+      })));
+      const { result, unmount } = renderHook(() => useAuthProvider());
+      await act(async () => { await result.current.login("valid-token"); });
+      expect(result.current.token).toBe("valid-token");
+      expect(result.current.tier).toBe("free");
+      unmount();
+      clearToken();
+    }
+  });
+
+  it("entitlement source none on a personal org is free", async () => {
+    for (const expiresAt of [null, new Date(Date.now() + 60_000).toISOString()]) {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+        user: { id: "u1", email: "test@test.com", name: "Test User" },
+        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
+        entitlements: { source: "none", expiresAt },
+      })));
+      const { result, unmount } = renderHook(() => useAuthProvider());
+      await act(async () => { await result.current.login("valid-token"); });
+      expect(result.current.token).toBe("valid-token");
+      expect(result.current.tier).toBe("free");
+      unmount();
+      clearToken();
+    }
+  });
+
   it("logout clears state and token", async () => {
     saveToken("valid-token");
 
