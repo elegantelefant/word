@@ -14,7 +14,7 @@
 
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://elefant.legal/support"/>
+  <SupportUrl DefaultValue="https://elefant.legal/resources/support"/>
 
   <AppDomains>
     <AppDomain>https://elefant.legal</AppDomain>
@@ -79,7 +79,7 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/"/>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/word-addin"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://elefant.legal/integrations/word"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Elefant Legal Assistant"/>
