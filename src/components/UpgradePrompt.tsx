@@ -1,5 +1,5 @@
 // ABOUTME: Paywall component shown to free-tier users on paid features.
-// ABOUTME: Displays upgrade CTA and optional "Use Tauri companion" link.
+// ABOUTME: Displays sign-in guidance and an upgrade CTA linking to pricing.
 
 interface UpgradePromptProps {
   feature: string;
@@ -14,7 +14,7 @@ export function UpgradePrompt({ feature }: UpgradePromptProps) {
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-gray-800">{feature} requires Elefant Pro</h3>
         <p className="max-w-[240px] text-xs leading-relaxed text-gray-500">
-          Sign in to your Elefant account to access {feature.toLowerCase()}, or use the Elefant desktop app.
+          Sign in to your Elefant account to access {feature.toLowerCase()}.
         </p>
       </div>
       <a

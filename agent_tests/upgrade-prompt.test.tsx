@@ -16,6 +16,11 @@ describe("UpgradePrompt", () => {
     expect(screen.getByText(/access mammoth/)).toBeInTheDocument();
   });
 
+  it("does not mention a desktop app in the body text", () => {
+    render(<UpgradePrompt feature="Mammoth" />);
+    expect(screen.getByText(/access mammoth/)).not.toHaveTextContent(/desktop app/i);
+  });
+
   it("links to pricing page", () => {
     render(<UpgradePrompt feature="Analysis" />);
     const link = screen.getByText("Upgrade to Pro");

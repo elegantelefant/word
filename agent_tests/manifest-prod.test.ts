@@ -26,6 +26,16 @@ const attributeValue = (element: string, attribute: string, manifest: string) =>
   )?.[1];
 
 describe("production manifest metadata", () => {
+  it("uses the same support and learn-more URLs in the development manifest", () => {
+    expect(attributeValue("SupportUrl", "DefaultValue", developmentManifest)).toBe(
+      attributeValue("SupportUrl", "DefaultValue", productionManifest),
+    );
+    const learnMoreUrl = 'bt:Url id="GetStarted.LearnMoreUrl"';
+    expect(attributeValue(learnMoreUrl, "DefaultValue", developmentManifest)).toBe(
+      attributeValue(learnMoreUrl, "DefaultValue", productionManifest),
+    );
+  });
+
   it("uses the approved production identity and URLs", () => {
     const productionId = elementValue("Id", productionManifest);
 
