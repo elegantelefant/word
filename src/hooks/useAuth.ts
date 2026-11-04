@@ -11,7 +11,14 @@ import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt }
 const REFRESH_LEAD_MS = 60_000;
 
 function determineTier(me: MeResponse): Tier {
-  return me.org?.accountType === "commercial" ? "paid" : "free";
+  if (me.org?.accountType === "commercial") return "paid";
+  const entitlements = me.entitlements;
+  if (entitlements?.source === "admin_grant" && (
+    entitlements.expiresAt === null || (
+      typeof entitlements.expiresAt === "string" && Date.parse(entitlements.expiresAt) > Date.now()
+    )
+  )) return "paid";
+  return "free";
 }
 
 export function useAuthProvider(): AuthContextValue {
