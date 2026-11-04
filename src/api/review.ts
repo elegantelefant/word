@@ -2,8 +2,28 @@
 // ABOUTME: Free tier uses Gemini via BYOK key; paid path creates a job and polls for results.
 
 import type { JobCreated, JobResult, ReviewRequest, ReviewResponse, ResearchRequest } from "@/types/api";
+import { z } from "zod";
+import { getJobResultResponse } from "@/api/generated/schemas";
 import { apiFetch } from "./client";
 import { pollForResult } from "@/lib/polling";
+
+// The generated result union starts with ResearchResult, MultiReviewResult,
+// DraftResult, ReviewResult. Keep their contract fields and optionality while
+// accepting older payloads without jobType and preserving future fields.
+const [researchContract, , , reviewContract] = getJobResultResponse.shape.result.unwrap().options[0].options;
+const reviewResultSchema = reviewContract.extend({
+  jobType: reviewContract.shape.jobType.optional(),
+  issues: reviewContract.shape.issues.unwrap().element.passthrough().array().optional(),
+}).passthrough();
+const researchResultSchema = researchContract.extend({
+  jobType: researchContract.shape.jobType.optional(),
+}).passthrough();
+
+function parseJobResult<T>(schema: z.ZodType<T>, payload: unknown, jobType: "review" | "research"): T {
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) throw new Error(`Invalid ${jobType} job result`);
+  return parsed.data;
+}
 
 export interface FreeReviewResponse {
   summary: string;
@@ -50,7 +70,7 @@ export async function reviewPaid(
   const body: ReviewRequest = { text, instructions, context };
   const job = await apiFetch<JobCreated>("/review", token, { method: "POST", body });
   const result = await pollForResult(job.jobId, token);
-  return (result.result as unknown as ReviewResponse) ?? { summary: "No result returned.", issues: [] };
+  return parseJobResult(reviewResultSchema, result.result, "review");
 }
 
 /** Polls a job until completed, returns the result payload. */
@@ -74,16 +94,16 @@ export async function runFullAnalysis(text: string, token: string, signal?: Abor
     return pollForResult(job.value.jobId, token, undefined, undefined, signal);
   };
   const [reviewResult, researchResult] = await Promise.allSettled([
-    pollCreatedJob(jobs[0]),
-    pollCreatedJob(jobs[1]),
+    pollCreatedJob(jobs[0]).then((result) => parseJobResult(reviewResultSchema, result.result, "review")),
+    pollCreatedJob(jobs[1]).then((result) => parseJobResult(researchResultSchema, result.result, "research")),
   ]);
 
   const results: FullAnalysisResult = {};
-  if (reviewResult.status === "fulfilled" && reviewResult.value.result) {
-    results.review = reviewResult.value.result as unknown as ReviewResponse;
+  if (reviewResult.status === "fulfilled") {
+    results.review = reviewResult.value;
   }
-  if (researchResult.status === "fulfilled" && researchResult.value.result) {
-    results.research = researchResult.value.result as unknown as { report: string };
+  if (researchResult.status === "fulfilled") {
+    results.research = researchResult.value;
   }
   if (!results.review && !results.research && reviewResult.status === "rejected") {
     throw reviewResult.reason;
