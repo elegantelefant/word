@@ -114,8 +114,28 @@ describe("FullAnalysisPanel — paid tier", () => {
     expect(screen.getByText("Detailed research findings here.")).toBeInTheDocument();
   });
 
+  it("shows a review validation error when the result is missing and research fails", async () => {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("Enough document text for a complete analysis.");
+
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ jobId: "j-review" })))
+      .mockResolvedValueOnce(new Response("Not Found", { status: 404 }));
+
+    const { pollForResult } = await import("@/lib/polling");
+    vi.mocked(pollForResult)
+      .mockResolvedValueOnce({ id: "j-review", status: "completed" });
+
+    renderWithAuth(paidAuth);
+    fireEvent.click(screen.getByText("Run Full Analysis"));
+
+    expect(await screen.findByText("Invalid review job result")).toBeInTheDocument();
+    expect(screen.queryByText("Analysis complete — no issues found.")).not.toBeInTheDocument();
+    expect(screen.getByText("Run Full Analysis")).not.toBeDisabled();
+  });
+
   it.each([
-    { label: "absent review", review: undefined },
     { label: "empty issues", review: { summary: "No concerns.", issues: [] } },
     { label: "absent issues", review: { summary: "No concerns." } },
   ])("shows a neutral no-issues line for $label", async ({ review }) => {

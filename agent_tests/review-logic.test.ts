@@ -127,19 +127,6 @@ describe("runFullAnalysis", () => {
 
 
 describe("runFullAnalysis partial results", () => {
-  it("returns an empty analysis when completed jobs have no payload", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const path = new URL(String(input)).pathname;
-      if (!path.includes("/jobs/")) {
-        return new Response(JSON.stringify({ jobId: path.endsWith("/review") ? "review" : "research" }));
-      }
-      return new Response(JSON.stringify({ status: "completed", result: null }));
-    });
-
-    await expect(runFullAnalysis("Legal text", "token")).resolves.toEqual({});
-    expect(fetch).toHaveBeenCalledTimes(6);
-  });
-
   it.each(["create", "poll"])("returns research when review rejects during %s", async (stage) => {
     const research = { report: "Completed paid research" };
     const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
@@ -190,5 +177,74 @@ describe("runFullAnalysis partial results", () => {
     });
 
     await expect(runFullAnalysis("Legal text", "token")).rejects.toThrow(`review ${stage} failed`);
+  });
+});
+
+describe("job result validation", () => {
+  function completedJobs(review: unknown, research: unknown) {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (!path.includes("/jobs/")) {
+        return new Response(JSON.stringify({ jobId: path.endsWith("/review") ? "review" : "research" }));
+      }
+      if (path.endsWith("/result")) {
+        return new Response(JSON.stringify({ result: path.endsWith("/review/result") ? review : research }));
+      }
+      return new Response(JSON.stringify({ status: "completed" }));
+    });
+  }
+
+  it.each([
+    { issues: [] },
+    { summary: 42 },
+    { summary: "Review", issues: "invalid" },
+    { summary: "Review", issues: [{ severity: 42 }] },
+  ])("refuses a malformed review result at the boundary: %j", async (payload) => {
+    completedJobs(payload, { report: "Research report" });
+    await expect(reviewPaid("Text", "token")).rejects.toThrow("Invalid review job result");
+    await expect(runFullAnalysis("Text", "token")).resolves.toEqual({ research: { report: "Research report" } });
+    completedJobs(payload, undefined);
+    await expect(runFullAnalysis("Text", "token")).rejects.toThrow("Invalid review job result");
+  });
+
+  it("passes through contract-shaped issues and unknown fields in both review paths", async () => {
+    const review = {
+      jobType: "review",
+      summary: "Contract review",
+      futureField: { value: true },
+      issues: [
+        {},
+        {
+          title: "Termination", category: "custom category", severity: "high",
+          recommendation: "amend", clauseReference: "3.1", sourceFilename: "contract.docx",
+          description: "Unclear notice period", explanation: "No deadline",
+          targetQuote: null, replacement: null, futureIssueField: "preserved",
+        },
+      ],
+    };
+    const research = { jobType: "research", report: "Research", futureField: true };
+    completedJobs(review, research);
+    await expect(reviewPaid("Text", "token")).resolves.toEqual(review);
+    await expect(runFullAnalysis("Text", "token")).resolves.toEqual({ review, research });
+  });
+
+  it("accepts a review with optional issues omitted", async () => {
+    const review = { summary: "No issues field" };
+    completedJobs(review, { report: "Research report" });
+    await expect(reviewPaid("Text", "token")).resolves.toEqual(review);
+    await expect(runFullAnalysis("Text", "token")).resolves.toMatchObject({ review });
+  });
+
+  it.each([undefined, null])("handles a missing result the same in both review paths: %j", async (payload) => {
+    completedJobs(payload, { report: "Research report" });
+    await expect(reviewPaid("Text", "token")).rejects.toThrow("Invalid review job result");
+    await expect(runFullAnalysis("Text", "token")).resolves.toEqual({ research: { report: "Research report" } });
+    completedJobs(payload, undefined);
+    await expect(runFullAnalysis("Text", "token")).rejects.toThrow("Invalid review job result");
+  });
+
+  it.each([undefined, null, {}, { report: 42 }])("preserves review when the research result is missing or malformed: %j", async (payload) => {
+    completedJobs({ summary: "Valid review" }, payload);
+    await expect(runFullAnalysis("Text", "token")).resolves.toEqual({ review: { summary: "Valid review" } });
   });
 });
