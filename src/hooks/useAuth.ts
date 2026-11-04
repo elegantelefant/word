@@ -6,7 +6,9 @@ import type { AuthContextValue, AuthState } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
 import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
-import { getSavedToken, clearToken, openLoginDialog, saveToken } from "@/api/auth";
+import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt } from "@/api/auth";
+
+const REFRESH_LEAD_MS = 60_000;
 
 function determineTier(me: MeResponse): Tier {
   return me.org?.accountType === "commercial" ? "paid" : "free";
@@ -20,17 +22,27 @@ export function useAuthProvider(): AuthContextValue {
     loading: !!getSavedToken(),
   }));
 
-  const loadUser = useCallback(async (token: string) => {
+  const logout = useCallback(() => {
+    clearToken();
+    setState(AUTH_INITIAL);
+  }, []);
+
+  const loadUser = useCallback(async (token: string, isCurrent: () => boolean = () => true) => {
+    const expiresAt = tokenExpiresAt(token);
+    if (expiresAt !== null && expiresAt <= Date.now()) {
+      logout();
+      return;
+    }
     setState((prev) => ({ ...prev, loading: true }));
     try {
       const user = await getMe(token);
+      if (!isCurrent()) return;
       const tier = determineTier(user);
       setState({ token, user, tier, loading: false });
     } catch {
-      clearToken();
-      setState({ ...AUTH_INITIAL, loading: false });
+      if (isCurrent()) logout();
     }
-  }, []);
+  }, [logout]);
 
   // Check for saved token on mount
   useEffect(() => {
@@ -39,6 +51,36 @@ export function useAuthProvider(): AuthContextValue {
       void loadUser(saved);
     }
   }, [loadUser]);
+
+  useEffect(() => {
+    if (!state.token) return;
+    const expiresAt = tokenExpiresAt(state.token);
+    if (expiresAt === null) return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (expiresAt <= Date.now()) {
+        logout();
+        return;
+      }
+      try {
+        const token = await openLoginDialog();
+        if (cancelled) {
+          // The dialog persists its result, even if the user has since signed out.
+          if (getSavedToken() === token) clearToken();
+          return;
+        }
+        await loadUser(token, () => !cancelled);
+      } catch {
+        if (!cancelled) logout();
+      }
+    }, Math.max(0, expiresAt - Date.now() - REFRESH_LEAD_MS));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [state.token, loadUser, logout]);
 
   const login = useCallback(async (tokenOrEmpty?: string) => {
     if (tokenOrEmpty) {
@@ -50,11 +92,6 @@ export function useAuthProvider(): AuthContextValue {
     const token = await openLoginDialog();
     await loadUser(token);
   }, [loadUser]);
-
-  const logout = useCallback(() => {
-    clearToken();
-    setState(AUTH_INITIAL);
-  }, []);
 
   return useMemo(
     () => ({ ...state, login, logout }),
