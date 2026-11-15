@@ -47,6 +47,8 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ## User installation
 
+IT administrators deploying Elefant across an organisation: see the [admin deployment guide](docs/admin-deployment.md).
+
 ### Word on the web
 
 1. Download the [production manifest](https://addin.elefant.legal/manifest.xml).
