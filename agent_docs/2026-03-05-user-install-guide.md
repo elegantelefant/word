@@ -1,3 +1,5 @@
+Superseded by docs/install.md (2026-11-15); the links below are out of date.
+
 # Elefant Word Add-in — Installation Guide
 
 > **No admin rights, no App Store, no coding required.**

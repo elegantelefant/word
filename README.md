@@ -49,29 +49,17 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ### Word on the web
 
-1. Download the [production manifest](https://addin.elefant.legal/manifest.xml).
-2. Open a document in Word on the web.
-3. Open **Add-ins** and select **More Add-ins**.
-4. Choose **My Add-ins** → **Upload My Add-in**.
-5. Select the downloaded `manifest.xml`.
+Follow the [Word on the web steps](docs/install.md#word-on-the-web) in the installation guide.
 
 ### Windows desktop
 
-Download and run:
-
-[Install Elefant for Windows](https://addin.elefant.legal/install-windows.bat)
-
-You can also sideload the production manifest manually through Microsoft Word.
+Follow the [Word for Windows steps](docs/install.md#word-for-windows) in the installation guide.
 
 ### macOS desktop
 
-Download and run:
+Follow the [Word for Mac steps](docs/install.md#word-for-mac) in the installation guide.
 
-[Install Elefant for macOS](https://addin.elefant.legal/install-mac.command)
-
-You can also sideload the production manifest manually.
-
-For detailed platform-specific instructions, see the [user installation guide](agent_docs/2026-03-05-user-install-guide.md).
+For detailed platform-specific instructions, see the [user installation guide](docs/install.md).
 
 ## Privacy and data handling
 
