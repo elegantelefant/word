@@ -34,3 +34,20 @@ export async function insertText(text: string, location: "replace" | "end" = "re
 export function isOfficeReady(): boolean {
   return typeof Office !== "undefined" && typeof Word !== "undefined";
 }
+
+// Word's search takes a short string; a longer citation is matched on its opening characters.
+const SEARCH_TEXT_LIMIT = 255;
+
+/** Selects the first place `text` appears in the document; false when it does not appear. */
+export async function selectText(text: string): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (Word as any).run(async (ctx: any) => {
+    const matches = ctx.document.body.search(text.slice(0, SEARCH_TEXT_LIMIT), { matchCase: true });
+    matches.load("items");
+    await ctx.sync();
+    if (matches.items.length === 0) return false;
+    matches.items[0].select();
+    await ctx.sync();
+    return true;
+  });
+}
