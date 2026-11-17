@@ -50,7 +50,7 @@ export function useAuthProvider(): AuthContextValue {
       setState({ token, user, tier, loading: false });
     } catch (err) {
       if (!isCurrent()) return;
-      // Only a 401 means the token is bad. Offline, 429 and 5xx keep it, so the next open retries (#87).
+      // Only a 401 means the token is bad. Any other failure keeps it, so a retry or the next open can use it (#87).
       if (err instanceof ApiError && err.isAuthError) {
         logout();
         return;

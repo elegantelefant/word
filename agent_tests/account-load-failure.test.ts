@@ -2,7 +2,7 @@
 // ABOUTME: Only the network call (getMe) is replaced; token storage is the real localStorage code.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { useAuthProvider } from "@/hooks/useAuth";
 import { getMe } from "@/api/account";
 import { ApiError, NetworkError } from "@/api/client";
@@ -21,6 +21,7 @@ describe("account load failure (#87)", () => {
   it.each([
     ["offline", new NetworkError("Network request failed. Check your connection.")],
     ["rate limited", new ApiError(429, "Too many requests. Please wait a moment.")],
+    ["forbidden", new ApiError(403, "This token may not be used on this route.")],
     ["server error", new ApiError(503, "Something went wrong while contacting Elefant. Please try again.")],
   ])("keeps the saved token when /me fails (%s)", async (_, error) => {
     saveToken("good-token");
@@ -39,6 +40,28 @@ describe("account load failure (#87)", () => {
     const { result } = renderHook(() => useAuthProvider());
 
     await waitFor(() => expect(result.current.error).toBe(ACCOUNT_LOAD_FAILED));
+  });
+
+  it("shows the user as signed out, with no token in state, while the saved token is kept", async () => {
+    saveToken("good-token");
+    vi.mocked(getMe).mockRejectedValue(new NetworkError("Network request failed. Check your connection."));
+
+    const { result } = renderHook(() => useAuthProvider());
+
+    await waitFor(() => expect(result.current.error).toBe(ACCOUNT_LOAD_FAILED));
+    expect([result.current.token, result.current.tier]).toEqual([null, "free"]);
+  });
+
+  it("clears the error when a retry with the saved token succeeds", async () => {
+    saveToken("good-token");
+    vi.mocked(getMe).mockRejectedValueOnce(new NetworkError("Network request failed. Check your connection."))
+      .mockResolvedValueOnce({ user: { id: "u1", email: "a@b.com", name: "Alice" }, org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "commercial" } } as never);
+
+    const { result } = renderHook(() => useAuthProvider());
+    await waitFor(() => expect(result.current.error).toBe(ACCOUNT_LOAD_FAILED));
+    await act(async () => { await result.current.login("good-token"); });
+
+    expect([result.current.error, result.current.tier]).toEqual([undefined, "paid"]);
   });
 
   it("signs out and forgets the token when Elefant rejects it (401)", async () => {

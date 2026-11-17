@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { GEMINI_MODELS } from "@/lib/models";
+import { getSavedToken } from "@/api/auth";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -96,7 +97,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {/* Sign in for free users */}
         {tier === "free" && (
           <section className="border-t border-gray-100 pt-4">
-            {error && <p role="status" className="mb-2.5 text-xs text-red-600">{error}</p>}
+            {error && (
+              <p role="status" className="mb-2.5 text-xs text-red-600">
+                {error}{" "}
+                <button onClick={() => void login(getSavedToken() ?? undefined)} className="underline hover:text-red-800">
+                  Try again
+                </button>
+              </p>
+            )}
             <p className="mb-2.5 text-xs leading-relaxed text-gray-500">Have an Elefant account? Sign in for full features.</p>
             <button
               onClick={() => void login()}
