@@ -61,3 +61,24 @@ describe("production nginx configuration", () => {
     expect(rootLocation![1]).not.toMatch(/^\s+add_header\b/m);
   });
 });
+describe("manifest download (#86)", () => {
+  const locationBlock = (path: string) =>
+    activeConfig.match(new RegExp(`^ {4}location = ${path.replace(/\./g, "\\.")} \\{\\r?\\n([\\s\\S]*?)^ {4}\\}`, "m"))?.[1] ?? "";
+
+  it("serves the manifest from a download path as an attachment named manifest.xml", () => {
+    const block = locationBlock("/manifest-download.xml");
+    expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
+    expect(block).toMatch(/add_header Content-Disposition 'attachment; filename="manifest\.xml"' always;/);
+  });
+
+  it("points the README's user download link at the download path", () => {
+    const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+    const install = readme.slice(readme.indexOf("## User installation"), readme.indexOf("## Privacy"));
+    expect(install).toContain("https://addin.elefant.legal/manifest-download.xml");
+    expect(install).not.toContain("https://addin.elefant.legal/manifest.xml");
+  });
+
+  it("leaves /manifest.xml without Content-Disposition for the admin centre's manifest URL", () => {
+    expect(locationBlock("/manifest.xml")).not.toContain("Content-Disposition");
+  });
+});
