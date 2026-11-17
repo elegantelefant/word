@@ -25,11 +25,26 @@ export function parseSignInResult(result: string): string {
   throw new Error(`Sign-in failed: ${String(data.error ?? "no token")}`);
 }
 
+/** notifyFailure carries our {"error"} JSON, or a Teams reason such as "CancelledByUser" or "FailedToOpenWindow". */
+function failureReason(reason: string): string {
+  try {
+    const { error } = JSON.parse(reason);
+    if (typeof error === "string") return error;
+  } catch {
+    // Not our JSON: a reason Teams itself reported.
+  }
+  return reason;
+}
+
 export async function signInWithTeams(): Promise<string> {
-  const result = await authentication.authenticate({
-    url: `${window.location.origin}${SIGN_IN_START_PATH}`,
-    width: POPUP_WIDTH,
-    height: POPUP_HEIGHT,
-  });
+  const result = await authentication
+    .authenticate({
+      url: `${window.location.origin}${SIGN_IN_START_PATH}`,
+      width: POPUP_WIDTH,
+      height: POPUP_HEIGHT,
+    })
+    .catch((err: Error) => {
+      throw new Error(`Sign-in failed: ${failureReason(err.message)}`);
+    });
   return parseSignInResult(result);
 }

@@ -1,8 +1,13 @@
 // ABOUTME: Tests for reading the Elefant token out of the Teams sign-in popup's result.
 // ABOUTME: The popup's last page reports {"token"} or {"error"} through authentication.notifySuccess.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parseSignInResult } from "@/lib/teams";
+
+// teams-js asks a CDN for its host-origin list on import; keep the test offline.
+vi.hoisted(() => {
+  globalThis.fetch = () => Promise.reject(new Error("offline"));
+});
 
 describe("parseSignInResult", () => {
   it("returns the token the popup reported", () => {
