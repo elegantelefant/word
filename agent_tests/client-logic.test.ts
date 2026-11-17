@@ -128,7 +128,7 @@ describe("apiFetch — error semantics", () => {
     });
   });
 
-  it("uses a meaningful message from a JSON error response", async () => {
+  it("uses the safe generic message for a server error, never its internals (#103)", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -156,34 +156,67 @@ describe("apiFetch — error semantics", () => {
     } catch (err) {
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).status).toBe(500);
-      expect((err as ApiError).message).toBe("Internal server error");
+      expect((err as ApiError).message).toBe("Something went wrong while contacting Elefant. Please try again.");
       expect((err as ApiError).message).not.toContain("SECRET_INTERNAL_TRACE");
       expect((err as ApiError).message).not.toContain("traceback");
     }
   });
 
-  // The body the Nuxt proxy really sends for a backend refusal (curl of elefant.legal/api/v4, 17 Nov):
-  // Nitro copies statusMessage into the top-level message; the backend's own message and reason sit in data.
+  // Shape of a backend refusal relayed by the Nuxt proxy ([...path].ts createError + error_responses.py);
+  // the top-level message copying statusMessage was seen live (curl of elefant.legal/api/v4, 17 Nov).
   const proxyRefusal = (status: number, code: string, message: string, reason: string) =>
     new Response(JSON.stringify({
       error: true,
-      url: "https://elefant.legal/api/v4/api/v1/draft",
+      url: "https://elefant.legal/api/v4/api/v1/review",
       statusCode: status,
       statusMessage: "backend_error",
       message: "backend_error",
-      data: { error: true, upstream_status: status, error_class: "QuotaError", code, message, path: "/api/v1/draft", detail: { reason, product: "drafter" } },
+      data: { error: true, upstream_status: status, error_class: "QuotaError", code, message, path: "/api/v1/review", detail: { reason, product: "drafter" } },
     }), { status });
 
   it.each([
     [429, "QUOTA_EXCEEDED", "You've used up this period's allowance.", "over_plan_quota"],
     [402, "CREDITS_EXHAUSTED", "You're out of credits.", "credits_exhausted"],
     [403, "FORBIDDEN", "This isn't included in your current plan. Upgrade to turn it on.", "feature_disabled"],
-  ])("shows the backend's own message and plan reason for a %s refusal, not the proxy's backend_error (#98)", async (status, code, message, reason) => {
+  ])("shows the backend's own message and plan reason for a %s refusal, not the proxy's backend_error (#103)", async (status, code, message, reason) => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyRefusal(status, code, message, reason));
 
-    await expect(apiFetch("/draft", "token")).rejects.toMatchObject({ status, message, reason });
-    expect(logged).toHaveBeenCalledWith("Elefant API request failed", { path: "/draft", status });
+    await expect(apiFetch("/review", "token")).rejects.toMatchObject({ status, message, reason });
+    expect(logged).toHaveBeenCalledWith("Elefant API request failed", { path: "/review", status });
+  });
+
+  // Envelopes the proxy builds itself carry its own diagnostics, which are not for users.
+  const proxyOwn = (status: number, code: string, errorClass: string, message: string) =>
+    new Response(JSON.stringify({
+      error: true, url: "https://elefant.legal/api/v4/api/v1/review", statusCode: status,
+      statusMessage: status === 403 ? "Forbidden" : "backend_error", message: status === 403 ? "Forbidden" : "backend_error",
+      data: { error: true, upstream_status: status, error_class: errorClass, code, message, path: "/api/v1/review" },
+    }), { status });
+
+  it.each([
+    [502, "NETWORK_ERROR", "network", "fetch failed"],
+    [503, "UPSTREAM_NON_COMPLIANT", "ServerError", "Upstream returned 503 without a structured envelope."],
+  ])("keeps the proxy's own %s diagnostics away from the user", async (status, code, errorClass, internal) => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyOwn(status, code, errorClass, internal));
+
+    await expect(apiFetch("/review", "token")).rejects.toMatchObject({
+      status,
+      message: "Something went wrong while contacting Elefant. Please try again.",
+      reason: undefined,
+    });
+  });
+
+  it("shows the proxy's route refusal with no plan reason", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyOwn(403, "ROUTE_NOT_ALLOWED", "AuthError", "This token may not be used on this route."));
+
+    await expect(apiFetch("/draft", "token")).rejects.toMatchObject({
+      status: 403,
+      message: "This token may not be used on this route.",
+      reason: undefined,
+    });
   });
 
   it("says to wait a moment for the edge rate limiter's bare 429", async () => {

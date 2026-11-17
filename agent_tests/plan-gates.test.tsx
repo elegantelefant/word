@@ -34,8 +34,13 @@ function renderSignedIn(ui: React.ReactNode, user: MeResponse = LITE_ME, upsell 
   );
 }
 
+// The proxy's relayed refusal, as client-logic.test.ts pins it: Nitro's top-level message is "backend_error".
 const envelope = (status: number, reason: string, message: string) =>
-  new Response(JSON.stringify({ statusCode: status, statusMessage: "backend_error", data: { message, detail: { reason } } }), { status });
+  new Response(JSON.stringify({
+    error: true, url: "https://elefant.legal/api/v4/api/v1/draft", statusCode: status,
+    statusMessage: "backend_error", message: "backend_error",
+    data: { error: true, upstream_status: status, code: "QUOTA_EXCEEDED", message, path: "/api/v1/draft", detail: { reason } },
+  }), { status });
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -92,19 +97,23 @@ describe("More plan gates (#98)", () => {
   const withLimits = (extra: Record<string, unknown>) =>
     ({ ...LITE_ME, entitlements: { ...LITE_ME.entitlements, ...extra } }) as unknown as MeResponse;
 
-  it("shows the Mammoth team's message, not a pricing link, to a plan without Mammoth, and fetches nothing", async () => {
+  it("without Mammoth, keeps lodged matters readable, hides lodging, and shows the Mammoth team's message, not a pricing link", async () => {
     const { MammothPanel } = await import("@/components/panels/MammothPanel");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
-    renderSignedIn(<MammothPanel />, withLimits({ hasMammothTool: 0 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      requests: [{ id: "r1", requestType: "review", status: "completed", priority: "normal", title: "Earlier matter", createdAt: "2026-11-01T00:00:00Z", updatedAt: "2026-11-01T00:00:00Z" }],
+      total: 1,
+    })));
+    renderSignedIn(<MammothPanel />, withLimits({ mammothAccess: 0 }));
 
     expect(screen.getByText("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.")).toBeInTheDocument();
+    expect(await screen.findByText("Earlier matter")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ New" })).toBeNull();
     expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("keeps the lock on the Mammoth tab for a plan without Mammoth", () => {
-    renderSignedIn(<Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}><div /></Layout>, withLimits({ hasMammothTool: 0 }));
-    expect(screen.getByRole("button", { name: /Mammoth/ })).toHaveAccessibleName("Mammoth, needs a paid plan");
+    renderSignedIn(<Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}><div /></Layout>, withLimits({ mammothAccess: 0 }));
+    expect(screen.getByRole("button", { name: /Mammoth/ })).toHaveAccessibleName("Mammoth, not switched on for your organisation");
   });
 
   it("offers no Draft button to a plan whose drafting limit is 0", () => {
@@ -138,7 +147,7 @@ describe("More plan gates (#98)", () => {
 });
 
 describe("Footer plan name (#98)", () => {
-  it.each([["individual", "Lite"], ["commercial", "Pro"], ["educational", "Academia"]])(
+  it.each([["individual", "Lite"], ["personal", "Lite"], ["commercial", "Pro"], ["educational", "Academia"]])(
     "names a fresh account with no plan yet from its profile %s as %s",
     (accountType, label) => {
       const user = { ...LITE_ME, org: { ...LITE_ME.org!, accountType }, entitlements: { ...LITE_ME.entitlements, plan: null } } as unknown as MeResponse;

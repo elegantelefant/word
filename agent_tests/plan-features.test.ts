@@ -8,18 +8,20 @@ import type { MeResponse } from "@/types/api";
 const me = (entitlements: Record<string, unknown> | undefined) =>
   ({ user: { id: "u", email: "e", name: "n" }, org: null, entitlements } as unknown as MeResponse);
 
-const LITE = { draftRequestsMonthly: 10, draftRequestsDaily: 2, clauseSuggestRequestsMonthly: 0, clauseSuggestRequestsDaily: 0, clauseProcessRequestsMonthly: 0, clauseProcessRequestsDaily: 0, hasMammothTool: 0 };
+const LITE = { draftRequestsMonthly: 10, draftRequestsDaily: 2, clauseSuggestRequestsMonthly: 0, clauseSuggestRequestsDaily: 0, clauseProcessRequestsMonthly: 0, clauseProcessRequestsDaily: 0, mammothAccess: 0 };
 const EXPLORER = { ...LITE, draftRequestsMonthly: -1, draftRequestsDaily: -1 };
 const PRO = { ...EXPLORER, clauseSuggestRequestsMonthly: 50, clauseSuggestRequestsDaily: 10, clauseProcessRequestsMonthly: 50, clauseProcessRequestsDaily: 10 };
-const PILOT = { ...PRO, hasMammothTool: 1 };
-const MAMMOTH_STAFF = { ...LITE, draftRequestsMonthly: 0, draftRequestsDaily: 0, hasMammothTool: 1 };
+const ENTERPRISE = { ...PRO, mammothAccess: 1 };
+const PILOT = { ...PRO, mammothAccess: 0 };
+const MAMMOTH_STAFF = { ...LITE, draftRequestsMonthly: 0, draftRequestsDaily: 0, mammothAccess: 1 };
 
 describe("planIncludes (#98)", () => {
   it.each([
     ["Lite", LITE, { draft: true, clauseLibrary: false, mammoth: false }],
     ["Explorer", EXPLORER, { draft: true, clauseLibrary: false, mammoth: false }],
     ["Pro", PRO, { draft: true, clauseLibrary: true, mammoth: false }],
-    ["pilot", PILOT, { draft: true, clauseLibrary: true, mammoth: true }],
+    ["Enterprise", ENTERPRISE, { draft: true, clauseLibrary: true, mammoth: true }],
+    ["pilot", PILOT, { draft: true, clauseLibrary: true, mammoth: false }],
     ["mammoth_staff", MAMMOTH_STAFF, { draft: false, clauseLibrary: false, mammoth: true }],
   ])("%s includes what its limits allow", (_, entitlements, expected) => {
     const user = me(entitlements);

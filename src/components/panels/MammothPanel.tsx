@@ -50,15 +50,12 @@ export function MammothPanel({ active = true }: { active?: boolean }) {
     return <UpgradePrompt feature="Mammoth" />;
   }
 
-  // No public plan includes Mammoth; it is switched on per organisation (#98, #44's owner-approved copy).
-  if (!planIncludes(user, "mammoth")) {
-    return <p className="py-6 text-center text-xs text-gray-500">{MAMMOTH_NOT_ENABLED}</p>;
-  }
-
-  return <MammothContent token={token} active={active} />;
+  // No public plan includes Mammoth; it is switched on per organisation. Without it, already-lodged
+  // matters stay readable (the server keeps GET open) and only lodging is hidden (#98, #44's copy).
+  return <MammothContent token={token} active={active} canLodge={planIncludes(user, "mammoth")} />;
 }
 
-function MammothContent({ token, active }: { token: string; active: boolean }) {
+function MammothContent({ token, active, canLodge }: { token: string; active: boolean; canLodge: boolean }) {
   const [view, setView] = useState<"create" | "list">("list");
   const [requests, setRequests] = useState<LegalRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,14 +92,16 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
         >
           Requests
         </button>
-        <button
-          onClick={() => setView("create")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            view === "create" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          + New
-        </button>
+        {canLodge && (
+          <button
+            onClick={() => setView("create")}
+            className={`rounded px-2 py-1 text-xs font-medium ${
+              view === "create" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            + New
+          </button>
+        )}
         <button
           type="button"
           onClick={() => void refresh()}
@@ -114,9 +113,10 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
         </button>
       </div>
 
+      {!canLodge && <p className="text-xs text-gray-500">{MAMMOTH_NOT_ENABLED}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      {view === "create" ? (
+      {canLodge && view === "create" ? (
         <CreateForm
           token={token}
           onCreated={() => {

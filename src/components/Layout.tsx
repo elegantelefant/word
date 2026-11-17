@@ -77,7 +77,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
                 {locked && (
                   <>
                     <LockIcon />
-                    <span className="sr-only">, needs a paid plan</span>
+                    <span className="sr-only">{tier === "paid" && tab.id === "mammoth" ? ", not switched on for your organisation" : ", needs a paid plan"}</span>
                   </>
                 )}
               </span>

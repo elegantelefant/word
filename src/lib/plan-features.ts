@@ -8,14 +8,14 @@ export type PlanFeature = "draft" | "clauseLibrary" | "mammoth";
 // /me entitlement keys per feature (monorepo core/plan_defaults.py). A feature is open when any one
 // group is wholly non-zero: the quota gate refuses when either the monthly or the daily limit is 0
 // (dependencies/check_quota.py), and the clause library opens on either clause limit
-// (services/clause_library_entitlement.py). Mammoth needs its tool flag (mammoth_tool_entitlement.py).
+// (services/clause_library_entitlement.py). Mammoth needs mammoth_access (core/entitlements.py mammoth_access_enabled).
 const LIMIT_GROUPS: Record<PlanFeature, string[][]> = {
   draft: [["draftRequestsMonthly", "draftRequestsDaily"]],
   clauseLibrary: [
     ["clauseSuggestRequestsMonthly", "clauseSuggestRequestsDaily"],
     ["clauseProcessRequestsMonthly", "clauseProcessRequestsDaily"],
   ],
-  mammoth: [["hasMammothTool"]],
+  mammoth: [["mammothAccess"]],
 };
 
 export function planIncludes(me: MeResponse | null, feature: PlanFeature): boolean {
