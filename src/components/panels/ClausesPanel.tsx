@@ -1,24 +1,49 @@
 // ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
-// ABOUTME: Paid-only feature; shows UpgradePrompt for free-tier users.
+// ABOUTME: Signed in, the clause library and Elefant drafting; signed out, drafting with the user's Gemini key.
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
+import { useSettings } from "@/store/settings";
+import { useUpsell } from "@/store/upsell";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { DraftClause } from "@/components/DraftClause";
 import { draftClause, listClauseDatabases, listClauses, suggestClause, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
 
-const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
-
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
   if (tier !== "paid" || !token) {
-    return <UpgradePrompt feature="Clause search" />;
+    return <FreeClauses />;
   }
 
   return <ClausesContent token={token} active={active} />;
+}
+
+/** Drafting with the user's own Gemini key, as free review does; the clause library needs Elefant. */
+function FreeClauses() {
+  const { settings } = useSettings();
+  const upsell = useUpsell();
+
+  async function draftWithOwnKey(prompt: string, context: string) {
+    const { runDraft } = await import("@/lib/agent");
+    return runDraft(settings.apiKey, settings.model, prompt, context);
+  }
+
+  return (
+    <div className="space-y-3">
+      <DraftClause
+        draft={draftWithOwnKey}
+        unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
+      />
+      {upsell && (
+        <p className="text-xs text-gray-500">Signed-in Elefant drafting uses your clause library and Elefant's models.</p>
+      )}
+      <UpgradePrompt feature="Clause search" />
+    </div>
+  );
 }
 
 function ClausesContent({
@@ -39,9 +64,6 @@ function ClausesContent({
   const [databasesError, setDatabasesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [draftPrompt, setDraftPrompt] = useState("");
-  const [drafting, setDrafting] = useState(false);
-  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
   const refreshDatabases = useCallback(async () => {
     const isLatest = beginDatabases();
@@ -122,24 +144,6 @@ function ClausesContent({
     }
   }
 
-  async function handleDraft() {
-    const prompt = draftPrompt.trim();
-    if (!prompt || !isOfficeReady()) return;
-    setDrafting(true);
-    setError(null);
-    setDraftNotice(null);
-    try {
-      const selected = await getSelectedText();
-      const draft = await draftClause(prompt, selected, token);
-      await insertText(draft, "end");
-      setDraftNotice(DRAFT_INSERTED_NOTICE);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to draft clause");
-    } finally {
-      setDrafting(false);
-    }
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
@@ -154,25 +158,7 @@ function ClausesContent({
         </button>
       </div>
       {/* Draft a clause */}
-      <div className="space-y-1.5">
-        <textarea
-          value={draftPrompt}
-          onChange={(e) => setDraftPrompt(e.target.value)}
-          placeholder="Describe the clause to draft..."
-          aria-label="Draft a clause"
-          rows={3}
-          className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => void handleDraft()}
-          disabled={drafting || !draftPrompt.trim()}
-          className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {drafting ? "Drafting..." : "Draft clause"}
-        </button>
-        {draftNotice && <p className="text-xs text-green-700">{draftNotice}</p>}
-      </div>
+      <DraftClause draft={(prompt, context) => draftClause(prompt, context, token)} />
 
       {/* Database selector (if multiple) */}
       {databases.length > 1 && (

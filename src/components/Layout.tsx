@@ -17,7 +17,7 @@ interface Tab {
 function getTabs(): Tab[] {
   return [
     { id: "review", label: "Review" },
-    { id: "clauses", label: "Clauses", paidOnly: true },
+    { id: "clauses", label: "Clauses" },
     { id: "mammoth", label: "Mammoth", paidOnly: true },
     ...(isFullAnalysisEnabled(import.meta.env.VITE_FULL_ANALYSIS)
       ? [{ id: "analysis" as const, label: "Analysis", paidOnly: true }]

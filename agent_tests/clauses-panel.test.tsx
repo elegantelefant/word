@@ -6,6 +6,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import { ClausesPanel } from "@/components/panels/ClausesPanel";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
+import { SettingsContext } from "@/store/settings";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 
 vi.mock("@/lib/office", () => ({
@@ -25,9 +26,11 @@ function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
     ...overrides,
   };
   return render(
-    <AuthContext value={auth}>
-      <ClausesPanel />
-    </AuthContext>,
+    <SettingsContext value={{ settings: { apiKey: "", model: "gemini-4-hydrogen" }, updateSettings: noop }}>
+      <AuthContext value={auth}>
+        <ClausesPanel />
+      </AuthContext>
+    </SettingsContext>,
   );
 }
 

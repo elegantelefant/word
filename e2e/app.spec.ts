@@ -65,7 +65,7 @@ test.describe("Tab navigation", () => {
     await page.goto("/");
     const nav = page.locator("nav");
 
-    for (const label of ["Clauses", "Mammoth", "Analysis"]) {
+    for (const label of ["Mammoth", "Analysis"]) {
       const tab = nav.getByRole("button", { name: label });
       const svg = tab.locator("svg");
       await expect(svg).toBeVisible();
@@ -90,7 +90,8 @@ test.describe("Review panel (free tier)", () => {
 
   test("shows API key prompt when no key set", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Gemini API key")).toBeVisible();
+    // The hidden Clauses pane also asks for a key (BYOK drafting); the Review prompt is the visible one.
+    await expect(page.getByText("Gemini API key").filter({ visible: true })).toBeVisible();
   });
 
   test("scope toggle switches active state", async ({ page }) => {

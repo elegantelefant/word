@@ -158,3 +158,16 @@ describe("ErrorBoundary", () => {
     spy.mockRestore();
   });
 });
+
+describe("Clauses tab for free users (BYOK drafting)", () => {
+  it("shows no lock on Clauses, since signed-out users can draft there", () => {
+    render(
+      <AuthContext value={freeAuth}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+    expect(screen.getByRole("button", { name: "Clauses" })).toHaveAccessibleName("Clauses");
+  });
+});
