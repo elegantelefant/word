@@ -2,6 +2,7 @@
 // ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
 
 import { isOfficeReady } from "@/lib/office";
+import { isTeamsReady, signInWithTeams } from "@/lib/teams";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
@@ -47,8 +48,15 @@ export function tokenExpiresAt(token: string): number | null {
  * Opens the Elefant login page in an Office dialog.
  * The dialog posts back a token via Office.context.ui.messageParent().
  * Falls back to window.open() outside Office.
+ * Inside Teams it uses the Teams popup instead (lib/teams.ts).
  */
 export function openLoginDialog(): Promise<string> {
+  if (isTeamsReady()) {
+    return signInWithTeams().then((token) => {
+      saveToken(token);
+      return token;
+    });
+  }
   if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
     return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }
