@@ -156,3 +156,52 @@ describe("CitationsPanel edge cases (#106)", () => {
     expect(within(line).queryByRole("link")).toBeNull();
   });
 });
+
+describe("CitationsPanel robustness (#106)", () => {
+  it("stops a running check when the add-in closes, and shows no error", async () => {
+    let seenSignal: AbortSignal | undefined;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      seenSignal = init?.signal ?? undefined;
+      return new Promise<Response>(() => {});
+    });
+    const { unmount } = renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    await vi.waitFor(() => expect(seenSignal).toBeDefined());
+
+    unmount();
+
+    expect(seenSignal!.aborted).toBe(true);
+  });
+
+  it("falls back to the whole document when the selection is only whitespace", async () => {
+    const { getSelectedText } = await import("@/lib/office");
+    vi.mocked(getSelectedText).mockResolvedValueOnce("  \n ");
+    const fetchSpy = jobFlow([]);
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    await screen.findByText("No citations found in the text.");
+    expect(JSON.parse(String(fetchSpy.mock.calls[0]![1]?.body)).text).toMatch(/^As held in/);
+  });
+
+  it("says a citation could not be shown when Word refuses the search", async () => {
+    jobFlow([{ citation: "[2020] SGCA 1", status: "verified" }]);
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    await screen.findByText("[2020] SGCA 1");
+    vi.mocked(selectText).mockRejectedValueOnce(new Error("GeneralException"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Show [2020] SGCA 1 in the document" }));
+
+    expect(await screen.findByText("Couldn't find this citation in the document.")).toBeInTheDocument();
+  });
+
+  it("says checking needs Word when the pane runs outside Word", async () => {
+    const { isOfficeReady } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValueOnce(false);
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    expect(await screen.findByText("Checking citations needs Microsoft Word: open Elefant from the Word ribbon.")).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});

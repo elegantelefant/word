@@ -63,6 +63,8 @@ function CitationsContent({ token }: { token: string }) {
       setError(OUTSIDE_WORD);
       return;
     }
+    const controller = new AbortController();
+    inFlight.current = controller;
     setChecking(true);
     setError(null);
     setPlanLimit(false);
@@ -75,8 +77,8 @@ function CitationsContent({ token }: { token: string }) {
         setError(NO_TEXT);
         return;
       }
-      inFlight.current = new AbortController();
-      setFindings(await checkCitations(text, token, inFlight.current.signal));
+      const found = await checkCitations(text, token, controller.signal);
+      if (!controller.signal.aborted) setFindings(found);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Citation check failed");
