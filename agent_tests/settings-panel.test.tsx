@@ -86,7 +86,7 @@ describe("SettingsPanel", () => {
         (_, element) =>
           element?.tagName === "P" &&
           element.textContent?.includes(
-            "Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.",
+            "Stored in this browser. When you review or draft for free, your API key and document content are sent to Google Gemini.",
           ) === true,
       ),
     ).toBeInTheDocument();

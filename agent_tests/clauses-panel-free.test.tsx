@@ -61,6 +61,7 @@ describe("ClausesPanel — signed out, own Gemini key", () => {
 
   it("asks for a Gemini key instead of drafting when none is set", () => {
     renderFree({ apiKey: "" });
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a payment clause" } });
     expect(screen.getByRole("button", { name: "Draft clause" })).toBeDisabled();
     expect(screen.getByText("Add your Gemini API key in Settings to draft.")).toBeInTheDocument();
   });
@@ -68,6 +69,26 @@ describe("ClausesPanel — signed out, own Gemini key", () => {
   it("says once, quietly, that signed-in drafting is better", () => {
     renderFree();
     expect(screen.getByText("Signed-in Elefant drafting uses your clause library and Elefant's models.")).toBeInTheDocument();
+  });
+
+  it("says drafting needs Word when the pane runs outside Word", async () => {
+    vi.mocked(isOfficeReady).mockReturnValue(false);
+    renderFree();
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a payment clause" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+    expect(await screen.findByText("Drafting needs Microsoft Word: open Elefant from the Word ribbon.")).toBeInTheDocument();
+    expect(runDraft).not.toHaveBeenCalled();
+  });
+
+  it("shows the signed-in line only to signed-out users", () => {
+    render(
+      <SettingsContext value={{ settings: { apiKey: "AIza-test", model: "gemini-4-hydrogen" }, updateSettings: vi.fn() }}>
+        <AuthContext value={{ ...AUTH_INITIAL, token: "lite-token", login: async () => {}, logout: () => {} }}>
+          <ClausesPanel />
+        </AuthContext>
+      </SettingsContext>,
+    );
+    expect(screen.queryByText(/Signed-in Elefant drafting/)).toBeNull();
   });
 
   it("drops that line where upsell is off", () => {

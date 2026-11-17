@@ -25,6 +25,7 @@ export function ClausesPanel({ active = true }: { active?: boolean }) {
 /** Drafting with the user's own Gemini key, as free review does; the clause library needs Elefant. */
 function FreeClauses() {
   const { settings } = useSettings();
+  const { token } = useAuth();
   const upsell = useUpsell();
 
   async function draftWithOwnKey(prompt: string, context: string) {
@@ -38,7 +39,7 @@ function FreeClauses() {
         draft={draftWithOwnKey}
         unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
       />
-      {upsell && (
+      {upsell && !token && (
         <p className="text-xs text-gray-500">Signed-in Elefant drafting uses your clause library and Elefant's models.</p>
       )}
       <UpgradePrompt feature="Clause search" />

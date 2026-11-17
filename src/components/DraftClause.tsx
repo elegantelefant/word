@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 
 const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
+const OUTSIDE_WORD = "Drafting needs Microsoft Word: open Elefant from the Word ribbon.";
 
 interface DraftClauseProps {
   draft: (prompt: string, context: string) => Promise<string>;
@@ -20,7 +21,11 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
 
   async function handleDraft() {
     const description = prompt.trim();
-    if (!description || !isOfficeReady()) return;
+    if (!description) return;
+    if (!isOfficeReady()) {
+      setError(OUTSIDE_WORD);
+      return;
+    }
     setDrafting(true);
     setError(null);
     setNotice(null);
