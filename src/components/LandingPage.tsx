@@ -41,11 +41,11 @@ export function LandingPage() {
       </div>
 
       <div className="mt-4 text-center text-xs text-gray-500">
-        Using desktop Word instead? Download the installer for{" "}
-        <a href="/install-mac.command" download className="text-blue-600 hover:underline">
+        Using desktop Word instead? Follow the steps for{" "}
+        <a href="https://github.com/elegantelefant/word#macos-desktop" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
           macOS
-        </a>{" "}
-        or{" "}
+        </a>
+        , or download the installer for{" "}
         <a href="/install-windows.bat" download className="text-blue-600 hover:underline">
           Windows
         </a>
