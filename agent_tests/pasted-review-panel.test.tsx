@@ -17,12 +17,12 @@ vi.mock("@/lib/history", () => ({
   addToLocalHistory: vi.fn(),
 }));
 
-function renderPanel(apiKey = "AIza-test") {
+function renderPanel(apiKey = "AIza-test", authOverrides: Partial<AuthContextValue> = {}) {
   const settings: SettingsContextValue = {
     settings: { apiKey, model: "gemini-2.5-flash" },
     updateSettings: vi.fn(),
   };
-  const auth: AuthContextValue = { ...AUTH_INITIAL, login: async () => {}, logout: () => {} };
+  const auth: AuthContextValue = { ...AUTH_INITIAL, login: async () => {}, logout: () => {}, ...authOverrides };
   return render(
     <SettingsContext value={settings}>
       <AuthContext value={auth}>
@@ -87,5 +87,49 @@ describe("PastedReviewPanel", () => {
     renderPanel("");
     expect(screen.getByText("Review Text")).toBeDisabled();
     expect(screen.getByText(/gemini api key/i)).toBeInTheDocument();
+  });
+
+  it("sends a signed-in Pro user's text to Elefant, with no Gemini key needed", async () => {
+    const { reviewPaid } = await import("@/api/review");
+    vi.mocked(reviewPaid).mockResolvedValue({ summary: "Reviewed by Elefant.", issues: [] });
+
+    renderPanel("", { tier: "paid", token: "pro.jwt.token" });
+    fireEvent.change(screen.getByPlaceholderText(/paste the text/i), {
+      target: { value: "The Supplier shall indemnify the Customer without limit." },
+    });
+    fireEvent.click(screen.getByText("Review Text"));
+
+    expect(await screen.findByText("Reviewed by Elefant.")).toBeInTheDocument();
+    expect(vi.mocked(reviewPaid).mock.calls[0]?.slice(0, 2)).toEqual([
+      "The Supplier shall indemnify the Customer without limit.",
+      "pro.jwt.token",
+    ]);
+  });
+
+  it("asks a Pro user without a session to sign in instead of reviewing", () => {
+    renderPanel("AIza-test", { tier: "paid", token: null });
+    expect(screen.getByText("Review Text")).toBeDisabled();
+    expect(screen.getByText(/sign in to your elefant account/i)).toBeInTheDocument();
+  });
+
+  it("keeps a free review in local history but not a Pro one", async () => {
+    const { reviewFree, reviewPaid } = await import("@/api/review");
+    const { addToLocalHistory } = await import("@/lib/history");
+    vi.mocked(reviewFree).mockResolvedValue({ summary: "Free summary.", issues: [] });
+    vi.mocked(reviewPaid).mockResolvedValue({ summary: "Pro summary.", issues: [] });
+    const text = { target: { value: "The Supplier shall indemnify the Customer without limit." } };
+
+    const free = renderPanel();
+    fireEvent.change(screen.getByPlaceholderText(/paste the text/i), text);
+    fireEvent.click(screen.getByText("Review Text"));
+    await screen.findByText("Free summary.");
+    free.unmount();
+
+    renderPanel("", { tier: "paid", token: "pro.jwt.token" });
+    fireEvent.change(screen.getByPlaceholderText(/paste the text/i), text);
+    fireEvent.click(screen.getByText("Review Text"));
+    await screen.findByText("Pro summary.");
+
+    expect(vi.mocked(addToLocalHistory).mock.calls).toEqual([[{ type: "review", summary: "Free summary." }]]);
   });
 });
