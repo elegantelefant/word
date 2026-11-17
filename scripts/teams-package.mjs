@@ -9,9 +9,10 @@ import { zipSync, strToU8 } from "fflate";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// Teams manifest schema version: the newest "generally available" one listed at
-// https://learn.microsoft.com/en-us/microsoft-365/extensibility/schema/ on 17 Nov 2026.
-const MANIFEST_VERSION = "1.29";
+// Teams manifest schema version. 1.12 keeps the tab in Teams only: from 1.13 a personal tab is also
+// surfaced in Outlook and the Microsoft 365 app by default. Widening to those hosts = "1.29" (newest GA,
+// https://learn.microsoft.com/en-us/microsoft-365/extensibility/schema/, 17 Nov 2026).
+const MANIFEST_VERSION = "1.12";
 
 // The Teams app's own id. Not an Entra app id: it only has to stay the same across versions,
 // so admin centres treat a new upload as an update of this app.
