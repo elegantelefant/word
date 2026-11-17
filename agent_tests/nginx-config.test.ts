@@ -121,3 +121,10 @@ describe("frame-ancestors (#85)", () => {
     expect(locationsWithHeaders.filter((location) => !nonHtml.includes(location))).toEqual([]);
   });
 });
+
+describe("supported clouds (#85, owner 17 Nov)", () => {
+  it("says in the README that sovereign clouds are not supported at launch", () => {
+    const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+    expect(readme).toContain("Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High, DoD) and Microsoft 365 operated by 21Vianet in China are not supported.");
+  });
+});
