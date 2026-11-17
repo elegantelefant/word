@@ -1,23 +1,17 @@
 // ABOUTME: Tests security headers in the production nginx configuration.
-// ABOUTME: Verifies the task pane enforces an exact server-level Content Security Policy.
+// ABOUTME: Verifies the exact server-level CSP, including which hosts may frame the pages (#85).
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Hosts allowed to embed the task pane and the Teams tab (#85). Sources in nginx.conf.
+// Hosts allowed to embed the task pane and the Teams tab (#85). Commercial cloud only; sources in nginx.conf.
 const FRAME_ANCESTORS = [
   "'self'",
-  // Word for the web: office.js OfficeCore.OfficeOnlineDomainList, and the pages that open documents.
   "https://*.officeapps.live.com",
-  "https://*.officeapps-df.live.com",
-  "https://*.dod.online.office365.us",
-  "https://*.gov.online.office365.us",
-  "https://*.online.office.de",
-  "https://*.partner.officewebapps.cn",
+  "https://*.office.guest.usercontent.microsoft",
   "https://*.sharepoint.com",
   "https://onedrive.live.com",
-  // Teams tab hosts: learn.microsoft.com/microsoftteams/platform/tabs/how-to/tab-requirements.
   "https://*.cloud.microsoft",
   "https://teams.microsoft.com",
   "https://*.teams.microsoft.com",
@@ -25,6 +19,19 @@ const FRAME_ANCESTORS = [
   "https://*.office.com",
   "https://outlook.office.com",
   "https://outlook.office365.com",
+  "https://outlook-sdf.office.com",
+  "https://outlook-sdf.office365.com",
+];
+
+// Commercial entries of OfficeOnlineDomainList in the CDN office.js that index.html loads
+// (appsforoffice.microsoft.com/lib/1/hosted/word-web-16.00.js, fetched 2026-11-17).
+const OFFICE_WEB_DOMAINS = [
+  "*.officeapps.live.com",
+  "*.office.svc.cloud.microsoft",
+  "*.office.guest.usercontent.microsoft",
+  "*.excel.cloud.microsoft",
+  "*.word.cloud.microsoft",
+  "*.powerpoint.cloud.microsoft",
 ];
 
 const nginxConfigPath = resolve(process.cwd(), "nginx.conf");
@@ -86,17 +93,31 @@ describe("production nginx configuration", () => {
 });
 
 describe("frame-ancestors (#85)", () => {
-  it("allows every Office on the web domain the installed office.js trusts as a host", () => {
-    const officeJs = readFileSync(
-      resolve(process.cwd(), "node_modules/@microsoft/office-js/dist/word-web-16.00.debug.js"),
-      "utf8",
-    );
-    const list = officeJs.match(/OfficeOnlineDomainList = \[([^\]]+)\]/)![1]!;
-    const officeDomains = [...list.matchAll(/"([^"]+)"/g)].map((m) => `https://${m[1]}`);
+  const csp = activeConfig.match(/add_header Content-Security-Policy "([^"]+)"/)![1]!;
+  const directiveNames = csp.split(";").map((d) => d.trim().split(/\s+/)[0]).filter(Boolean);
+  const served = csp.match(/frame-ancestors ([^;]+)/)![1]!.trim().split(/\s+/);
+  const matchesSource = (domain: string) => served.some((source) => {
+    const host = source.replace("https://", "");
+    return host === domain || (host.startsWith("*.") && domain.endsWith(host.slice(1)));
+  });
 
-    const served = activeConfig.match(/frame-ancestors ([^;"]+)/)?.[1]?.split(/\s+/) ?? [];
+  it("covers every commercial Word for the web domain in the CDN office.js", () => {
+    expect(OFFICE_WEB_DOMAINS.filter((domain) => !matchesSource(domain))).toEqual([]);
+  });
 
-    expect(officeDomains.length).toBeGreaterThan(0);
-    expect(served).toEqual(expect.arrayContaining(officeDomains));
+  it("names each CSP directive once, since browsers obey only the first copy", () => {
+    expect(new Set(directiveNames).size).toBe(directiveNames.length);
+  });
+
+  it("sends no X-Frame-Options, which would override frame-ancestors for older hosts", () => {
+    expect(activeConfig).not.toMatch(/X-Frame-Options/i);
+  });
+
+  it("keeps add_header out of every location except the non-HTML ones, so pages keep the CSP", () => {
+    const locationsWithHeaders = [...activeConfig.matchAll(/^ {4}location ([^{]+)\{\r?\n([\s\S]*?)^ {4}\}/gm)]
+      .filter((m) => /^\s+add_header\b/m.test(m[2]!))
+      .map((m) => m[1]!.trim());
+    const nonHtml = ["= /manifest.xml", "= /manifest-download.xml", "~ \\.(command|bat)$", "/assets/"];
+    expect(locationsWithHeaders.filter((location) => !nonHtml.includes(location))).toEqual([]);
   });
 });
