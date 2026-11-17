@@ -23,13 +23,13 @@ test.describe("Settings persistence across reload", () => {
     await page.goto("/");
 
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
-    await page.locator("select").selectOption("gemini-2.5-pro");
+    await page.locator("select").selectOption("gemini-3.8-flash");
     await page.getByRole("button", { name: "Close" }).click();
 
     await page.reload();
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
-    await expect(page.locator("select")).toHaveValue("gemini-2.5-pro");
+    await expect(page.locator("select")).toHaveValue("gemini-3.8-flash");
   });
 });
 
@@ -208,7 +208,7 @@ test.describe("Empty and boundary states", () => {
 
     // Default model
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
-    await expect(page.locator("select")).toHaveValue("gemini-2.5-flash");
+    await expect(page.locator("select")).toHaveValue("gemini-4-hydrogen");
 
     // Empty API key
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("");

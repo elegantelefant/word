@@ -163,12 +163,12 @@ test.describe("Settings panel", () => {
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("AIzaSyPersistTest");
   });
 
-  test("model selector defaults to Gemini 2.5 Flash", async ({ page }) => {
+  test("model selector defaults to Gemini 4 Hydrogen", async ({ page }) => {
     await page.goto("/");
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     const select = page.locator("select");
-    await expect(select).toHaveValue("gemini-2.5-flash");
+    await expect(select).toHaveValue("gemini-4-hydrogen");
   });
 
   test("shows sign-in button for free users", async ({ page }) => {

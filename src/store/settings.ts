@@ -2,7 +2,7 @@
 // ABOUTME: Persists to localStorage so free-tier users keep their config.
 
 import { createContext, useContext } from "react";
-import { DEFAULT_MODEL } from "@/lib/models";
+import { DEFAULT_MODEL, isListedModel } from "@/lib/models";
 
 export interface Settings {
   apiKey: string;
@@ -26,7 +26,8 @@ export function loadSettings(): Settings {
       const parsed = JSON.parse(raw) as Partial<Settings>;
       return {
         apiKey: parsed.apiKey ?? "",
-        model: parsed.model ?? DEFAULT_MODEL,
+        // A model dropped from the picker (#71) would 404 on every review.
+        model: parsed.model && isListedModel(parsed.model) ? parsed.model : DEFAULT_MODEL,
       };
     }
   } catch {
