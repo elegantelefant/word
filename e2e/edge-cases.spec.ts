@@ -123,7 +123,8 @@ test.describe("Review without API key", () => {
     await page.reload();
 
     await expect(page.getByText(/Gemini API key/)).toBeVisible();
-    await expect(page.getByText(/Settings/)).toBeVisible();
+    // Hidden paid-only tabs also mention Settings (#97); the guidance is the visible one.
+    await expect(page.getByText(/Settings/).filter({ visible: true })).toBeVisible();
   });
 });
 

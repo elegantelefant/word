@@ -46,14 +46,18 @@ test.describe("Tab navigation", () => {
     await expect(page.getByPlaceholder("Review instructions")).toBeVisible();
   });
 
-  test("paid-only tabs are disabled for free tier", async ({ page }) => {
+  test("paid-only tabs open to one quiet plans line for free tier (#97)", async ({ page }) => {
     await page.goto("/");
     const nav = page.locator("nav");
 
-    for (const label of ["Clauses", "Mammoth", "Analysis"]) {
-      const tab = nav.getByRole("button", { name: label });
-      await expect(tab).toBeDisabled();
-    }
+    await nav.getByRole("button", { name: "Clauses" }).click();
+    await expect(page.getByText(/^Clause search and drafting comes with Elefant.s paid plans\./)).toBeVisible();
+    await expect(page.getByRole("link", { name: "see plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
+  });
+
+  test("free tier sees no upgrade banner on open (#97)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/Unlock all features/)).toHaveCount(0);
   });
 
   test("paid-only tabs show lock icon", async ({ page }) => {
@@ -241,12 +245,12 @@ test.describe("Visual quality and UX", () => {
     expect(size).toBeLessThanOrEqual(16);
   });
 
-  test("disabled tabs have not-allowed cursor", async ({ page }) => {
+  test("locked tabs keep a pointer cursor, since they open (#97)", async ({ page }) => {
     await page.goto("/");
 
     const clausesTab = page.locator("nav").getByRole("button", { name: "Clauses" });
-    const disabledCursor = await clausesTab.evaluate((el) => getComputedStyle(el).cursor);
-    expect(disabledCursor).toBe("not-allowed");
+    const cursor = await clausesTab.evaluate((el) => getComputedStyle(el).cursor);
+    expect(cursor).not.toBe("not-allowed");
   });
 
   test("settings panel transitions cleanly (no layout shift)", async ({ page }) => {

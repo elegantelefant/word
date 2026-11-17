@@ -66,10 +66,12 @@ describe("App", () => {
     expect(screen.getByRole("main").children).toHaveLength(5);
   });
 
-  it("disables paid-only tabs for free tier", () => {
+  it("opens a paid-only tab for free tier to one quiet line (#97)", () => {
     render(<App />);
-    expect(screen.getByRole("button", { name: /Clauses/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Mammoth/ })).toBeDisabled();
+    const mammothTab = screen.getByRole("button", { name: /Mammoth/ });
+    fireEvent.click(mammothTab);
+    expect(mammothTab).toHaveClass("border-blue-600");
+    expect(screen.getByText(/^Mammoth comes with Elefant.s paid plans\./)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
   });
 
