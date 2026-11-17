@@ -7,20 +7,32 @@ import { useSettings } from "@/store/settings";
 import { useUpsell } from "@/store/upsell";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { DraftClause } from "@/components/DraftClause";
+import { planIncludes } from "@/lib/plan-features";
 import { draftClause, listClauseDatabases, listClauses, suggestClause, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 export function ClausesPanel({ active = true }: { active?: boolean }) {
-  const { tier, token } = useAuth();
+  const { tier, token, user } = useAuth();
 
   if (tier !== "paid" || !token) {
     return <FreeClauses />;
   }
 
-  return <ClausesContent token={token} active={active} />;
+  // Each part shows only if the account's plan includes it; Lite drafts but has no clause library (#98).
+  return (
+    <div className="space-y-3">
+      {planIncludes(user, "draft")
+        ? <DraftClause draft={(prompt, context) => draftClause(prompt, context, token)} />
+        : <UpgradePrompt feature="Drafting" />}
+      {planIncludes(user, "clauseLibrary")
+        ? <ClausesContent token={token} active={active} />
+        : <UpgradePrompt feature="Clause search" />}
+    </div>
+  );
 }
+
 
 /** Drafting with the user's own Gemini key, as free review does; the clause library needs Elefant. */
 function FreeClauses() {
@@ -158,8 +170,6 @@ function ClausesContent({
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
-      {/* Draft a clause */}
-      <DraftClause draft={(prompt, context) => draftClause(prompt, context, token)} />
 
       {/* Database selector (if multiple) */}
       {databases.length > 1 && (

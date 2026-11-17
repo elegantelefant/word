@@ -34,7 +34,7 @@ interface LayoutProps {
 }
 
 export function Layout({ activeTab, onTabChange, onSettingsClick, children }: LayoutProps) {
-  const { tier } = useAuth();
+  const { tier, user } = useAuth();
 
   return (
     <div className="flex h-screen flex-col">
@@ -91,7 +91,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
           tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
         }`}>
-          {tier === "paid" ? "Pro" : "Free"}
+          {tier === "paid" ? planLabel(user?.entitlements?.plan) : "Free"}
         </span>
       </footer>
     </div>
@@ -124,4 +124,14 @@ function SettingsIcon() {
       <circle cx="8" cy="8" r="2" />
     </svg>
   );
+}
+
+// Sellable plan names as /me reports them (monorepo core/subscription_plans.py display_name).
+const PLAN_LABELS: Record<string, string> = {
+  lite: "Lite", explorer: "Explorer", pro: "Pro", business: "Business",
+  enterprise: "Enterprise", api: "API", academia: "Academia",
+};
+
+function planLabel(plan: string | null | undefined): string {
+  return (plan && PLAN_LABELS[plan]) || "Elefant";
 }
