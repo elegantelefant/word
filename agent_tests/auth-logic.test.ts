@@ -46,7 +46,7 @@ describe("useAuthProvider — state machine", () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
       org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
-      entitlements: {},
+      entitlements: { source: "none", plan: "pro", expiresAt: null },
     };
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -189,40 +189,45 @@ describe("useAuthProvider — state machine", () => {
     }
   });
 
-  it.each(["explorer", "pro", "business", "enterprise", "api", "academia"])(
-    "an active Stripe %s plan is paid (#96)",
-    async (plan) => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: "u1", email: "test@test.com", name: "Test User" },
-        org: { id: "o1", name: "Org", slug: "org", accountType: plan === "academia" ? "educational" : plan },
-        entitlements: { source: "stripe", plan, expiresAt: null },
-      })));
-      const { result } = renderHook(() => useAuthProvider());
-      await act(async () => { await result.current.login("valid-token"); });
-      expect(result.current.tier).toBe("paid");
-    },
-  );
-
-  it("an unassigned seat in a paying team org (plan lite) is free (#96)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-      user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Firm", slug: "firm", accountType: "business" },
-      entitlements: { source: "stripe", plan: "lite", expiresAt: null },
-    })));
-    const { result } = renderHook(() => useAuthProvider());
-    await act(async () => { await result.current.login("valid-token"); });
-    expect(result.current.tier).toBe("free");
+  // Real /me for an active subscription (monorepo me.py): accountType is the plan's profile, source "none",
+  // plan the per-seat narrowed plan name, expiresAt null.
+  const realMe = (accountType: string, plan: string | null, extra: Record<string, unknown> = {}) => ({
+    user: { id: "u1", email: "test@test.com", name: "Test User" },
+    org: { id: "o1", name: "Org", slug: "org", accountType },
+    entitlements: { source: "none", plan, expiresAt: null, ...extra },
   });
 
-  it("an expired Stripe plan is free (#96)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-      user: { id: "u1", email: "test@test.com", name: "Test User" },
-      org: { id: "o1", name: "Org", slug: "org", accountType: "business" },
-      entitlements: { source: "stripe", plan: "business", expiresAt: new Date(Date.now() - 60_000).toISOString() },
-    })));
-    const { result } = renderHook(() => useAuthProvider());
+  async function tierFor(me: unknown) {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify(me)));
+    const { result, unmount } = renderHook(() => useAuthProvider());
     await act(async () => { await result.current.login("valid-token"); });
-    expect(result.current.tier).toBe("free");
+    const tier = result.current.tier;
+    unmount();
+    clearToken();
+    return tier;
+  }
+
+  it.each([
+    ["explorer", "explorer"], ["commercial", "pro"], ["business", "business"],
+    ["enterprise", "enterprise"], ["api", "api"], ["educational", "academia"],
+  ])("a subscription on profile %s (plan %s) is paid (#96)", async (accountType, plan) => {
+    expect(await tierFor(realMe(accountType, plan))).toBe("paid");
+  });
+
+  it.each(["lite", "personal", "guest", "mammoth_staff", null])("plan %s is free (#96)", async (plan) => {
+    expect(await tierFor(realMe("individual", plan))).toBe("free");
+  });
+
+  it("a member of a Pro org whose seat reads plan lite is free (#96)", async () => {
+    expect(await tierFor(realMe("commercial", "lite"))).toBe("free");
+  });
+
+  it("an unassigned seat in a paying team org (plan lite) is free (#96)", async () => {
+    expect(await tierFor(realMe("business", "lite"))).toBe("free");
+  });
+
+  it("a paid plan whose expiry has passed is free (#96)", async () => {
+    expect(await tierFor(realMe("business", "business", { expiresAt: new Date(Date.now() - 60_000).toISOString() }))).toBe("free");
   });
 
   it("logout clears state and token", async () => {
@@ -231,7 +236,7 @@ describe("useAuthProvider — state machine", () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Test User" },
       org: { id: "o1", name: "Test Org", slug: "test", accountType: "commercial" },
-      entitlements: {},
+      entitlements: { source: "none", plan: "pro", expiresAt: null },
     };
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -258,7 +263,7 @@ describe("useAuthProvider — state machine", () => {
     const meResponse = {
       user: { id: "u1", email: "test@test.com", name: "Direct Login" },
       org: { id: "o1", name: "Org", slug: "org", accountType: "commercial" },
-      entitlements: {},
+      entitlements: { source: "none", plan: "pro", expiresAt: null },
     };
 
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(

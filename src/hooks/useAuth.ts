@@ -9,18 +9,21 @@ import { getMe } from "@/api/account";
 import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt } from "@/api/auth";
 
 const REFRESH_LEAD_MS = 60_000;
-// The free plan's name in /me (monorepo public_plan_for_profile("individual")).
-const FREE_PLAN = "lite";
+// Plans in /me `entitlements.plan` that unlock the paid tier (#96). The sellable plans (monorepo
+// core/subscription_plans.py) plus admin-assigned profiles; lite, personal, guest and mammoth_staff are free.
+const PAID_PLANS = new Set([
+  "explorer", "pro", "business", "enterprise", "api", "academia",
+  "custom", "pilot", "partner", "professor", "internal",
+]);
 
 function determineTier(me: MeResponse): Tier {
-  if (me.org?.accountType === "commercial") return "paid";
   const entitlements = me.entitlements;
   const live = entitlements?.expiresAt === null || (
     typeof entitlements?.expiresAt === "string" && Date.parse(entitlements.expiresAt) > Date.now()
   );
   if (entitlements?.source === "admin_grant" && live) return "paid";
-  // Any active subscription plan (#96). `plan` is narrowed per seat, so an unassigned seat reads "lite".
-  if (entitlements?.source === "stripe" && entitlements.plan && entitlements.plan !== FREE_PLAN && live) return "paid";
+  // `plan` is narrowed per seat, so a member without a paid seat reads "lite" even in a paying org.
+  if (entitlements?.plan && PAID_PLANS.has(entitlements.plan) && live) return "paid";
   return "free";
 }
 

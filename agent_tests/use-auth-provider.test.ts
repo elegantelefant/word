@@ -33,7 +33,7 @@ afterEach(() => {
 const PAID_ME = {
   user: { id: "u1", email: "a@b.com", name: "Alice" },
   org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "commercial" },
-  entitlements: ["review", "clauses"],
+  entitlements: { source: "none", plan: "pro", expiresAt: null },
 };
 
 const FREE_ME = {
@@ -101,6 +101,7 @@ describe("useAuthProvider", () => {
     const trialMe = {
       ...PAID_ME,
       org: { ...PAID_ME.org, accountType: "trial" },
+      entitlements: { ...PAID_ME.entitlements, plan: "lite", isTrialWindowLive: true },
     };
     const { getMe } = await import("@/api/account");
     vi.mocked(getMe).mockResolvedValue(trialMe);
