@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
+import { useUpsell } from "@/store/upsell";
 import { GEMINI_MODELS } from "@/lib/models";
 
 interface SettingsPanelProps {
@@ -12,7 +13,8 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, updateSettings } = useSettings();
-  const { tier, user, login, logout } = useAuth();
+  const { tier, user, token, login, logout } = useAuth();
+  const upsell = useUpsell();
   const [keyVisible, setKeyVisible] = useState(false);
 
   return (
@@ -93,8 +95,28 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </section>
         )}
 
+        {/* Signed in on a free plan (Lite): one quiet line, never a prompt (#97) */}
+        {tier === "free" && token && (
+          <section className="border-t border-gray-100 pt-4 text-xs leading-relaxed text-gray-500">
+            <p>
+              Signed in on Elefant Lite, which uses your own Gemini key here.
+              {upsell && (
+                <>
+                  {" "}Paid plans add clauses, drafting and Mammoth.{" "}
+                  <a href="https://elefant.legal/pricing" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    See plans
+                  </a>
+                </>
+              )}
+            </p>
+            <button onClick={logout} className="mt-2 text-xs text-red-500 transition-colors hover:text-red-700">
+              Sign out
+            </button>
+          </section>
+        )}
+
         {/* Sign in for free users */}
-        {tier === "free" && (
+        {tier === "free" && !token && (
           <section className="border-t border-gray-100 pt-4">
             <p className="mb-2.5 text-xs leading-relaxed text-gray-500">Have an Elefant account? Sign in for full features.</p>
             <button
