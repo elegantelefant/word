@@ -79,21 +79,19 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
           ? data.detail
           : undefined;
 
-        if ("message" in body && typeof body.message === "string") {
-          message = body.message;
-        } else if (data && "message" in data && typeof data.message === "string") {
+        // Nitro copies statusMessage ("backend_error", "Too Many Requests") into the top-level message,
+        // so the backend's own words in data win, and a top-level copy of statusMessage is no message.
+        if (data && "message" in data && typeof data.message === "string") {
           message = data.message;
+        } else if ("message" in body && typeof body.message === "string"
+          && !("statusMessage" in body && body.statusMessage === body.message)) {
+          message = body.message;
         }
 
         if (detail && "reason" in detail && typeof detail.reason === "string") {
           reason = detail.reason;
-        } else if ("statusMessage" in body && typeof body.statusMessage === "string") {
-          reason = body.statusMessage;
-        } else if (data && "reason" in data && typeof data.reason === "string") {
-          reason = data.reason;
         }
       }
-
     } catch {
       // Non-JSON and unreadable bodies use the safe generic message.
     }

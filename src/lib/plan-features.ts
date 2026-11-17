@@ -3,21 +3,29 @@
 
 import type { MeResponse } from "@/types/api";
 
-export type PlanFeature = "review" | "draft" | "clauseLibrary";
+export type PlanFeature = "draft" | "clauseLibrary" | "mammoth";
 
-// /me entitlement keys per feature (monorepo core/plan_defaults.py). The clause library is open when
-// either clause limit is non-zero (services/clause_library_entitlement.py).
-const LIMIT_KEYS: Record<PlanFeature, string[]> = {
-  review: ["reviewRequestsMonthly"],
-  draft: ["draftRequestsMonthly"],
-  clauseLibrary: ["clauseSuggestRequestsMonthly", "clauseProcessRequestsMonthly"],
+// /me entitlement keys per feature (monorepo core/plan_defaults.py). A feature is open when any one
+// group is wholly non-zero: the quota gate refuses when either the monthly or the daily limit is 0
+// (dependencies/check_quota.py), and the clause library opens on either clause limit
+// (services/clause_library_entitlement.py). Mammoth needs its tool flag (mammoth_tool_entitlement.py).
+const LIMIT_GROUPS: Record<PlanFeature, string[][]> = {
+  draft: [["draftRequestsMonthly", "draftRequestsDaily"]],
+  clauseLibrary: [
+    ["clauseSuggestRequestsMonthly", "clauseSuggestRequestsDaily"],
+    ["clauseProcessRequestsMonthly", "clauseProcessRequestsDaily"],
+  ],
+  mammoth: [["hasMammothTool"]],
 };
 
 export function planIncludes(me: MeResponse | null, feature: PlanFeature): boolean {
   const entitlements = me?.entitlements as Record<string, unknown> | undefined;
-  const limits = LIMIT_KEYS[feature].map((key) => entitlements?.[key]);
-  if (limits.every((limit) => typeof limit !== "number")) return true;
-  return limits.some((limit) => typeof limit === "number" && limit !== 0);
+  return LIMIT_GROUPS[feature].some((group) =>
+    group.every((key) => {
+      const limit = entitlements?.[key];
+      return typeof limit !== "number" || limit !== 0;
+    }),
+  );
 }
 
 // Server refusals that a different plan or more credits would lift (monorepo check_quota.py, check_credits.py).

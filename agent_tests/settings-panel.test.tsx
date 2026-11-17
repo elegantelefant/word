@@ -7,7 +7,6 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { SettingsContext, type SettingsContextValue } from "@/store/settings";
 import { AuthContext, type AuthContextValue } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
-import { UpsellContext } from "@/store/upsell";
 
 const noop = () => {};
 const noopAsync = async () => {};
@@ -118,32 +117,15 @@ describe("SettingsPanel", () => {
     expect(screen.getByText("Sign in to Elefant")).toBeInTheDocument();
   });
 
-  it("tells a signed-in Lite user, in one line, that paid plans add more (#97)", () => {
-    renderSettings({}, { token: "lite-token" });
-    expect(screen.getByText(/^Signed in on a free Elefant plan, which uses your own Gemini key here\./)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
-  });
-
-  it("lets a signed-in Lite user sign out instead of offering sign-in again (#97)", () => {
-    const logout = vi.fn();
-    renderSettings({}, { token: "lite-token", logout });
+  it("gives a signed-in Lite user the Account section and no plans pitch (owner, 17 Nov: Lite uses Elefant)", () => {
+    renderSettings({}, {
+      tier: "paid",
+      token: "lite-token",
+      user: { user: { id: "u1", email: "lee@example.com", name: "Lee" }, org: null, entitlements: { plan: "lite" } } as never,
+    });
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
     expect(screen.queryByText("Sign in to Elefant")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    expect(logout).toHaveBeenCalled();
-  });
-
-  it("hides the plans link where upsell is off (#97)", () => {
-    render(
-      <UpsellContext value={false}>
-        <SettingsContext value={{ settings: { apiKey: "", model: "gemini-2.5-flash" }, updateSettings: vi.fn() }}>
-          <AuthContext value={{ ...AUTH_INITIAL, token: "lite-token", login: noopAsync, logout: noop }}>
-            <SettingsPanel onClose={noop} />
-          </AuthContext>
-        </SettingsContext>
-      </UpsellContext>,
-    );
-    expect(screen.queryByRole("link", { name: "See plans" })).toBeNull();
-    expect(screen.queryByText(/Paid plans/)).toBeNull();
+    expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
   });
 
   it("shows account info and sign-out for paid tier", () => {

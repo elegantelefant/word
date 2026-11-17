@@ -15,6 +15,9 @@ import {
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
+import { planIncludes } from "@/lib/plan-features";
+
+const MAMMOTH_NOT_ENABLED = "Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.";
 
 const REQUEST_TYPES: { value: RequestType; label: string }[] = [
   { value: "review", label: "Review" },
@@ -41,10 +44,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function MammothPanel({ active = true }: { active?: boolean }) {
-  const { tier, token } = useAuth();
+  const { tier, token, user } = useAuth();
 
   if (tier !== "paid" || !token) {
     return <UpgradePrompt feature="Mammoth" />;
+  }
+
+  // No public plan includes Mammoth; it is switched on per organisation (#98, #44's owner-approved copy).
+  if (!planIncludes(user, "mammoth")) {
+    return <p className="py-6 text-center text-xs text-gray-500">{MAMMOTH_NOT_ENABLED}</p>;
   }
 
   return <MammothContent token={token} active={active} />;
@@ -154,7 +162,7 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
       onCreated();
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        setError("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.");
+        setError(MAMMOTH_NOT_ENABLED);
       } else {
         setError(err instanceof Error ? err.message : "Failed to create request");
       }

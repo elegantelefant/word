@@ -162,46 +162,43 @@ describe("apiFetch — error semantics", () => {
     }
   });
 
-  it("uses the nested message and exposes the proxy denial reason", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          statusCode: 403,
-          statusMessage: "feature_disabled",
-          data: {
-            error: true,
-            code: "FORBIDDEN",
-            message: "Mammoth is available on custom plans. Talk to us.",
-          },
-        }),
-        { status: 403 },
-      ),
-    );
+  // The body the Nuxt proxy really sends for a backend refusal (curl of elefant.legal/api/v4, 17 Nov):
+  // Nitro copies statusMessage into the top-level message; the backend's own message and reason sit in data.
+  const proxyRefusal = (status: number, code: string, message: string, reason: string) =>
+    new Response(JSON.stringify({
+      error: true,
+      url: "https://elefant.legal/api/v4/api/v1/draft",
+      statusCode: status,
+      statusMessage: "backend_error",
+      message: "backend_error",
+      data: { error: true, upstream_status: status, error_class: "QuotaError", code, message, path: "/api/v1/draft", detail: { reason, product: "drafter" } },
+    }), { status });
 
-    await expect(apiFetch("/legal-requests", "token")).rejects.toMatchObject({
-      status: 403,
-      reason: "feature_disabled",
-      message: "Mammoth is available on custom plans. Talk to us.",
-    });
+  it.each([
+    [429, "QUOTA_EXCEEDED", "You've used up this period's allowance.", "over_plan_quota"],
+    [402, "CREDITS_EXHAUSTED", "You're out of credits.", "credits_exhausted"],
+    [403, "FORBIDDEN", "This isn't included in your current plan. Upgrade to turn it on.", "feature_disabled"],
+  ])("shows the backend's own message and plan reason for a %s refusal, not the proxy's backend_error (#98)", async (status, code, message, reason) => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyRefusal(status, code, message, reason));
+
+    await expect(apiFetch("/draft", "token")).rejects.toMatchObject({ status, message, reason });
+    expect(logged).toHaveBeenCalledWith("Elefant API request failed", { path: "/draft", status });
   });
 
-  it("reads the plan reason from a backend refusal the proxy relays as backend_error (#98)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          statusCode: 429,
-          statusMessage: "backend_error",
-          data: {
-            code: "QUOTA_EXCEEDED",
-            message: "You've used up this period's allowance.",
-            detail: { reason: "over_plan_quota", product: "drafter" },
-          },
-        }),
-        { status: 429 },
-      ),
-    );
+  it("says to wait a moment for the edge rate limiter's bare 429", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      error: true, url: "https://elefant.legal/api/v4/api/v1/review", statusCode: 429,
+      statusMessage: "Too Many Requests", message: "Too Many Requests",
+    }), { status: 429 }));
 
-    await expect(apiFetch("/draft", "token")).rejects.toMatchObject({ status: 429, reason: "over_plan_quota" });
+    await expect(apiFetch("/review", "token")).rejects.toMatchObject({
+      status: 429,
+      message: "Too many requests. Please wait a moment.",
+      reason: undefined,
+    });
+    expect(logged).toHaveBeenCalledWith("Elefant API request failed", { path: "/review", status: 429 });
   });
 
   it("NetworkError wraps non-abort fetch failures", async () => {

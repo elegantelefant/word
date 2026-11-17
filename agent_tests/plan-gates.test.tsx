@@ -40,6 +40,8 @@ const envelope = (status: number, reason: string, message: string) =>
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.mocked(isOfficeReady).mockReturnValue(true);
+  // apiFetch logs every refusal; these tests expect refusals, so the log is captured, not printed.
+  vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 describe("Clauses tab on Lite (#98)", () => {
@@ -48,7 +50,7 @@ describe("Clauses tab on Lite (#98)", () => {
     renderSignedIn(<ClausesPanel />);
 
     expect(screen.getByRole("button", { name: "Draft clause" })).toBeInTheDocument();
-    expect(screen.getByText(/^Clause search comes with Elefant.s paid plans\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Clause search isn't included in your plan\./)).toBeInTheDocument();
     expect(fetchSpy.mock.calls.some(([url]) => String(url).includes("/clause-databases"))).toBe(false);
   });
 
@@ -86,7 +88,65 @@ describe("Clauses tab on Lite (#98)", () => {
   });
 });
 
+describe("More plan gates (#98)", () => {
+  const withLimits = (extra: Record<string, unknown>) =>
+    ({ ...LITE_ME, entitlements: { ...LITE_ME.entitlements, ...extra } }) as unknown as MeResponse;
+
+  it("shows the Mammoth team's message, not a pricing link, to a plan without Mammoth, and fetches nothing", async () => {
+    const { MammothPanel } = await import("@/components/panels/MammothPanel");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+    renderSignedIn(<MammothPanel />, withLimits({ hasMammothTool: 0 }));
+
+    expect(screen.getByText("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps the lock on the Mammoth tab for a plan without Mammoth", () => {
+    renderSignedIn(<Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}><div /></Layout>, withLimits({ hasMammothTool: 0 }));
+    expect(screen.getByRole("button", { name: /Mammoth/ })).toHaveAccessibleName("Mammoth, needs a paid plan");
+  });
+
+  it("offers no Draft button to a plan whose drafting limit is 0", () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+    renderSignedIn(<ClausesPanel />, withLimits({ draftRequestsMonthly: 0, draftRequestsDaily: 0 }));
+    expect(screen.queryByRole("button", { name: "Draft clause" })).toBeNull();
+    expect(screen.getByText(/^Drafting isn't included in your plan\./)).toBeInTheDocument();
+  });
+
+  it("loads the clause library for a plan that includes it", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ databases: [] })));
+    renderSignedIn(<ClausesPanel />, withLimits({ clauseSuggestRequestsMonthly: 50, clauseSuggestRequestsDaily: 10 }));
+    await waitFor(() => expect(fetchSpy.mock.calls.some(([url]) => String(url).endsWith("/clause-databases"))).toBe(true));
+  });
+
+  it("drops a plans link from an earlier refusal when the next attempt fails for another reason", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(envelope(402, "credits_exhausted", "You're out of credits."))
+      .mockResolvedValueOnce(new Response("boom", { status: 500 }));
+    renderSignedIn(<ClausesPanel />);
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a payment clause" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+    const first = (await screen.findByText(/^You're out of credits\./)).closest("p")!;
+    expect(within(first).getByRole("link", { name: "See plans" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+    const second = await screen.findByText("Something went wrong while contacting Elefant. Please try again.");
+    expect(within(second).queryByRole("link")).toBeNull();
+  });
+});
+
 describe("Footer plan name (#98)", () => {
+  it.each([["individual", "Lite"], ["commercial", "Pro"], ["educational", "Academia"]])(
+    "names a fresh account with no plan yet from its profile %s as %s",
+    (accountType, label) => {
+      const user = { ...LITE_ME, org: { ...LITE_ME.org!, accountType }, entitlements: { ...LITE_ME.entitlements, plan: null } } as unknown as MeResponse;
+      renderSignedIn(<Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}><div /></Layout>, user);
+      expect(screen.getByRole("contentinfo")).toHaveTextContent(label);
+    },
+  );
+
   it.each([["lite", "Lite"], ["pro", "Pro"], ["business", "Business"], ["academia", "Academia"], ["pilot", "Elefant"]])(
     "names plan %s as %s",
     (plan, label) => {
@@ -110,5 +170,21 @@ describe("Review on Lite (#98)", () => {
 
     const line = (await screen.findByText(/^You've used up this period's allowance\./)).closest("div")!;
     expect(within(line).getByRole("link", { name: "See plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
+  });
+});
+
+describe("Review plans link with upsell off (#98)", () => {
+  it("shows the refusal without a plans link", async () => {
+    const { ReviewPanel } = await import("@/components/panels/ReviewPanel");
+    const { getSelectedText } = await import("@/lib/office");
+    vi.mocked(getSelectedText).mockResolvedValue("The Supplier shall deliver the Goods on time.");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(envelope(403, "feature_disabled", "This isn't included in your current plan. Upgrade to turn it on."));
+    const { UIContext } = await import("@/store/ui");
+    renderSignedIn(<UIContext value={{ openSettings: () => {} } as never}><ReviewPanel /></UIContext>, LITE_ME, false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
+
+    await screen.findByText(/^This isn't included in your current plan\./);
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });

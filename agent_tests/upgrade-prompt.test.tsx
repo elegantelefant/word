@@ -25,9 +25,9 @@ describe("UpgradePrompt (#97)", () => {
     expect(container.textContent).toBe("Clause search comes with Elefant's paid plans. Sign in from Settings, or see plans.");
   });
 
-  it("tells a signed-in Lite user, in one line, to see plans", () => {
+  it("tells a signed-in user, in one line, that their plan lacks it and to see plans", () => {
     const { container } = renderPrompt({ token: "lite-token" });
-    expect(container.textContent).toBe("Clause search comes with Elefant's paid plans. See plans.");
+    expect(container.textContent).toBe("Clause search isn't included in your plan. See plans.");
   });
 
   it("links plans to the pricing page in a new tab", () => {
