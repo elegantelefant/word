@@ -208,6 +208,14 @@ describe("apiFetch — error semantics", () => {
     });
   });
 
+  it("shows the backend's own words for a 5xx that carries a reason, such as the quota check being down", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const message = "We couldn't check your usage allowance just now. Nothing ran. Please try again in a moment.";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyRefusal(503, "QUOTA_BACKEND_UNAVAILABLE", message, "quota_backend_unavailable"));
+
+    await expect(apiFetch("/review", "token")).rejects.toMatchObject({ status: 503, message, reason: "quota_backend_unavailable" });
+  });
+
   it("shows the proxy's route refusal with no plan reason", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(proxyOwn(403, "ROUTE_NOT_ALLOWED", "AuthError", "This token may not be used on this route."));
