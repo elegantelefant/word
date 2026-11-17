@@ -36,10 +36,11 @@ const PAID_ME = {
   entitlements: { source: "none", plan: "pro", expiresAt: null },
 };
 
-const FREE_ME = {
+const GUEST_ME = {
   user: { id: "u2", email: "b@b.com", name: "Bob" },
-  org: { id: "o2", name: "FreeCo", slug: "freeco", accountType: "free" },
-  entitlements: [],
+  org: null,
+  entitlements: { source: "none" },
+  anonymous: true,
 };
 
 describe("useAuthProvider", () => {
@@ -83,9 +84,9 @@ describe("useAuthProvider", () => {
     expect(result.current.tier).toBe("paid");
   });
 
-  it("detects free tier from accountType", async () => {
+  it("keeps an anonymous session on own-key mode", async () => {
     const { getMe } = await import("@/api/account");
-    vi.mocked(getMe).mockResolvedValue(FREE_ME);
+    vi.mocked(getMe).mockResolvedValue(GUEST_ME);
 
     const { result } = renderHook(() => useAuthProvider());
 
@@ -94,10 +95,10 @@ describe("useAuthProvider", () => {
     });
 
     expect(result.current.tier).toBe("free");
-    expect(result.current.user).toEqual(FREE_ME);
+    expect(result.current.user).toEqual(GUEST_ME);
   });
 
-  it("detects trial as free tier", async () => {
+  it("puts a trial account on Elefant mode, like any signed-in account", async () => {
     const trialMe = {
       ...PAID_ME,
       org: { ...PAID_ME.org, accountType: "trial" },
@@ -112,7 +113,7 @@ describe("useAuthProvider", () => {
       await result.current.login("trial-tok");
     });
 
-    expect(result.current.tier).toBe("free");
+    expect(result.current.tier).toBe("paid");
   });
 
   it.each([null, undefined])("loads a profile whose organization is %s", async (org) => {

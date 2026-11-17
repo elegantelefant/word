@@ -82,119 +82,13 @@ describe("useAuthProvider — state machine", () => {
     expect(getSavedToken()).toBeNull();
   });
 
-  it("detects free accountType correctly", async () => {
-    saveToken("free-token");
-
-    const meResponse = {
-      user: { id: "u1", email: "test@test.com", name: "Free User" },
-      org: { id: "o1", name: "Free Org", slug: "free", accountType: "free" },
-      entitlements: {},
-    };
-
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(meResponse)),
-    );
-
-    const { result } = renderHook(() => useAuthProvider());
-
-    await vi.waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.tier).toBe("free");
-  });
-
-  it("detects trial accountType as free", async () => {
-    saveToken("trial-token");
-
-    const meResponse = {
-      user: { id: "u1", email: "test@test.com", name: "Trial User" },
-      org: { id: "o1", name: "Trial Org", slug: "trial", accountType: "trial" },
-      entitlements: {},
-    };
-
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(meResponse)),
-    );
-
-    const { result } = renderHook(() => useAuthProvider());
-
-    await vi.waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.tier).toBe("free");
-  });
-
-  it.each(["personal", "pro", "professional", "enterprise", "unknown", "", undefined])(
-    "keeps non-commercial accountType %s on free tier",
-    async (accountType) => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: "u1", email: "test@test.com", name: "Test User" },
-        org: { id: "o1", name: "Org", slug: "org", accountType },
-      })));
-      const { result } = renderHook(() => useAuthProvider());
-      await act(async () => { await result.current.login("valid-token"); });
-      expect(result.current.token).toBe("valid-token");
-      expect(result.current.tier).toBe("free");
-    },
-  );
-
-  it("admin grant live on a personal org is paid", async () => {
-    for (const expiresAt of [null, new Date(Date.now() + 60_000).toISOString()]) {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: "u1", email: "test@test.com", name: "Test User" },
-        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
-        entitlements: { source: "admin_grant", expiresAt },
-      })));
-      const { result, unmount } = renderHook(() => useAuthProvider());
-      await act(async () => { await result.current.login("valid-token"); });
-      expect(result.current.tier).toBe("paid");
-      unmount();
-      clearToken();
-    }
-  });
-
-  it("admin grant expired on a personal org is free", async () => {
-    const now = Date.now();
-    vi.spyOn(Date, "now").mockReturnValue(now);
-    for (const expiresAt of [new Date(now - 60_000).toISOString(), new Date(now).toISOString()]) {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: "u1", email: "test@test.com", name: "Test User" },
-        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
-        entitlements: { source: "admin_grant", expiresAt },
-      })));
-      const { result, unmount } = renderHook(() => useAuthProvider());
-      await act(async () => { await result.current.login("valid-token"); });
-      expect(result.current.token).toBe("valid-token");
-      expect(result.current.tier).toBe("free");
-      unmount();
-      clearToken();
-    }
-  });
-
-  it("entitlement source none on a personal org is free", async () => {
-    for (const expiresAt of [null, new Date(Date.now() + 60_000).toISOString()]) {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: "u1", email: "test@test.com", name: "Test User" },
-        org: { id: "o1", name: "Personal Org", slug: "personal", accountType: "personal" },
-        entitlements: { source: "none", expiresAt },
-      })));
-      const { result, unmount } = renderHook(() => useAuthProvider());
-      await act(async () => { await result.current.login("valid-token"); });
-      expect(result.current.token).toBe("valid-token");
-      expect(result.current.tier).toBe("free");
-      unmount();
-      clearToken();
-    }
-  });
-
-  // Real /me for an active subscription (monorepo me.py): accountType is the plan's profile, source "none",
-  // plan the per-seat narrowed plan name, expiresAt null.
-  const realMe = (accountType: string, plan: string | null, extra: Record<string, unknown> = {}) => ({
+  // Real /me (monorepo me.py): accountType is the org's profile, plan the per-seat plan name,
+  // source "none" for subscriptions; a guest session answers anonymous: true with no org.
+  const realMe = (accountType: string | null, plan: string | null, extra: Record<string, unknown> = {}) => ({
     user: { id: "u1", email: "test@test.com", name: "Test User" },
-    org: { id: "o1", name: "Org", slug: "org", accountType },
-    entitlements: { source: "none", plan, expiresAt: null, ...extra },
+    org: accountType === null ? null : { id: "o1", name: "Org", slug: "org", accountType },
+    entitlements: { source: "none", plan, expiresAt: null },
+    ...extra,
   });
 
   async function tierFor(me: unknown) {
@@ -208,26 +102,22 @@ describe("useAuthProvider — state machine", () => {
   }
 
   it.each([
-    ["explorer", "explorer"], ["commercial", "pro"], ["business", "business"],
-    ["enterprise", "enterprise"], ["api", "api"], ["educational", "academia"],
-  ])("a subscription on profile %s (plan %s) is paid (#96)", async (accountType, plan) => {
+    ["individual", "lite"], ["explorer", "explorer"], ["commercial", "pro"], ["business", "business"],
+    ["enterprise", "enterprise"], ["api", "api"], ["educational", "academia"], ["personal", "personal"],
+  ])("a signed-in account on profile %s (plan %s) uses Elefant (owner, 17 Nov: Lite opens Elefant mode)", async (accountType, plan) => {
     expect(await tierFor(realMe(accountType, plan))).toBe("paid");
   });
 
-  it.each(["lite", "personal", "guest", "mammoth_staff", null])("plan %s is free (#96)", async (plan) => {
-    expect(await tierFor(realMe("individual", plan))).toBe("free");
+  it("a signed-in account whose /me has no plan yet still uses Elefant", async () => {
+    expect(await tierFor(realMe("individual", null))).toBe("paid");
   });
 
-  it("a member of a Pro org whose seat reads plan lite is free (#96)", async () => {
-    expect(await tierFor(realMe("commercial", "lite"))).toBe("free");
+  it("a member of a paying org on a Lite seat uses Elefant, with Lite's own limits", async () => {
+    expect(await tierFor(realMe("business", "lite"))).toBe("paid");
   });
 
-  it("an unassigned seat in a paying team org (plan lite) is free (#96)", async () => {
-    expect(await tierFor(realMe("business", "lite"))).toBe("free");
-  });
-
-  it("a paid plan whose expiry has passed is free (#96)", async () => {
-    expect(await tierFor(realMe("business", "business", { expiresAt: new Date(Date.now() - 60_000).toISOString() }))).toBe("free");
+  it("an anonymous (guest) session stays on own-key mode", async () => {
+    expect(await tierFor(realMe(null, null, { anonymous: true }))).toBe("free");
   });
 
   it("logout clears state and token", async () => {
