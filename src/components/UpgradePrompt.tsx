@@ -1,39 +1,33 @@
-// ABOUTME: Paywall component shown to free-tier users on paid features.
-// ABOUTME: Displays sign-in guidance and an upgrade CTA linking to pricing.
+// ABOUTME: One quiet line shown to free and Lite users on a paid-only feature.
+// ABOUTME: Points to Settings to sign in and to the pricing page; no pitch where upsell is off.
+
+import { useAuth } from "@/store/auth";
+import { useUpsell } from "@/store/upsell";
+
+const PRICING_URL = "https://elefant.legal/pricing";
 
 interface UpgradePromptProps {
   feature: string;
 }
 
 export function UpgradePrompt({ feature }: UpgradePromptProps) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-10 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-        <LockIcon />
-      </div>
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-gray-800">{feature} requires Elefant Pro</h3>
-        <p className="max-w-[240px] text-xs leading-relaxed text-gray-500">
-          Sign in to your Elefant account to access {feature.toLowerCase()}.
-        </p>
-      </div>
-      <a
-        href="https://elefant.legal/pricing"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-1 rounded-md bg-blue-600 px-5 py-2 text-xs font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-      >
-        Upgrade to Pro
-      </a>
-    </div>
-  );
-}
+  const { token } = useAuth();
+  const upsell = useUpsell();
 
-function LockIcon() {
+  if (!upsell) {
+    return <p className="py-6 text-center text-xs text-gray-500">{feature} isn't available on this account.</p>;
+  }
+
+  const plans = (label: string) => (
+    <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+      {label}
+    </a>
+  );
+
   return (
-    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="#3b82f6" strokeWidth="1.5">
-      <rect x="4" y="9" width="12" height="9" rx="2" />
-      <path d="M7 9V6a3 3 0 016 0v3" />
-    </svg>
+    <p className="py-6 text-center text-xs text-gray-500">
+      {feature} comes with Elefant's paid plans.{" "}
+      {token ? <>{plans("See plans")}.</> : <>Sign in from Settings, or {plans("see plans")}.</>}
+    </p>
   );
 }
