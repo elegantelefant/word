@@ -61,11 +61,10 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       throw new ApiError(401, "Session expired. Please sign in again.");
     }
 
-    if (res.status === 429) {
-      throw new ApiError(429, "Too many requests. Please wait a moment.");
-    }
-
-    let message = "Something went wrong while contacting Elefant. Please try again.";
+    // A plain 429 is the edge rate limiter; a quota refusal carries its own message and reason (#98).
+    let message = res.status === 429
+      ? "Too many requests. Please wait a moment."
+      : "Something went wrong while contacting Elefant. Please try again.";
     let reason: string | undefined;
 
     try {
@@ -75,6 +74,10 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
         const data = "data" in body && typeof body.data === "object" && body.data !== null
           ? body.data
           : undefined;
+        // Backend refusals arrive as an error envelope: the reason sits in data.detail (monorepo error_responses.py).
+        const detail = data && "detail" in data && typeof data.detail === "object" && data.detail !== null
+          ? data.detail
+          : undefined;
 
         if ("message" in body && typeof body.message === "string") {
           message = body.message;
@@ -82,12 +85,15 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
           message = data.message;
         }
 
-        if ("statusMessage" in body && typeof body.statusMessage === "string") {
+        if (detail && "reason" in detail && typeof detail.reason === "string") {
+          reason = detail.reason;
+        } else if ("statusMessage" in body && typeof body.statusMessage === "string") {
           reason = body.statusMessage;
         } else if (data && "reason" in data && typeof data.reason === "string") {
           reason = data.reason;
         }
       }
+
     } catch {
       // Non-JSON and unreadable bodies use the safe generic message.
     }

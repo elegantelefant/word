@@ -185,6 +185,25 @@ describe("apiFetch — error semantics", () => {
     });
   });
 
+  it("reads the plan reason from a backend refusal the proxy relays as backend_error (#98)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          statusCode: 429,
+          statusMessage: "backend_error",
+          data: {
+            code: "QUOTA_EXCEEDED",
+            message: "You've used up this period's allowance.",
+            detail: { reason: "over_plan_quota", product: "drafter" },
+          },
+        }),
+        { status: 429 },
+      ),
+    );
+
+    await expect(apiFetch("/draft", "token")).rejects.toMatchObject({ status: 429, reason: "over_plan_quota" });
+  });
+
   it("NetworkError wraps non-abort fetch failures", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("DNS failure"));
 
