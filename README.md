@@ -65,17 +65,21 @@ You can also sideload the production manifest manually through Microsoft Word.
 
 ### macOS desktop
 
-1. Download the [production manifest](https://addin.elefant.legal/manifest.xml).
-2. In Finder, press **Cmd+Shift+G** and go to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef`. If the `wef` folder doesn't exist, create it.
-3. Copy `manifest.xml` into the `wef` folder.
-4. Quit Word (**Cmd+Q**) and open it again, then open a document.
-5. Select **Home** → **Add-ins**, then select **Elefant Legal Assistant**.
-
-Or, in Terminal, steps 1 to 3 in one command:
+In Terminal, run:
 
 ```bash
 mkdir -p ~/Library/Containers/com.microsoft.Word/Data/Documents/wef && curl -fsSL https://addin.elefant.legal/manifest.xml -o ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/manifest.xml
 ```
+
+Then quit Word (**Cmd+Q**), open it again, open a document, and select **Home** → **Add-ins** → **Elefant Legal Assistant**.
+
+Without Terminal:
+
+1. Control-click the [production manifest](https://addin.elefant.legal/manifest.xml) link and choose **Save Link As…** (Chrome) or **Download Linked File** (Safari). Opening the link shows the XML instead of saving it.
+2. In Finder, press **Cmd+Shift+G** and go to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef`. If the `wef` folder doesn't exist, create it.
+3. Copy `manifest.xml` into the `wef` folder.
+4. Quit Word (**Cmd+Q**) and open it again, then open a document.
+5. Select **Home** → **Add-ins**, then select **Elefant Legal Assistant**.
 
 For detailed platform-specific instructions, see the [user installation guide](agent_docs/2026-03-05-user-install-guide.md).
 
