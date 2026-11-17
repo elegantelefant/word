@@ -9,15 +9,18 @@ import { getMe } from "@/api/account";
 import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt } from "@/api/auth";
 
 const REFRESH_LEAD_MS = 60_000;
+// The free plan's name in /me (monorepo public_plan_for_profile("individual")).
+const FREE_PLAN = "lite";
 
 function determineTier(me: MeResponse): Tier {
   if (me.org?.accountType === "commercial") return "paid";
   const entitlements = me.entitlements;
-  if (entitlements?.source === "admin_grant" && (
-    entitlements.expiresAt === null || (
-      typeof entitlements.expiresAt === "string" && Date.parse(entitlements.expiresAt) > Date.now()
-    )
-  )) return "paid";
+  const live = entitlements?.expiresAt === null || (
+    typeof entitlements?.expiresAt === "string" && Date.parse(entitlements.expiresAt) > Date.now()
+  );
+  if (entitlements?.source === "admin_grant" && live) return "paid";
+  // Any active subscription plan (#96). `plan` is narrowed per seat, so an unassigned seat reads "lite".
+  if (entitlements?.source === "stripe" && entitlements.plan && entitlements.plan !== FREE_PLAN && live) return "paid";
   return "free";
 }
 

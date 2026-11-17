@@ -189,6 +189,42 @@ describe("useAuthProvider — state machine", () => {
     }
   });
 
+  it.each(["explorer", "pro", "business", "enterprise", "api", "academia"])(
+    "an active Stripe %s plan is paid (#96)",
+    async (plan) => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+        user: { id: "u1", email: "test@test.com", name: "Test User" },
+        org: { id: "o1", name: "Org", slug: "org", accountType: plan === "academia" ? "educational" : plan },
+        entitlements: { source: "stripe", plan, expiresAt: null },
+      })));
+      const { result } = renderHook(() => useAuthProvider());
+      await act(async () => { await result.current.login("valid-token"); });
+      expect(result.current.tier).toBe("paid");
+    },
+  );
+
+  it("an unassigned seat in a paying team org (plan lite) is free (#96)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      user: { id: "u1", email: "test@test.com", name: "Test User" },
+      org: { id: "o1", name: "Firm", slug: "firm", accountType: "business" },
+      entitlements: { source: "stripe", plan: "lite", expiresAt: null },
+    })));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => { await result.current.login("valid-token"); });
+    expect(result.current.tier).toBe("free");
+  });
+
+  it("an expired Stripe plan is free (#96)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      user: { id: "u1", email: "test@test.com", name: "Test User" },
+      org: { id: "o1", name: "Org", slug: "org", accountType: "business" },
+      entitlements: { source: "stripe", plan: "business", expiresAt: new Date(Date.now() - 60_000).toISOString() },
+    })));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => { await result.current.login("valid-token"); });
+    expect(result.current.tier).toBe("free");
+  });
+
   it("logout clears state and token", async () => {
     saveToken("valid-token");
 
