@@ -2,9 +2,7 @@
 // ABOUTME: Points to Settings to sign in and to the pricing page; no pitch where upsell is off.
 
 import { useAuth } from "@/store/auth";
-import { useUpsell } from "@/store/upsell";
-
-const PRICING_URL = "https://elefant.legal/pricing";
+import { PRICING_URL, useUpsell } from "@/store/upsell";
 
 interface UpgradePromptProps {
   feature: string;
@@ -15,7 +13,12 @@ export function UpgradePrompt({ feature }: UpgradePromptProps) {
   const upsell = useUpsell();
 
   if (!upsell) {
-    return <p className="py-6 text-center text-xs text-gray-500">{feature} isn't available on this account.</p>;
+    // Signing in is not upsell: a signed-out subscriber still needs the way forward.
+    return (
+      <p className="py-6 text-center text-xs text-gray-500">
+        {token ? `${feature} isn't included in your plan.` : `${feature} needs an Elefant sign-in. Sign in from Settings.`}
+      </p>
+    );
   }
 
   const plans = (label: string) => (

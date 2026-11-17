@@ -72,7 +72,12 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
             >
               <span className="inline-flex items-center gap-0.5">
                 {tab.label}
-                {locked && <LockIcon />}
+                {locked && (
+                  <>
+                    <LockIcon />
+                    <span className="sr-only">, needs a paid plan</span>
+                  </>
+                )}
               </span>
             </button>
           );
@@ -105,7 +110,7 @@ function ElefantLogo() {
 
 function LockIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0" aria-hidden="true">
       <rect x="3" y="8" width="10" height="7" rx="1.5" />
       <path d="M5 8V5.5a3 3 0 016 0V8" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>

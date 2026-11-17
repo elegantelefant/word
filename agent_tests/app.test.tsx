@@ -206,3 +206,13 @@ describe("App", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("App with upsell off (#97, Teams on mobile)", () => {
+  it("opens a paid-only tab without any plans mention or pricing link", async () => {
+    const { UpsellContext } = await import("@/store/upsell");
+    const { container } = render(<UpsellContext value={false}><App /></UpsellContext>);
+    fireEvent.click(screen.getByRole("button", { name: /Mammoth/ }));
+    expect(container.querySelector('a[href="https://elefant.legal/pricing"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/paid plans/i);
+  });
+});

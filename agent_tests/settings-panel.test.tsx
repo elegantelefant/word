@@ -120,7 +120,7 @@ describe("SettingsPanel", () => {
 
   it("tells a signed-in Lite user, in one line, that paid plans add more (#97)", () => {
     renderSettings({}, { token: "lite-token" });
-    expect(screen.getByText(/^Signed in on Elefant Lite, which uses your own Gemini key here\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Signed in on a free Elefant plan, which uses your own Gemini key here\./)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
   });
 
@@ -143,6 +143,7 @@ describe("SettingsPanel", () => {
       </UpsellContext>,
     );
     expect(screen.queryByRole("link", { name: "See plans" })).toBeNull();
+    expect(screen.queryByText(/Paid plans/)).toBeNull();
   });
 
   it("shows account info and sign-out for paid tier", () => {

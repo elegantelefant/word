@@ -38,7 +38,7 @@ beforeEach(() => {
 describe("ClausesPanel — free tier", () => {
   it("shows upgrade prompt", () => {
     renderWithAuth();
-    expect(screen.getByText(/^Clause search and drafting comes with Elefant.s paid plans\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Clause search comes with Elefant.s paid plans\./)).toBeInTheDocument();
   });
 });
 

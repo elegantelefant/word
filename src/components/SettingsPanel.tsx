@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
-import { useUpsell } from "@/store/upsell";
+import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { GEMINI_MODELS } from "@/lib/models";
 
 interface SettingsPanelProps {
@@ -99,11 +99,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {tier === "free" && token && (
           <section className="border-t border-gray-100 pt-4 text-xs leading-relaxed text-gray-500">
             <p>
-              Signed in on Elefant Lite, which uses your own Gemini key here.
+              Signed in on a free Elefant plan, which uses your own Gemini key here.
               {upsell && (
                 <>
                   {" "}Paid plans add clauses, drafting and Mammoth.{" "}
-                  <a href="https://elefant.legal/pricing" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     See plans
                   </a>
                 </>
