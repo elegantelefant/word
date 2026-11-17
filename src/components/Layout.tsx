@@ -4,22 +4,25 @@
 import type { ReactNode } from "react";
 import { useAuth } from "@/store/auth";
 import { isFullAnalysisEnabled } from "@/lib/features";
-import { planIncludes } from "@/lib/plan-features";
+import { planIncludes, type PlanFeature } from "@/lib/plan-features";
 
-export type TabId = "review" | "clauses" | "mammoth" | "analysis" | "history";
+export type TabId = "review" | "clauses" | "mammoth" | "citations" | "analysis" | "history";
 
 interface Tab {
   id: TabId;
   label: string;
   disabled?: boolean;
   paidOnly?: boolean;
+  // A plan feature that must be included, read from /me (lib/plan-features).
+  feature?: PlanFeature;
 }
 
 function getTabs(): Tab[] {
   return [
     { id: "review", label: "Review" },
     { id: "clauses", label: "Clauses" },
-    { id: "mammoth", label: "Mammoth", paidOnly: true },
+    { id: "mammoth", label: "Mammoth", paidOnly: true, feature: "mammoth" },
+    { id: "citations", label: "Citations", paidOnly: true, feature: "citationCheck" },
     ...(isFullAnalysisEnabled(import.meta.env.VITE_FULL_ANALYSIS)
       ? [{ id: "analysis" as const, label: "Analysis", paidOnly: true }]
       : []),
@@ -55,8 +58,8 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
       <nav className="flex border-b border-gray-200">
         {getTabs().map((tab) => {
-          // Mammoth is switched on per organisation, so its lock follows the plan, not sign-in (#98).
-          const locked = tab.paidOnly && (tier !== "paid" || (tab.id === "mammoth" && !planIncludes(user, "mammoth")));
+          // Mammoth and citation checks depend on the plan, so their locks follow /me, not sign-in (#98, #106).
+          const locked = tab.paidOnly && (tier !== "paid" || (tab.feature !== undefined && !planIncludes(user, tab.feature)));
           // A locked tab still opens: its panel says, in one line, which plans include it (#97).
           const isDisabled = tab.disabled;
           return (

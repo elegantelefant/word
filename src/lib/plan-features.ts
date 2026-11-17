@@ -3,7 +3,7 @@
 
 import type { MeResponse } from "@/types/api";
 
-export type PlanFeature = "draft" | "clauseLibrary" | "mammoth";
+export type PlanFeature = "draft" | "clauseLibrary" | "mammoth" | "citationCheck";
 
 // /me entitlement keys per feature (monorepo core/plan_defaults.py). A feature is open when any one
 // group is wholly non-zero: the quota gate refuses when either the monthly or the daily limit is 0
@@ -16,6 +16,7 @@ const LIMIT_GROUPS: Record<PlanFeature, string[][]> = {
     ["clauseProcessRequestsMonthly", "clauseProcessRequestsDaily"],
   ],
   mammoth: [["mammothAccess"]],
+  citationCheck: [["citationChecksMonthly", "citationChecksDaily"]],
 };
 
 export function planIncludes(me: MeResponse | null, feature: PlanFeature): boolean {
