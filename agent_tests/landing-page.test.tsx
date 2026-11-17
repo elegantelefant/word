@@ -34,6 +34,12 @@ describe("LandingPage", () => {
     );
   });
 
+  it("reads as one sentence for desktop users, and says the macOS link opens a new tab", () => {
+    const { container } = render(<LandingPage />);
+    expect(container.textContent).toContain("Follow the steps for macOS (opens in a new tab), or download the installer for Windows.");
+    expect(screen.getByText("macOS").closest("a")).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
   it("offers the Windows installer", () => {
     render(<LandingPage />);
     expect(screen.getByText("Windows").closest("a")).toHaveAttribute(

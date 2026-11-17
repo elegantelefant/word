@@ -44,6 +44,7 @@ export function LandingPage() {
         Using desktop Word instead? Follow the steps for{" "}
         <a href="https://github.com/elegantelefant/word#macos-desktop" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
           macOS
+          <span className="sr-only"> (opens in a new tab)</span>
         </a>
         , or download the installer for{" "}
         <a href="/install-windows.bat" download className="text-blue-600 hover:underline">

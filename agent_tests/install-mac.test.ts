@@ -24,7 +24,26 @@ describe("macOS install (#74)", () => {
     expect(macSection).toContain("https://addin.elefant.legal/manifest.xml");
   });
 
+  it("saves the Terminal command's download into the wef folder", () => {
+    expect(macSection).toContain(`-o ${WEF_FOLDER}/manifest.xml`);
+  });
+
+  it("says where Word on Mac lists a sideloaded add-in", () => {
+    expect(macSection).toContain("**My Add-ins** → **Developer Add-ins**");
+  });
+
   it("does not promise a Home > Open Elefant button after the script runs", () => {
     expect(macInstaller).not.toContain("Open Elefant");
+  });
+
+  it("saves into the wef folder and says where to find the add-in", () => {
+    expect(macInstaller).toContain('WEF_DIR="$HOME/Library/Containers/com.microsoft.Word/Data/Documents/wef"');
+    expect(macInstaller).toContain("My Add-ins > Developer Add-ins");
+  });
+
+  it("keeps the linked install guide off the double-click script", () => {
+    const guide = read("agent_docs/2026-03-05-user-install-guide.md");
+    const macOption = guide.slice(guide.indexOf("## Option B"), guide.indexOf("## Option C"));
+    expect(macOption).not.toMatch(/install-mac\.command|Double-click|Open Elefant/);
   });
 });

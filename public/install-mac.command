@@ -12,7 +12,7 @@ mkdir -p "$WEF_DIR"
 curl -fsSL "$MANIFEST_URL" -o "$WEF_DIR/manifest.xml"
 
 if [ $? -eq 0 ]; then
-    echo "Done. Quit Word (Cmd+Q) and open it again, then choose Home > Add-ins and select Elefant Legal Assistant."
+    echo "Done. Quit Word (Cmd+Q) and open it again, then choose Home > Add-ins and select Elefant Legal Assistant (under My Add-ins > Developer Add-ins)."
 else
     echo "Download failed. Check your internet connection and try again."
     exit 1
