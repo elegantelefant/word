@@ -1,5 +1,5 @@
-// ABOUTME: Tests the downloadable installer scripts against the production manifest they install.
-// ABOUTME: Reads the scripts as text: nothing here runs them on Windows or macOS.
+// ABOUTME: Tests the downloadable Windows installer against the production manifest it installs.
+// ABOUTME: Reads the script as text: nothing here runs it on Windows.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
