@@ -1,6 +1,6 @@
 #!/bin/bash
-# Elefant Word Add-in Installer for Mac
-# Downloads the manifest to Word's sideload folder.
+# ABOUTME: Elefant Word Add-in Installer for Mac, for running from Terminal (`bash install-mac.command`):
+# ABOUTME: downloads the production manifest into the wef folder Word on Mac sideloads from.
 
 MANIFEST_URL="https://addin.elefant.legal/manifest.xml"
 WEF_DIR="$HOME/Library/Containers/com.microsoft.Word/Data/Documents/wef"
@@ -12,7 +12,7 @@ mkdir -p "$WEF_DIR"
 curl -fsSL "$MANIFEST_URL" -o "$WEF_DIR/manifest.xml"
 
 if [ $? -eq 0 ]; then
-    echo "Done! Restart Word, then click Home > Open Elefant."
+    echo "Done. Quit Word (Cmd+Q) and open it again, then choose Home > Add-ins and select Elefant Legal Assistant."
 else
     echo "Download failed. Check your internet connection and try again."
     exit 1
