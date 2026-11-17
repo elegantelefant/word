@@ -8,6 +8,9 @@ import { SettingsContext, loadSettings, saveSettings, type Settings } from "./st
 import { AuthContext } from "./store/auth";
 import { UIContext } from "./store/ui";
 import { useAuthProvider } from "./hooks/useAuth";
+import { API_URL } from "./api/client";
+
+const SIGN_UP_URL = `${new URL(API_URL).origin}/sign-up`;
 
 export function TeamsApp() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
@@ -35,8 +38,8 @@ export function TeamsApp() {
               <SettingsPanel onClose={() => setShowSettings(false)} />
             ) : (
               <>
-                <header className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
-                  <span className="text-sm font-semibold text-gray-800">Elefant</span>
+                {/* Teams already shows the app's name and icon above the tab, so no logo here. */}
+                <header className="flex items-center justify-end border-b border-gray-200 px-3 py-2.5">
                   <button
                     onClick={openSettings}
                     className="rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
@@ -44,8 +47,16 @@ export function TeamsApp() {
                     {auth.tier === "paid" ? "Settings" : "Settings & sign in"}
                   </button>
                 </header>
-                <main className="flex-1 overflow-y-auto p-3">
+                <main className="flex-1 space-y-3 overflow-y-auto p-3">
                   <PastedReviewPanel />
+                  {!auth.token && (
+                    <p className="text-[11px] text-gray-500">
+                      No Elefant account?{" "}
+                      <a href={SIGN_UP_URL} target="_blank" rel="noopener" className="text-blue-600 hover:underline">
+                        Sign up
+                      </a>
+                    </p>
+                  )}
                 </main>
               </>
             )}
