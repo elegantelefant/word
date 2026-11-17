@@ -6,7 +6,7 @@ import type { AuthContextValue, AuthState } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
 import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
-import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt } from "@/api/auth";
+import { getSavedToken, clearToken, openLoginDialog, saveToken, signInNeedsClick, tokenExpiresAt } from "@/api/auth";
 
 const REFRESH_LEAD_MS = 60_000;
 
@@ -62,7 +62,8 @@ export function useAuthProvider(): AuthContextValue {
   useEffect(() => {
     if (!state.token) return;
     const expiresAt = tokenExpiresAt(state.token);
-    if (expiresAt === null) return;
+    // A popup opened from a timer is blocked where sign-in needs a click; re-sign-in waits for the user.
+    if (expiresAt === null || signInNeedsClick()) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {

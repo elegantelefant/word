@@ -14,10 +14,6 @@ export function startTeams(): Promise<boolean> {
   return app.initialize().then(() => true, () => false);
 }
 
-export function isTeamsReady(): boolean {
-  return app.isInitialized();
-}
-
 export function parseSignInResult(result: string): string {
   let data: { token?: unknown; error?: unknown };
   try {

@@ -5,10 +5,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TeamsApp } from "./TeamsApp";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { startTeams } from "./lib/teams";
+import { setClickOnlySignIn } from "./api/auth";
+import { signInWithTeams, startTeams } from "./lib/teams";
 import "./index.css";
 
-void startTeams().then(() => {
+void startTeams().then((inTeams) => {
+  if (inTeams) setClickOnlySignIn(signInWithTeams);
   const root = document.getElementById("root");
   if (!root) throw new Error("Root element not found");
   createRoot(root).render(
