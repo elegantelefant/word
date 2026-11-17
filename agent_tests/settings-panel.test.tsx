@@ -117,6 +117,12 @@ describe("SettingsPanel", () => {
     expect(screen.getByText("Sign in to Elefant")).toBeInTheDocument();
   });
 
+  it("says why the account could not be loaded (#87)", () => {
+    renderSettings({}, { error: "Couldn't load your Elefant account. Check your connection and try again." });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Couldn't load your Elefant account. Check your connection and try again.");
+  });
+
   it("shows account info and sign-out for paid tier", () => {
     renderSettings({}, {
       tier: "paid",

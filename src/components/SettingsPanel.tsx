@@ -12,7 +12,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, updateSettings } = useSettings();
-  const { tier, user, login, logout } = useAuth();
+  const { tier, user, error, login, logout } = useAuth();
   const [keyVisible, setKeyVisible] = useState(false);
 
   return (
@@ -96,6 +96,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {/* Sign in for free users */}
         {tier === "free" && (
           <section className="border-t border-gray-100 pt-4">
+            {error && <p role="status" className="mb-2.5 text-xs text-red-600">{error}</p>}
             <p className="mb-2.5 text-xs leading-relaxed text-gray-500">Have an Elefant account? Sign in for full features.</p>
             <button
               onClick={() => void login()}
