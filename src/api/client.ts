@@ -79,17 +79,20 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
           ? data.detail
           : undefined;
 
+        if (detail && "reason" in detail && typeof detail.reason === "string") {
+          reason = detail.reason;
+        }
+
         // Nitro copies statusMessage ("backend_error", "Too Many Requests") into the top-level message,
         // so the backend's own words in data win, and a top-level copy of statusMessage is no message.
-        if (data && "message" in data && typeof data.message === "string") {
+        // A 5xx without a plan reason is the proxy's or the platform's own diagnostics: not for users.
+        if (res.status >= 500 && reason === undefined) {
+          // keep the generic message
+        } else if (data && "message" in data && typeof data.message === "string") {
           message = data.message;
         } else if ("message" in body && typeof body.message === "string"
           && !("statusMessage" in body && body.statusMessage === body.message)) {
           message = body.message;
-        }
-
-        if (detail && "reason" in detail && typeof detail.reason === "string") {
-          reason = detail.reason;
         }
       }
     } catch {
