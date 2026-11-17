@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { unzipSync, strFromU8 } from "fflate";
 import { teamsManifest, teamsPackage } from "../scripts/teams-package.mjs";
 
-const ORIGINS = { tabOrigin: "https://addin.example.test", apiOrigin: "https://api.example.test" };
+const ORIGINS = { tabOrigin: "https://addin.example.test" };
 
 function pngSize(bytes: Uint8Array): { width: number; height: number; colorType: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -24,18 +24,19 @@ describe("teamsManifest", () => {
     ]);
   });
 
-  it("lists the tab and API hosts as valid domains so the sign-in popup can run on both", () => {
-    expect(manifest.validDomains).toEqual(["addin.example.test", "api.example.test"]);
+  it("lists the tab host and Elefant's sign-in host as valid domains so the sign-in popup can run on both", () => {
+    expect(manifest.validDomains).toEqual(["addin.example.test", "elefant.legal"]);
   });
 
   it("carries the version it is given", () => {
     expect(manifest.version).toBe("1.2.3");
   });
 
-  it("declares the schema of the manifest version it uses", () => {
-    expect(manifest.$schema).toBe(
-      `https://developer.microsoft.com/json-schemas/teams/v${manifest.manifestVersion}/MicrosoftTeams.schema.json`,
-    );
+  it("uses manifest version 1.29, the newest generally available schema, and declares that schema", () => {
+    expect([manifest.manifestVersion, manifest.$schema]).toEqual([
+      "1.29",
+      "https://developer.microsoft.com/json-schemas/teams/v1.29/MicrosoftTeams.schema.json",
+    ]);
   });
 });
 
