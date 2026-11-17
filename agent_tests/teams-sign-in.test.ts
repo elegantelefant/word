@@ -6,7 +6,7 @@ import { parseSignInResult } from "@/lib/teams";
 
 // teams-js asks a CDN for its host-origin list on import; keep the test offline.
 vi.hoisted(() => {
-  globalThis.fetch = () => Promise.reject(new Error("offline"));
+  vi.stubGlobal("fetch", () => Promise.reject(new Error("offline")));
 });
 
 describe("parseSignInResult", () => {

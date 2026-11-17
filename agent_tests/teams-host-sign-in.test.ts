@@ -6,6 +6,8 @@ import { describe, it, expect, beforeAll, vi } from "vitest";
 import { getSavedToken, openLoginDialog, setClickOnlySignIn } from "@/api/auth";
 
 const TEAMS_ORIGIN = "https://teams.microsoft.com";
+// What a Teams web host answers to initialize: frame context, client type, runtime config, SDK version.
+const TEAMS_RUNTIME = JSON.stringify({ apiVersion: 4, supports: { pages: { tabs: {} }, teamsCore: {} } });
 
 interface HostMessage {
   id: number;
@@ -37,14 +39,14 @@ beforeAll(async () => {
   const host = frame.contentWindow!;
   host.postMessage = ((request: HostMessage) => {
     if (request.func === "initialize") {
-      setTimeout(() => answer(host, request, ["content", "web", "2.58.0", "2.58.0"]));
+      setTimeout(() => answer(host, request, ["content", "web", TEAMS_RUNTIME, "2.58.0"]));
     } else if (request.func === "authentication.authenticate") {
       authenticateCalls.push(request.args);
       setTimeout(() => answer(host, request, popupOutcome));
     }
   }) as Window["postMessage"];
-  // A top-level page with an opener is how teams-js finds its host when it is not framed.
-  Object.defineProperty(window, "opener", { value: host, configurable: true });
+  // The tab runs framed inside Teams: teams-js talks to window.parent.
+  Object.defineProperty(window, "parent", { value: host, configurable: true });
 
   const { startTeams, signInWithTeams } = await import("@/lib/teams");
   expect(await startTeams()).toBe(true);
@@ -52,10 +54,10 @@ beforeAll(async () => {
 });
 
 describe("Pro sign-in inside Teams (real teams-js, stand-in host)", () => {
-  it("opens the popup on the tab's own sign-in start page", async () => {
+  it("opens a 600 x 535 popup on the tab's own sign-in start page", async () => {
     popupOutcome = [true, JSON.stringify({ token: "pro.jwt.one" })];
     await openLoginDialog();
-    expect(authenticateCalls.at(-1)?.[0]).toBe(`${window.location.origin}/teams-sign-in.html`);
+    expect(authenticateCalls.at(-1)?.slice(0, 3)).toEqual([`${window.location.origin}/teams-sign-in.html`, 600, 535]);
   });
 
   it("keeps the token the callback page passed to notifySuccess", async () => {
@@ -72,5 +74,13 @@ describe("Pro sign-in inside Teams (real teams-js, stand-in host)", () => {
   it("reports a popup the user closed", async () => {
     popupOutcome = [false, "CancelledByUser"];
     await expect(openLoginDialog()).rejects.toThrow("Sign-in failed: CancelledByUser");
+  });
+
+  it("rejects a notifySuccess result without a token and keeps the previous session", async () => {
+    popupOutcome = [true, JSON.stringify({ token: "pro.jwt.kept" })];
+    await openLoginDialog();
+    popupOutcome = [true, JSON.stringify({ error: "token_unavailable" })];
+    await expect(openLoginDialog()).rejects.toThrow("Sign-in failed: token_unavailable");
+    expect(getSavedToken()).toBe("pro.jwt.kept");
   });
 });

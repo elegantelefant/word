@@ -26,7 +26,7 @@ const SIGN_IN_ORIGIN = "https://elefant.legal";
 
 const ACCENT_COLOR = "#1A3A4A";
 
-/** The manifest.json Teams reads; name and description are PROPOSED wording (agent_docs/2026-11-17-teams-app.md). */
+/** The manifest.json Teams reads. Approval status of its public wording: agent_docs/2026-11-17-teams-app.md. */
 export function teamsManifest({ version, tabOrigin }) {
   return {
     $schema: `https://developer.microsoft.com/json-schemas/teams/v${MANIFEST_VERSION}/MicrosoftTeams.schema.json`,
@@ -42,7 +42,7 @@ export function teamsManifest({ version, tabOrigin }) {
     name: { short: "Elefant", full: "Elefant Legal Assistant" },
     description: {
       short: "AI-powered legal document review and analysis",
-      // First two sentences approved by the owner 17 Nov 2026; the rest is PROPOSED (store requirements).
+      // The sign-up and support links are the same pages the tab links to (TeamsApp, PastedReviewPanel).
       full: [
         "Paste contract text into Elefant and get a summary and the issues worth a lawyer's attention.",
         "Use your own Gemini API key, or sign in with an Elefant account.",
