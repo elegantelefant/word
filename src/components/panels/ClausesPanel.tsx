@@ -52,7 +52,7 @@ function FreeClauses() {
         unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
       />
       {upsell && !token && (
-        <p className="text-xs text-gray-500">Signed-in Elefant drafting uses your clause library and Elefant's models.</p>
+        <p className="text-xs text-gray-500">Signed in, Elefant drafts with its own models. Paid plans add your clause library.</p>
       )}
       <UpgradePrompt feature="Clause search" />
     </div>

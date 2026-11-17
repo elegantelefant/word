@@ -68,7 +68,7 @@ describe("ClausesPanel — signed out, own Gemini key", () => {
 
   it("says once, quietly, that signed-in drafting is better", () => {
     renderFree();
-    expect(screen.getByText("Signed-in Elefant drafting uses your clause library and Elefant's models.")).toBeInTheDocument();
+    expect(screen.getByText("Signed in, Elefant drafts with its own models. Paid plans add your clause library.")).toBeInTheDocument();
   });
 
   it("says drafting needs Word when the pane runs outside Word", async () => {
@@ -88,11 +88,11 @@ describe("ClausesPanel — signed out, own Gemini key", () => {
         </AuthContext>
       </SettingsContext>,
     );
-    expect(screen.queryByText(/Signed-in Elefant drafting/)).toBeNull();
+    expect(screen.queryByText(/Signed in, Elefant drafts with its own models/)).toBeNull();
   });
 
   it("drops that line where upsell is off", () => {
     renderFree({ upsell: false });
-    expect(screen.queryByText(/Signed-in Elefant drafting/)).toBeNull();
+    expect(screen.queryByText(/Signed in, Elefant drafts with its own models/)).toBeNull();
   });
 });
