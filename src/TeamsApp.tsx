@@ -9,6 +9,7 @@ import { AuthContext } from "./store/auth";
 import { UIContext } from "./store/ui";
 import { useAuthProvider } from "./hooks/useAuth";
 import { API_URL } from "./api/client";
+import { PopOutLink } from "./components/PopOutLink";
 
 const SIGN_UP_URL = `${new URL(API_URL).origin}/sign-up`;
 
@@ -49,12 +50,10 @@ export function TeamsApp() {
                 </header>
                 <main className="flex-1 space-y-3 overflow-y-auto p-3">
                   <PastedReviewPanel />
-                  {!auth.token && (
+                  {!auth.token && !auth.loading && (
                     <p className="text-[11px] text-gray-500">
                       No Elefant account?{" "}
-                      <a href={SIGN_UP_URL} target="_blank" rel="noopener" className="text-blue-600 hover:underline">
-                        Sign up
-                      </a>
+                      <PopOutLink href={SIGN_UP_URL}>Sign up</PopOutLink>
                     </p>
                   )}
                 </main>
