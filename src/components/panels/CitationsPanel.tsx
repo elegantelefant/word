@@ -1,7 +1,7 @@
 // ABOUTME: Citations tab — checks the selection (or the whole document) through Elefant's citation-check job.
 // ABOUTME: Labels each citation in plain words and can show it in the document; gated by the plan's citation limits.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/store/auth";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -32,16 +32,19 @@ const NOT_IN_DOCUMENT = "Couldn't find this citation in the document.";
 export function CitationsPanel() {
   const { tier, token, user } = useAuth();
 
-  if (tier !== "paid" || !token) return <UpgradePrompt feature="Citation checking" />;
-  if (!planIncludes(user, "citationCheck")) return <UpgradePrompt feature="Citation checking" />;
+  if (tier !== "paid" || !token || !planIncludes(user, "citationCheck")) return <UpgradePrompt feature="Citation checking" />;
 
   return <CitationsContent token={token} />;
 }
 
 function summarise(findings: CitationFinding[]): string {
+  if (findings.length === 0) return "No citations found in the text.";
   const count = (status: CitationStatus) => findings.filter((f) => f.status === status).length;
-  return `${findings.length} citation${findings.length === 1 ? "" : "s"}: ${count("verified")} found, ${count("mismatch")} doesn't match, ${count("hallucinated")} not found, ${count("uncertain")} unsure.`;
+  const counts = (Object.keys(STATUS_LABELS) as CitationStatus[]).map((s) => `${STATUS_LABELS[s]} ${count(s)}`).join(", ");
+  return `Checked ${findings.length} citation${findings.length === 1 ? "" : "s"}: ${counts}.`;
 }
+
+const isWebAddress = (url: string | null): url is string => !!url && /^https?:\/\//i.test(url);
 
 function CitationsContent({ token }: { token: string }) {
   const upsell = useUpsell();
@@ -50,6 +53,10 @@ function CitationsContent({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [planLimit, setPlanLimit] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
+  const inFlight = useRef<AbortController | null>(null);
+
+  // The pane stays mounted when hidden, so only leaving the add-in stops a running check.
+  useEffect(() => () => inFlight.current?.abort(), []);
 
   async function handleCheck() {
     if (!isOfficeReady()) {
@@ -68,8 +75,10 @@ function CitationsContent({ token }: { token: string }) {
         setError(NO_TEXT);
         return;
       }
-      setFindings(await checkCitations(text, token));
+      inFlight.current = new AbortController();
+      setFindings(await checkCitations(text, token, inFlight.current.signal));
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Citation check failed");
       setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
@@ -78,7 +87,11 @@ function CitationsContent({ token }: { token: string }) {
   }
 
   async function handleShow(citation: string) {
-    setMissing((await selectText(citation)) ? null : citation);
+    try {
+      setMissing((await selectText(citation)) ? null : citation);
+    } catch {
+      setMissing(citation);
+    }
   }
 
   return (
@@ -109,7 +122,7 @@ function CitationsContent({ token }: { token: string }) {
 
       {findings && (
         <div className="space-y-2">
-          <p className="text-xs text-gray-600">{summarise(findings)}</p>
+          <p role="status" className="text-xs text-gray-600">{summarise(findings)}</p>
           <ul className="space-y-1.5">
             {findings.map((finding, i) => (
               <li key={`${finding.citation}-${i}`} className="rounded border border-gray-200 px-2 py-1.5 text-xs">
@@ -128,8 +141,8 @@ function CitationsContent({ token }: { token: string }) {
                   >
                     Show in document
                   </button>
-                  {finding.sourceUrl && (
-                    <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {isWebAddress(finding.sourceUrl) && (
+                    <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label={`Source for ${finding.citation}`} className="text-blue-600 hover:underline">
                       Source
                     </a>
                   )}

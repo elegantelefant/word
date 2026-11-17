@@ -38,3 +38,23 @@ describe("selectText (#106)", () => {
     expect(word.searched[0]).toHaveLength(255);
   });
 });
+
+describe("selectText search text (#106)", () => {
+  it("escapes Word's caret codes so ^ is searched literally", async () => {
+    const word = fakeWord(1);
+    await selectText("Smith ^p v Jones");
+    expect(word.searched[0]).toBe("Smith ^^p v Jones");
+  });
+
+  it("collapses spaces, tabs, line breaks and no-break spaces to single spaces", async () => {
+    const word = fakeWord(1);
+    await selectText("[2020] SGCA\n 1");
+    expect(word.searched[0]).toBe("[2020] SGCA 1");
+  });
+
+  it("never cuts a character in two when shortening", async () => {
+    const word = fakeWord(1);
+    await selectText("a".repeat(254) + "\u{1F600}" + "b");
+    expect(word.searched[0]).toBe("a".repeat(254));
+  });
+});

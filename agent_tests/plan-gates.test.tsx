@@ -202,7 +202,7 @@ describe("Citations tab (#106)", () => {
   it("is in the tab bar and locked for a plan without citation checks", () => {
     const user = { ...LITE_ME, entitlements: { ...LITE_ME.entitlements, citationChecksMonthly: 0, citationChecksDaily: 0 } } as unknown as MeResponse;
     renderSignedIn(<Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}><div /></Layout>, user);
-    expect(screen.getByRole("button", { name: /Citations/ })).toHaveAccessibleName("Citations, needs a paid plan");
+    expect(screen.getByRole("button", { name: /Citations/ })).toHaveAccessibleName("Citations, not in your plan");
   });
 
   it("is unlocked for a plan with citation checks", () => {

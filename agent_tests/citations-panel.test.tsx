@@ -64,7 +64,7 @@ describe("CitationsPanel (#106)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
 
-    expect(await screen.findByText("4 citations: 1 found, 1 doesn't match, 1 not found, 1 unsure.")).toBeInTheDocument();
+    expect(await screen.findByText("Checked 4 citations: Found 1, Doesn't match 1, Not found 1, Unsure 1.")).toBeInTheDocument();
     for (const [citation, label] of [["[2020] SGCA 1", "Found"], ["[2031] SGHC 999", "Not found"], ["s 2 Evidence Act", "Doesn't match"], ["Re X", "Unsure"]]) {
       expect(within(screen.getByText(citation).closest("li")!).getByText(label)).toBeInTheDocument();
     }
@@ -109,5 +109,50 @@ describe("CitationsPanel (#106)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
     await screen.findByText(/^This isn't included in your current plan\./);
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("CitationsPanel edge cases (#106)", () => {
+  it("says so when the text has no citations, and reads one citation in the singular", async () => {
+    jobFlow([]);
+    const { unmount } = renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    expect(await screen.findByText("No citations found in the text.")).toBeInTheDocument();
+    unmount();
+
+    jobFlow([{ citation: "Re X", status: "uncertain" }]);
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    expect(await screen.findByText("Checked 1 citation: Found 0, Doesn't match 0, Not found 0, Unsure 1.")).toBeInTheDocument();
+  });
+
+  it("checks the selected text when there is one", async () => {
+    const { getSelectedText } = await import("@/lib/office");
+    vi.mocked(getSelectedText).mockResolvedValueOnce("Only [2020] SGCA 1 here.");
+    const fetchSpy = jobFlow([]);
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    await screen.findByText("No citations found in the text.");
+    expect(JSON.parse(String(fetchSpy.mock.calls[0]![1]?.body))).toEqual({ text: "Only [2020] SGCA 1 here." });
+  });
+
+  it("links a source only when it is a web address", async () => {
+    jobFlow([
+      { citation: "A", status: "verified", sourceUrl: "https://elefant.legal/c/1" },
+      { citation: "B", status: "verified", sourceUrl: "javascript:alert(1)" },
+    ]);
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    await screen.findByText("A");
+    expect(screen.getByRole("link", { name: "Source for A" })).toHaveAttribute("href", "https://elefant.legal/c/1");
+    expect(screen.queryByRole("link", { name: "Source for B" })).toBeNull();
+  });
+
+  it("shows no plans link for an error a plan would not fix", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("boom", { status: 500 }));
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Check citations" }));
+    const line = await screen.findByText("Something went wrong while contacting Elefant. Please try again.");
+    expect(within(line).queryByRole("link")).toBeNull();
   });
 });
