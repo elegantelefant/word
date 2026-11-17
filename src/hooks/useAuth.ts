@@ -6,9 +6,11 @@ import type { AuthContextValue, AuthState } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
 import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
+import { ApiError } from "@/api/client";
 import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt } from "@/api/auth";
 
 const REFRESH_LEAD_MS = 60_000;
+const ACCOUNT_LOAD_FAILED = "Couldn't load your Elefant account. Check your connection and try again.";
 
 function determineTier(me: MeResponse): Tier {
   if (me.org?.accountType === "commercial") return "paid";
@@ -46,8 +48,14 @@ export function useAuthProvider(): AuthContextValue {
       if (!isCurrent()) return;
       const tier = determineTier(user);
       setState({ token, user, tier, loading: false });
-    } catch {
-      if (isCurrent()) logout();
+    } catch (err) {
+      if (!isCurrent()) return;
+      // Only a 401 means the token is bad. Offline, 429 and 5xx keep it, so the next open retries (#87).
+      if (err instanceof ApiError && err.isAuthError) {
+        logout();
+        return;
+      }
+      setState({ ...AUTH_INITIAL, error: ACCOUNT_LOAD_FAILED });
     }
   }, [logout]);
 

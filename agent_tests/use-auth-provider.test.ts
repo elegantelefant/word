@@ -180,11 +180,12 @@ describe("useAuthProvider", () => {
     expect(result.current.tier).toBe("free");
   });
 
-  it("clears token when getMe fails", async () => {
+  it("clears token when getMe answers 401", async () => {
     const { getMe } = await import("@/api/account");
+    const { ApiError } = await import("@/api/client");
     const { clearToken, getSavedToken } = await import("@/api/auth");
     vi.mocked(getSavedToken).mockReturnValue("bad-tok");
-    vi.mocked(getMe).mockRejectedValue(new Error("401 Unauthorized"));
+    vi.mocked(getMe).mockRejectedValue(new ApiError(401, "Session expired. Please sign in again."));
 
     const { result } = renderHook(() => useAuthProvider());
 
