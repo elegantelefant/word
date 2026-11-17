@@ -49,6 +49,15 @@ export default defineConfig({
       "@google/adk": resolve(__dirname, "src/lib/adk-shim.ts"),
     },
   },
+  build: {
+    rollupOptions: {
+      // The Word task pane and the Teams personal tab: one build, two pages.
+      input: {
+        main: resolve(__dirname, "index.html"),
+        teams: resolve(__dirname, "teams.html"),
+      },
+    },
+  },
   server: {
     https: devCerts(),
     port: 3000,
