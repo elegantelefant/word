@@ -2,7 +2,7 @@
 // ABOUTME: The host answers the way Teams does after the Elefant callback page calls notifySuccess / notifyFailure.
 // @vitest-environment-options {"url": "https://addin.elefant.legal/teams.html"}
 
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import { getSavedToken, openLoginDialog, setClickOnlySignIn } from "@/api/auth";
 
 const TEAMS_ORIGIN = "https://teams.microsoft.com";
@@ -17,7 +17,9 @@ interface HostMessage {
 }
 
 // What the host hands back when the popup's last page reports: [succeeded, result string].
-let popupOutcome: [boolean, string] = [true, ""];
+// null: the popup is still open (the user has not clicked Continue on the callback page yet).
+let popupOutcome: [boolean, string] | null = [true, ""];
+let finishPopup: (outcome: [boolean, string]) => void = () => {};
 const authenticateCalls: unknown[][] = [];
 
 function answer(host: Window, request: HostMessage, args: unknown[]) {
@@ -42,7 +44,11 @@ beforeAll(async () => {
       setTimeout(() => answer(host, request, ["content", "web", TEAMS_RUNTIME, "2.58.0"]));
     } else if (request.func === "authentication.authenticate") {
       authenticateCalls.push(request.args);
-      setTimeout(() => answer(host, request, popupOutcome));
+      finishPopup = (outcome) => answer(host, request, outcome);
+      if (popupOutcome) {
+        const outcome = popupOutcome;
+        setTimeout(() => finishPopup(outcome));
+      }
     }
   }) as Window["postMessage"];
   // The tab runs framed inside Teams: teams-js talks to window.parent.
@@ -53,7 +59,25 @@ beforeAll(async () => {
   setClickOnlySignIn(signInWithTeams);
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("Pro sign-in inside Teams (real teams-js, stand-in host)", () => {
+  it("waits as long as the user takes to click Continue on the Elefant callback page", async () => {
+    const USER_PAUSE_MS = 10 * 60_000;
+    vi.useFakeTimers();
+    popupOutcome = null;
+    let settled = false;
+    const signIn = openLoginDialog().finally(() => { settled = true; });
+
+    await vi.advanceTimersByTimeAsync(USER_PAUSE_MS);
+    expect(settled).toBe(false);
+
+    finishPopup([true, JSON.stringify({ token: "pro.jwt.after.continue" })]);
+    await expect(signIn).resolves.toBe("pro.jwt.after.continue");
+  });
+
   it("opens a 600 x 535 popup on the tab's own sign-in start page", async () => {
     popupOutcome = [true, JSON.stringify({ token: "pro.jwt.one" })];
     await openLoginDialog();
