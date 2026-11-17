@@ -5,3 +5,4 @@ dist/
 .vite/
 .cert/
 *.tsbuildinfo
+teams/dist/
