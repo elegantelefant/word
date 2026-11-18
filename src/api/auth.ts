@@ -1,5 +1,5 @@
-// ABOUTME: Auth module — opens Office dialog for Elefant login, exchanges for JWT.
-// ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
+// ABOUTME: Auth module — opens Office dialog (or a host's registered popup, e.g. Teams) for Elefant login.
+// ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync); keeps the JWT in localStorage.
 
 import { isOfficeReady } from "@/lib/office";
 import { API_URL } from "./client";
@@ -43,12 +43,31 @@ export function tokenExpiresAt(token: string): number | null {
   }
 }
 
+// A host whose sign-in popup may only open from a user's click (Teams: lib/teams.ts) registers it
+// here, so the Word pane never loads that host's SDK and the refresh timer leaves re-sign-in to the user.
+let clickOnlySignIn: (() => Promise<string>) | null = null;
+
+export function setClickOnlySignIn(signIn: (() => Promise<string>) | null): void {
+  clickOnlySignIn = signIn;
+}
+
+export function signInNeedsClick(): boolean {
+  return clickOnlySignIn !== null;
+}
+
 /**
  * Opens the Elefant login page in an Office dialog.
  * The dialog posts back a token via Office.context.ui.messageParent().
  * Falls back to window.open() outside Office.
+ * A host that registered a click-only sign-in (Teams) uses that instead.
  */
 export function openLoginDialog(): Promise<string> {
+  if (clickOnlySignIn) {
+    return clickOnlySignIn().then((token) => {
+      saveToken(token);
+      return token;
+    });
+  }
   if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
     return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }

@@ -337,3 +337,30 @@ describe("useAuthProvider token refresh", () => {
     expect(result.current.loading).toBe(false);
   });
 });
+
+describe("useAuthProvider in a host where sign-in needs a click (Teams)", () => {
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
+    vi.mocked(getMe).mockResolvedValue(PAID_ME);
+    const { setClickOnlySignIn } = await import("@/api/auth");
+    setClickOnlySignIn(async () => "teams.jwt.token");
+  });
+
+  afterEach(async () => {
+    const { setClickOnlySignIn } = await import("@/api/auth");
+    setClickOnlySignIn(null);
+  });
+
+  it("does not reopen sign-in on a timer, so the user stays signed in until the token expires", async () => {
+    const saved = tokenExpiringIn(3_600_000);
+    vi.mocked(getSavedToken).mockReturnValue(saved);
+    vi.mocked(openLoginDialog).mockResolvedValue(tokenExpiringIn(7_200_000));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_599_000); });
+    expect(openLoginDialog).not.toHaveBeenCalled();
+    expect(result.current.token).toBe(saved);
+  });
+});

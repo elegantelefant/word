@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "teams:package": "node scripts/teams-package.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "check:contract": "node scripts/check-contract-drift.mjs",
@@ -20,6 +21,7 @@
   "dependencies": {
     "@google/adk": "^0.4.0",
     "@microsoft/office-js": "^1.1.110",
+    "@microsoft/teams-js": "2.58.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zod": "^4.3.6"
@@ -33,6 +35,9 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
+    "ajv": "8.18.0",
+    "ajv-draft-04": "1.0.0",
+    "fflate": "0.8.2",
     "jsdom": "^28.1.0",
     "office-addin-dev-certs": "^2.0.6",
     "orval": "7.13.2",

@@ -6,7 +6,7 @@ import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
 import { reviewFree, reviewPaid, type FreeReviewResponse } from "@/api/review";
-import type { ReviewIssue, ReviewResponse } from "@/types/api";
+import type { ReviewIssue, ReviewResponse, Tier } from "@/types/api";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
 import { ApiError } from "@/api/client";
@@ -30,6 +30,16 @@ function freeReviewView(result: FreeReviewResponse): ReviewView {
       suggestion: issue.suggestion || undefined,
     })),
   };
+}
+
+/** Runs one review on the tier's service: Elefant when signed in to Pro, the user's Gemini key otherwise. */
+export async function reviewText(
+  text: string,
+  { tier, token, apiKey, model, instructions }: { tier: Tier; token: string | null; apiKey: string; model: string; instructions: string },
+): Promise<ReviewView> {
+  return tier === "paid" && token
+    ? reviewPaid(text, token, instructions || undefined)
+    : freeReviewView(await reviewFree(text, apiKey, model, instructions || undefined));
 }
 
 type Scope = "selection" | "document";
@@ -87,10 +97,7 @@ export function ReviewPanel() {
         return;
       }
 
-      const response: ReviewView =
-        tier === "paid" && token
-          ? await reviewPaid(text, token, instructions || undefined)
-          : freeReviewView(await reviewFree(text, settings.apiKey, settings.model, instructions || undefined));
+      const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions });
 
       setResult(response);
 
@@ -192,7 +199,8 @@ export function ReviewPanel() {
   );
 }
 
-export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
+/** Without onInsert there is no document to insert into, so suggestions show no Insert button. */
+export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert?: (text: string) => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
@@ -212,7 +220,7 @@ export function ReviewResults({ result, onInsert }: { result: ReviewView; onInse
   );
 }
 
-function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (text: string) => void }) {
+function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert?: (text: string) => void }) {
   const category = issue.category || "other";
   const suggestion = issue.suggestion;
   return (
@@ -240,12 +248,14 @@ function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (tex
       {suggestion && (
         <div className="mt-1.5 flex items-start gap-1">
           <p className="flex-1 text-xs text-green-700">{suggestion}</p>
-          <button
-            onClick={() => onInsert(suggestion)}
-            className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
-          >
-            Insert
-          </button>
+          {onInsert && (
+            <button
+              onClick={() => onInsert(suggestion)}
+              className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
+            >
+              Insert
+            </button>
+          )}
         </div>
       )}
     </div>
