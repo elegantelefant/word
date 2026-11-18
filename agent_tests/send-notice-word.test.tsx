@@ -4,6 +4,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { App } from "@/App";
+import { FullAnalysisPanel } from "@/components/panels/FullAnalysisPanel";
+import { SendNoticeProvider } from "@/components/SendNotice";
+import { AuthContext, AUTH_INITIAL } from "@/store/auth";
 import { runReview } from "@/lib/agent";
 
 vi.mock("@/lib/office", () => ({
@@ -45,5 +48,20 @@ describe("Word review send notice", () => {
 
     expect(await screen.findByRole("status", {}, { timeout: 2000 })).toHaveTextContent("Sending to Google with your key");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("Word full analysis send notice", () => {
+  it("asks before sending the text to Elefant", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(
+      <AuthContext value={{ ...AUTH_INITIAL, token: "tok", tier: "paid", login: async () => {}, logout: () => {} }}>
+        <SendNoticeProvider><FullAnalysisPanel /></SendNoticeProvider>
+      </AuthContext>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Run Full Analysis" }));
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent(/Elefant/);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -18,15 +18,16 @@ export function App() {
   const [activeTab, setActiveTab] = useState<TabId>("review");
 
   return (
-    <Providers>
-      {(openSettings) => (
-        <SendNoticeProvider>
+    // Outside Providers, so opening Settings never strands a send waiting on Continue.
+    <SendNoticeProvider>
+      <Providers>
+        {(openSettings) => (
           <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={openSettings}>
             <TabContent activeTab={activeTab} />
           </Layout>
-        </SendNoticeProvider>
-      )}
-    </Providers>
+        )}
+      </Providers>
+    </SendNoticeProvider>
   );
 }
 
