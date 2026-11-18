@@ -28,11 +28,14 @@ const STATUS_STYLES: Record<CitationStatus, string> = {
 const OUTSIDE_WORD = "Checking citations needs Microsoft Word: open Elefant from the Word ribbon.";
 const NO_TEXT = "This document doesn't have any text to check.";
 const NOT_IN_DOCUMENT = "Couldn't find this citation in the document.";
+const NEEDS_ACCOUNT = "Citation checking needs an Elefant account. Sign in from Settings.";
 
 export function CitationsPanel() {
   const { tier, token, user } = useAuth();
 
-  if (tier !== "paid" || !token || !planIncludes(user, "citationCheck")) return <UpgradePrompt feature="Citation checking" />;
+  // Signed out, the line asks for an account rather than pointing at plans (owner, 17 Nov).
+  if (tier !== "paid" || !token) return <p className="py-6 text-center text-xs text-gray-500">{NEEDS_ACCOUNT}</p>;
+  if (!planIncludes(user, "citationCheck")) return <UpgradePrompt feature="Citation checking" />;
 
   return <CitationsContent token={token} />;
 }

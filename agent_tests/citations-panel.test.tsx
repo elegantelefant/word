@@ -42,7 +42,7 @@ beforeEach(() => {
 describe("CitationsPanel (#106)", () => {
   it("asks a signed-out user to sign in, quietly", () => {
     const { container } = renderPanel({ signedIn: false });
-    expect(container.textContent).toBe("Citation checking comes with Elefant's paid plans. Sign in from Settings, or see plans.");
+    expect(container.textContent).toBe("Citation checking needs an Elefant account. Sign in from Settings.");
   });
 
   it("tells a plan without citation checks, quietly, and calls nothing", () => {
