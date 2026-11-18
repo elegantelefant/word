@@ -31,8 +31,9 @@ function getTabs(): Tab[] {
 }
 
 interface LayoutProps {
-  activeTab: TabId;
-  onTabChange: (tab: TabId) => void;
+  // Without onTabChange there is no tab bar (Outlook's pane shows its actions directly).
+  activeTab?: TabId;
+  onTabChange?: (tab: TabId) => void;
   onSettingsClick: () => void;
   children: ReactNode;
 }
@@ -56,7 +57,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         </button>
       </header>
 
-      <nav className="flex border-b border-gray-200">
+      {onTabChange && <nav className="flex border-b border-gray-200">
         {getTabs().map((tab) => {
           // Mammoth and citation checks depend on the plan, so their locks follow /me, not sign-in (#98, #106).
           const locked = tab.paidOnly && (tier !== "paid" || (tab.feature !== undefined && !planIncludes(user, tab.feature)));
@@ -87,7 +88,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
             </button>
           );
         })}
-      </nav>
+      </nav>}
 
       <main className="flex-1 overflow-y-auto p-3">{children}</main>
 
