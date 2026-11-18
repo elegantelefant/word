@@ -70,7 +70,8 @@ describe("first send on this device", () => {
     await screen.findByText("Acme asks for signature by Friday.");
 
     summarise();
-    await vi.waitFor(() => expect(vi.mocked(runReview)).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Acme asks for signature by Friday.")).toBeInTheDocument();
+    expect(vi.mocked(runReview)).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
