@@ -120,12 +120,50 @@ describe("every send", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Google/);
 
     act(() => vi.advanceTimersByTime(SEND_TOAST_MS));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("is a calm 2 to 3 seconds", () => {
     expect(SEND_TOAST_MS).toBeGreaterThanOrEqual(2000);
     expect(SEND_TOAST_MS).toBeLessThanOrEqual(3000);
+  });
+});
+
+describe("the one-time screen under pressure", () => {
+  function Sender({ to, onSent }: { to: "google" | "elefant"; onSent: () => void }) {
+    const announce = useSendNotice();
+    return <button onClick={() => void announce(to).then(onSent)}>send</button>;
+  }
+
+  it("lets every waiting send through on one Continue", async () => {
+    const sent = vi.fn();
+    render(<SendNoticeProvider><Sender to="google" onSent={sent} /><Sender to="google" onSent={sent} /></SendNoticeProvider>);
+
+    for (const button of screen.getAllByRole("button", { name: "send" })) fireEvent.click(button);
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(2));
+  });
+
+  it("still sends, and asks only once this session, when the browser blocks storage", async () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("blocked", "SecurityError"); });
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new DOMException("blocked", "SecurityError"); });
+    const sent = vi.fn();
+    render(<SendNoticeProvider><Sender to="elefant" onSent={sent} /></SendNoticeProvider>);
+
+    fireEvent.click(screen.getByRole("button", { name: "send" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "send" }));
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("puts the keyboard on Continue", async () => {
+    render(<SendNoticeProvider><Sender to="google" onSent={() => {}} /></SendNoticeProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "send" }));
+    expect(await screen.findByRole("button", { name: "Continue" })).toHaveFocus();
   });
 });
 

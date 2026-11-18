@@ -11,15 +11,16 @@ import { MAIL_HOST } from "./lib/mailbox";
 export function OutlookApp() {
   return (
     <HostContext value={MAIL_HOST}>
-      <Providers>
-        {(openSettings) => (
-          <SendNoticeProvider>
+      {/* Outside Providers, so opening Settings never strands a send waiting on Continue. */}
+      <SendNoticeProvider>
+        <Providers>
+          {(openSettings) => (
             <Layout onSettingsClick={openSettings}>
               <MailPanel />
             </Layout>
-          </SendNoticeProvider>
-        )}
-      </Providers>
+          )}
+        </Providers>
+      </SendNoticeProvider>
     </HostContext>
   );
 }
