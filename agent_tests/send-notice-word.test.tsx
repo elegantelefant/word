@@ -1,0 +1,49 @@
+// ABOUTME: Tests that Word's pane tells people where their text goes, the same way Outlook's does.
+// ABOUTME: Real App, panels and provider; only lib/office (Word), /me and the BYOK agent call are replaced.
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { App } from "@/App";
+import { runReview } from "@/lib/agent";
+
+vi.mock("@/lib/office", () => ({
+  isOfficeReady: vi.fn(() => true),
+  getSelectedText: vi.fn(async () => "The Supplier shall deliver the Goods on time."),
+  getDocumentBody: vi.fn(async () => ""),
+  insertText: vi.fn(),
+  selectText: vi.fn(),
+}));
+
+vi.mock("@/lib/agent", () => ({
+  runReview: vi.fn(async () => ({ summary: "Delivery is unconditional.", issues: [] })),
+  runDraft: vi.fn(),
+  runReply: vi.fn(),
+}));
+
+beforeEach(() => {
+  localStorage.clear();
+  localStorage.setItem("elefant_settings", JSON.stringify({ apiKey: "key", model: "gemini-3.8-flash" }));
+  vi.mocked(runReview).mockClear();
+});
+
+describe("Word review send notice", () => {
+  it("asks once before the first free review, naming Google, and sends after Continue", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent(/Google/);
+    expect(vi.mocked(runReview)).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("Delivery is unconditional.")).toBeInTheDocument();
+  });
+
+  it("shows the toast on a later review without asking again", async () => {
+    localStorage.setItem("elefant_send_ack_google", "1");
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
+
+    expect(await screen.findByRole("status", {}, { timeout: 2000 })).toHaveTextContent("Sending to Google with your key");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

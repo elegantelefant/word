@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Layout, type TabId } from "./components/Layout";
 import { Providers } from "./components/Providers";
+import { SendNoticeProvider } from "./components/SendNotice";
 import { ReviewPanel } from "./components/panels/ReviewPanel";
 import { ClausesPanel } from "./components/panels/ClausesPanel";
 import { MammothPanel } from "./components/panels/MammothPanel";
@@ -19,9 +20,11 @@ export function App() {
   return (
     <Providers>
       {(openSettings) => (
-        <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={openSettings}>
-          <TabContent activeTab={activeTab} />
-        </Layout>
+        <SendNoticeProvider>
+          <Layout activeTab={activeTab} onTabChange={setActiveTab} onSettingsClick={openSettings}>
+            <TabContent activeTab={activeTab} />
+          </Layout>
+        </SendNoticeProvider>
       )}
     </Providers>
   );

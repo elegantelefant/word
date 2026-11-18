@@ -12,6 +12,7 @@ import { addToLocalHistory } from "@/lib/history";
 import { ApiError } from "@/api/client";
 import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
+import { useSendNotice } from "@/components/SendNotice";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
 export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
@@ -58,6 +59,7 @@ export function ReviewPanel() {
   const [error, setError] = useState<string | null>(null);
   const [planLimit, setPlanLimit] = useState(false);
   const upsell = useUpsell();
+  const announce = useSendNotice();
   const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
@@ -87,8 +89,10 @@ export function ReviewPanel() {
         return;
       }
 
+      const paid = tier === "paid" && !!token;
+      await announce(paid ? "elefant" : "google");
       const response: ReviewView =
-        tier === "paid" && token
+        paid && token
           ? await reviewPaid(text, token, instructions || undefined)
           : freeReviewView(await reviewFree(text, settings.apiKey, settings.model, instructions || undefined));
 

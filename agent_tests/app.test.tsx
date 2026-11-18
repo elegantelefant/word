@@ -125,6 +125,8 @@ describe("App", () => {
       },
     });
 
+    // Already told where the text goes; the one-time screen has its own tests (send-notice-word).
+    localStorage.setItem("elefant_send_ack_elefant", "1");
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
     expect(await screen.findByText("Liability is unlimited.")).toBeInTheDocument();
