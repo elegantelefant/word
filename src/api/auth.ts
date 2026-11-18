@@ -2,6 +2,7 @@
 // ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
 
 import { isOfficeReady } from "@/lib/office";
+import { isMailboxReady } from "@/lib/mailbox";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
@@ -49,7 +50,7 @@ export function tokenExpiresAt(token: string): number | null {
  * Falls back to window.open() outside Office.
  */
 export function openLoginDialog(): Promise<string> {
-  if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
+  if ((isOfficeReady() || isMailboxReady()) && Office.context?.ui?.displayDialogAsync) {
     return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }
 
