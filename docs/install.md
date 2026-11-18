@@ -18,7 +18,7 @@ Pick the section below that matches the version of Word you use:
 
 ## Word on the web
 
-1. Download the Elefant file: <https://addin.elefant.legal/manifest.xml>. Save it to your computer. Don't open it in Word.
+1. Download the Elefant file. Opening the link just shows the file's text, so right-click (Control-click on Mac) this link: <https://addin.elefant.legal/manifest.xml>, and choose **Save Link As…** in Chrome or Edge, or **Download Linked File** in Safari, saving it as `manifest.xml`. If the file opens as text in your browser instead, use **File → Save Page As** (Cmd+S or Ctrl+S) and save the page as `manifest.xml`. Don't open it in Word.
 2. Open a document in Word on the web.
 3. On the **Home** tab, select **Add-ins**, then **More Add-ins**.
 4. Select **My Add-ins**, then **Manage My Add-ins**, then **Upload My Add-in**.
@@ -32,7 +32,7 @@ Elefant now appears in Word.
 
 Word for Mac has no upload option, so you place the Elefant file in a special folder instead.
 
-1. Download the Elefant file: <https://addin.elefant.legal/manifest.xml>.
+1. Download the Elefant file. Opening the link just shows the file's text, so Control-click this link: <https://addin.elefant.legal/manifest.xml>, and choose **Save Link As…** in Chrome, or **Download Linked File** in Safari, saving it as `manifest.xml`. If the file opens as text in your browser instead, press Cmd+S and save the page as `manifest.xml`.
 
    > **Don't double-click the downloaded file.** Word will open it as a document. If that happens, close it without saving.
 
@@ -47,9 +47,15 @@ Word for Mac has no upload option, so you place the Elefant file in a special fo
 
 4. Copy `manifest.xml` into the `wef` folder.
 5. Quit Word completely (**Word → Quit Word**, or Cmd+Q), then open it again.
-6. Open a document, then select **Add-ins → My Add-ins → Developer Add-ins → Elefant**.
+6. Open a document, then on the **Home** tab, select **Add-ins**, then **Elefant Legal Assistant** under **Developer Add-ins**.
 
 After you open Elefant for the first time, an **Open Elefant** button appears on the **Home** tab. Use it next time.
+
+> **Optional:** Comfortable with Terminal? This one command does steps 1–4:
+>
+> ```
+> mkdir -p ~/Library/Containers/com.microsoft.Word/Data/Documents/wef && curl -fsSL https://addin.elefant.legal/manifest.xml -o ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/manifest.xml
+> ```
 
 ## Word for Windows
 
@@ -58,7 +64,7 @@ On Windows, you put the Elefant file in a shared folder and tell Word where to f
 ### Step 1: Make a shared folder
 
 1. Create a folder on your computer, for example `C:\ElefantAddin`.
-2. Download the Elefant file (<https://addin.elefant.legal/manifest.xml>) and save it in that folder.
+2. Download the Elefant file into that folder. Opening the link just shows the file's text, so right-click this link: <https://addin.elefant.legal/manifest.xml>, and choose **Save link as** in Edge or Chrome, saving it as `manifest.xml`. If the file opens as text in your browser instead, press Ctrl+S and save the page as `manifest.xml`.
 3. Right-click the folder, choose **Properties**, open the **Sharing** tab, select **Share…**, then **Share**.
 4. Note the folder's network path. It looks like `\\COMPUTERNAME\ElefantAddin`, where `COMPUTERNAME` is the name of your computer.
 
