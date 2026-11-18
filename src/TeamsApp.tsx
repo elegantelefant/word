@@ -1,19 +1,22 @@
-// ABOUTME: Root of the Teams personal tab: the task pane's settings, sign-in and review, without Word.
-// ABOUTME: Same providers as App; one panel, because Teams has no document to select from.
+// ABOUTME: Root of the Teams personal tab: the task pane's settings, sign-in, review and drafting, without Word.
+// ABOUTME: Same providers as App; pasted text in, results shown to read or copy, because Teams has no document.
 
 import { useState, useCallback, useMemo } from "react";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { PastedReviewPanel } from "./components/panels/PastedReviewPanel";
+import { ClauseDrafting } from "./components/panels/ClausesPanel";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
 import { UIContext } from "./store/ui";
+import { UpsellContext } from "./store/upsell";
 import { useAuthProvider } from "./hooks/useAuth";
 import { API_URL } from "./api/client";
 import { PopOutLink } from "./components/PopOutLink";
 
 const SIGN_UP_URL = `${new URL(API_URL).origin}/sign-up`;
 
-export function TeamsApp() {
+// upsell is false on Teams mobile, where the store bans any mention of paid plans.
+export function TeamsApp({ upsell = true }: { upsell?: boolean }) {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
@@ -34,6 +37,7 @@ export function TeamsApp() {
     <SettingsContext value={settingsValue}>
       <AuthContext value={auth}>
         <UIContext value={uiValue}>
+          <UpsellContext value={upsell}>
           <div className="mx-auto flex h-screen max-w-2xl flex-col">
             {showSettings ? (
               <SettingsPanel onClose={() => setShowSettings(false)} />
@@ -50,6 +54,9 @@ export function TeamsApp() {
                 </header>
                 <main className="flex-1 space-y-3 overflow-y-auto p-3">
                   <PastedReviewPanel />
+                  <div className="border-t border-gray-200 pt-3">
+                    <ClauseDrafting copy />
+                  </div>
                   {!auth.token && !auth.loading && (
                     <p className="text-[11px] text-gray-500">
                       No Elefant account?{" "}
@@ -60,6 +67,7 @@ export function TeamsApp() {
               </>
             )}
           </div>
+          </UpsellContext>
         </UIContext>
       </AuthContext>
     </SettingsContext>

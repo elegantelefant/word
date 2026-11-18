@@ -23,9 +23,7 @@ export function ClausesPanel({ active = true }: { active?: boolean }) {
   // Each part shows only if the account's plan includes it; Lite drafts but has no clause library (#98).
   return (
     <div className="space-y-3">
-      {planIncludes(user, "draft")
-        ? <DraftClause draft={(prompt, context) => draftClause(prompt, context, token)} />
-        : <UpgradePrompt feature="Drafting" />}
+      <ClauseDrafting />
       {planIncludes(user, "clauseLibrary")
         ? <ClausesContent token={token} active={active} />
         : <UpgradePrompt feature="Clause search" />}
@@ -34,11 +32,20 @@ export function ClausesPanel({ active = true }: { active?: boolean }) {
 }
 
 
-/** Drafting with the user's own Gemini key, as free review does; the clause library needs Elefant. */
-function FreeClauses() {
+/** Elefant drafting when the signed-in plan includes it; signed out, the user's own Gemini key, as free review does. */
+export function ClauseDrafting({ copy }: { copy?: boolean }) {
+  const { tier, token, user } = useAuth();
+
+  if (tier === "paid" && token) {
+    return planIncludes(user, "draft")
+      ? <DraftClause copy={copy} draft={(prompt, context) => draftClause(prompt, context, token)} />
+      : <UpgradePrompt feature="Drafting" />;
+  }
+  return <OwnKeyDrafting copy={copy} />;
+}
+
+function OwnKeyDrafting({ copy }: { copy?: boolean }) {
   const { settings } = useSettings();
-  const { token } = useAuth();
-  const upsell = useUpsell();
 
   async function draftWithOwnKey(prompt: string, context: string) {
     const { runDraft } = await import("@/lib/agent");
@@ -46,11 +53,22 @@ function FreeClauses() {
   }
 
   return (
+    <DraftClause
+      copy={copy}
+      draft={draftWithOwnKey}
+      unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
+    />
+  );
+}
+
+/** Signed out: drafting with the user's own key; the clause library needs Elefant. */
+function FreeClauses() {
+  const { token } = useAuth();
+  const upsell = useUpsell();
+
+  return (
     <div className="space-y-3">
-      <DraftClause
-        draft={draftWithOwnKey}
-        unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
-      />
+      <ClauseDrafting />
       {upsell && !token && (
         <p className="text-xs text-gray-500">Signed in, Elefant drafts with its own models. Paid plans add your clause library.</p>
       )}
