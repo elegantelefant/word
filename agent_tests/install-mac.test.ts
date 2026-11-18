@@ -20,8 +20,9 @@ describe("macOS install (#74)", () => {
     expect(macSection).toContain(WEF_FOLDER);
   });
 
-  it("gives the production manifest to copy there", () => {
-    expect(macSection).toContain("https://addin.elefant.legal/manifest.xml");
+  it("downloads the production manifest from the download path (#86)", () => {
+    expect(macSection).toContain("https://addin.elefant.legal/manifest-download.xml");
+    expect(macSection).not.toContain("https://addin.elefant.legal/manifest.xml");
   });
 
   it("saves the Terminal command's download into the wef folder", () => {
