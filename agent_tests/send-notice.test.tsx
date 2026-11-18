@@ -107,7 +107,7 @@ describe("every send", () => {
     fireEvent.click(screen.getByRole("button", { name: "send" }));
 
     const toast = await screen.findByRole("status");
-    expect(toast).toHaveTextContent(/Elefant/);
+    expect(toast).toHaveTextContent(/^On its way to Elefant$/);
     expect(toast.querySelector("button")).toBeNull();
   });
 

@@ -15,8 +15,8 @@ const SCREEN: Record<Destination, string> = {
   elefant: "When you're signed in, the text you send goes from this device to Elefant, under your Elefant account.",
 };
 const TOAST: Record<Destination, string> = {
-  google: "Sending to Google with your key",
-  elefant: "Sending to Elefant with your account",
+  google: "On its way to Google, with your key",
+  elefant: "On its way to Elefant",
 };
 
 type Announce = (to: Destination) => Promise<void>;

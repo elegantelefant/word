@@ -46,7 +46,7 @@ describe("Word review send notice", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
 
-    expect(await screen.findByRole("status", {}, { timeout: 2000 })).toHaveTextContent("Sending to Google with your key");
+    expect(await screen.findByRole("status", {}, { timeout: 2000 })).toHaveTextContent("On its way to Google, with your key");
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
