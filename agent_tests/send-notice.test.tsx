@@ -140,7 +140,8 @@ describe("the one-time screen under pressure", () => {
     render(<SendNoticeProvider><Sender to="google" onSent={sent} /><Sender to="google" onSent={sent} /></SendNoticeProvider>);
 
     for (const button of screen.getAllByRole("button", { name: "send" })) fireEvent.click(button);
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    const go = await screen.findByRole("button", { name: "Continue" });
+    await act(async () => fireEvent.click(go));
 
     await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(2));
   });
@@ -152,10 +153,11 @@ describe("the one-time screen under pressure", () => {
     render(<SendNoticeProvider><Sender to="elefant" onSent={sent} /></SendNoticeProvider>);
 
     fireEvent.click(screen.getByRole("button", { name: "send" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    const go = await screen.findByRole("button", { name: "Continue" });
+    await act(async () => fireEvent.click(go));
     await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(1));
 
-    fireEvent.click(screen.getByRole("button", { name: "send" }));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "send" })));
     await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
