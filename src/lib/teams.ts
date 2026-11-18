@@ -12,12 +12,13 @@ const POPUP_HEIGHT = 535;
 // Microsoft's store rules ban upsell on mobile Teams (agent_docs/2026-11-17-teams-app.md).
 const MOBILE_CLIENTS = new Set<string>([HostClientType.ios, HostClientType.ipados, HostClientType.android]);
 
-export function isMobileClient(clientType: string): boolean {
-  return MOBILE_CLIENTS.has(clientType);
-}
-
 export async function teamsClientType(): Promise<string> {
   return (await app.getContext()).app.host.clientType;
+}
+
+/** Upsell only where Teams names a client that is not mobile; an unknown client gets none. */
+export function upsellAllowed(clientType: Promise<string>): Promise<boolean> {
+  return clientType.then((type) => !MOBILE_CLIENTS.has(type), () => false);
 }
 
 /** Resolves false outside a Teams host, where app.initialize rejects. */

@@ -1,4 +1,4 @@
-// ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
+// ABOUTME: Clauses panel — search and browse clause databases, insert into Word; exports the plan-gated drafting Teams reuses.
 // ABOUTME: Signed in, the clause library and Elefant drafting; signed out, drafting with the user's Gemini key.
 
 import { useState, useCallback } from "react";

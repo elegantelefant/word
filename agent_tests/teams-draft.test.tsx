@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TeamsApp } from "@/TeamsApp";
-import { isMobileClient } from "@/lib/teams";
+import { upsellAllowed } from "@/lib/teams";
 
 const ME = {
   user: { id: "u1", email: "a@b.com", name: "Lee" },
@@ -38,13 +38,21 @@ async function draftInTeams() {
   await screen.findByText("DRAFTED CLAUSE");
 }
 
+// The proxy's relayed quota refusal, as plan-gates.test.tsx pins it.
+const overQuota = () =>
+  new Response(JSON.stringify({
+    error: true, statusCode: 429, statusMessage: "backend_error", message: "backend_error",
+    data: { error: true, upstream_status: 429, code: "QUOTA_EXCEEDED", message: "You have used this month's drafts.", path: "/api/v1/draft", detail: { reason: "over_plan_quota" } },
+  }), { status: 429 });
+
 afterEach(() => {
   localStorage.clear();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("Teams tab drafting", () => {
-  it("shows the draft for a typed description, with no Word document to insert into", async () => {
+  it("drafts in Teams without asking for Word", async () => {
     stubElefant(ME);
     render(<TeamsApp />);
     await draftInTeams();
@@ -57,6 +65,14 @@ describe("Teams tab drafting", () => {
     render(<TeamsApp />);
     await draftInTeams();
     expect(bodies).toEqual([{ prompt: "a mutual NDA term", supplementContext: "" }]);
+  });
+
+  it("clears the draft once the description changes, so a stale draft is never copied", async () => {
+    stubElefant(ME);
+    render(<TeamsApp />);
+    await draftInTeams();
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a governing law clause" } });
+    expect(screen.queryByText("DRAFTED CLAUSE")).not.toBeInTheDocument();
   });
 
   it("copies the draft to the clipboard", async () => {
@@ -93,14 +109,33 @@ describe("Teams tab plans link", () => {
     await screen.findByText("Drafting isn't included in your plan.");
     expect(screen.queryByRole("link", { name: /plans/i })).not.toBeInTheDocument();
   });
+
+  it("shows a draft refused for the plan's limit without a plans link on mobile", async () => {
+    // apiFetch logs every refusal; this one is expected, so the log is captured, not printed.
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    stubElefant(ME);
+    const elefant = globalThis.fetch;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/draft") ? overQuota() : elefant(input, init));
+    render(<TeamsApp upsell={false} />);
+    await screen.findByRole("button", { name: "Settings" });
+    fireEvent.change(screen.getByLabelText("Draft a clause"), { target: { value: "a mutual NDA term" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft clause" }));
+    await screen.findByText("You have used this month's drafts.");
+    expect(screen.queryByRole("link", { name: /plans/i })).not.toBeInTheDocument();
+  });
 });
 
-describe("isMobileClient", () => {
-  it.each(["ios", "ipados", "android"])("treats %s as mobile", (clientType) => {
-    expect(isMobileClient(clientType)).toBe(true);
+describe("upsellAllowed", () => {
+  it.each(["ios", "ipados", "android"])("allows no upsell on %s", async (clientType) => {
+    expect(await upsellAllowed(Promise.resolve(clientType))).toBe(false);
   });
 
-  it.each(["desktop", "web", "macos"])("treats %s as not mobile", (clientType) => {
-    expect(isMobileClient(clientType)).toBe(false);
+  it.each(["desktop", "web", "macos"])("allows upsell on %s", async (clientType) => {
+    expect(await upsellAllowed(Promise.resolve(clientType))).toBe(true);
+  });
+
+  it("allows no upsell when Teams cannot name its client", async () => {
+    expect(await upsellAllowed(Promise.reject(new Error("no context")))).toBe(false);
   });
 });

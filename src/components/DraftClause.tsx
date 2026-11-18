@@ -73,7 +73,11 @@ export function DraftClause({ draft, unavailable, copy = false }: DraftClausePro
     <div className="space-y-1.5">
       <textarea
         value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        onChange={(e) => {
+          setPrompt(e.target.value);
+          setDrafted(null);
+          setNotice(null);
+        }}
         placeholder="Describe the clause to draft..."
         aria-label="Draft a clause"
         rows={3}
