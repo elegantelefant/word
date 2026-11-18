@@ -6,6 +6,7 @@ import { useAuth } from "@/store/auth";
 import { useSettings } from "@/store/settings";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { useHost } from "@/store/host";
+import { useSendNotice } from "@/components/SendNotice";
 import { CitationsPanel } from "./CitationsPanel";
 import { DraftClause } from "@/components/DraftClause";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -22,13 +23,8 @@ const SUMMARY_INSTRUCTIONS =
   "Summarise this email thread for a lawyer in a few sentences: who wants what, by when, and what is still open. Use only what the emails say.";
 
 const NOT_IN_MESSAGE = "Open Elefant from an email in Outlook.";
-const SENT_TO_GOOGLE = "To do this, the email text is sent to Google with your key.";
-const SENT_TO_ELEFANT = "To do this, the email text is sent to Elefant with your account.";
 
 export function MailPanel() {
-  const { tier, token } = useAuth();
-  const signedIn = tier === "paid" && !!token;
-
   if (!isMailboxReady()) return <p className="py-6 text-center text-xs text-gray-500">{NOT_IN_MESSAGE}</p>;
 
   return (
@@ -41,7 +37,6 @@ export function MailPanel() {
       ) : (
         <ThreadSummary />
       )}
-      <p className="text-[11px] text-gray-400">{signedIn ? SENT_TO_ELEFANT : SENT_TO_GOOGLE}</p>
     </div>
   );
 }
@@ -53,7 +48,7 @@ function Reply() {
 
   if (tier === "paid" && token) {
     if (!planIncludes(user, "draft")) return <UpgradePrompt feature="Drafting" />;
-    return <DraftClause kind="reply" draft={async (prompt) => draftClause(`${REPLY_PROMPT} ${prompt}`, await host.body(), token)} />;
+    return <DraftClause kind="reply" sendsTo="elefant" draft={async (prompt) => draftClause(`${REPLY_PROMPT} ${prompt}`, await host.body(), token)} />;
   }
 
   async function replyWithOwnKey(prompt: string) {
@@ -64,6 +59,7 @@ function Reply() {
   return (
     <DraftClause
       kind="reply"
+      sendsTo="google"
       draft={replyWithOwnKey}
       unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
     />
@@ -75,6 +71,7 @@ function ThreadSummary() {
   const { settings } = useSettings();
   const host = useHost();
   const upsell = useUpsell();
+  const announce = useSendNotice();
   const [summarising, setSummarising] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +87,7 @@ function ThreadSummary() {
     setPlanLimit(false);
     try {
       const thread = await host.body();
+      await announce(signedIn ? "elefant" : "google");
       const result = signedIn
         ? await reviewPaid(thread, token, SUMMARY_INSTRUCTIONS)
         : await reviewFree(thread, settings.apiKey, settings.model, SUMMARY_INSTRUCTIONS);

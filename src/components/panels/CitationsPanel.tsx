@@ -8,6 +8,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ApiError } from "@/api/client";
 import { checkCitations, type CitationFinding, type CitationStatus } from "@/api/citations";
 import { useHost } from "@/store/host";
+import { useSendNotice } from "@/components/SendNotice";
 import { isPlanLimit, planIncludes } from "@/lib/plan-features";
 
 // Plain words for the API's statuses; users never see "verified" or "certified" (owner's standing rule).
@@ -51,6 +52,7 @@ const isWebAddress = (url: string | null): url is string => !!url && /^https?:\/
 function CitationsContent({ token }: { token: string }) {
   const host = useHost();
   const { select } = host;
+  const announce = useSendNotice();
   const upsell = useUpsell();
   const [checking, setChecking] = useState(false);
   const [findings, setFindings] = useState<CitationFinding[] | null>(null);
@@ -81,6 +83,7 @@ function CitationsContent({ token }: { token: string }) {
         setError(`This ${host.noun} doesn't have any text to check.`);
         return;
       }
+      await announce("elefant");
       const found = await checkCitations(text, token, controller.signal);
       if (!controller.signal.aborted) setFindings(found);
     } catch (err) {

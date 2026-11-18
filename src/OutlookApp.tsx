@@ -4,6 +4,7 @@
 import { Layout } from "./components/Layout";
 import { Providers } from "./components/Providers";
 import { MailPanel } from "./components/panels/MailPanel";
+import { SendNoticeProvider } from "./components/SendNotice";
 import { HostContext } from "./store/host";
 import { MAIL_HOST } from "./lib/mailbox";
 
@@ -12,9 +13,11 @@ export function OutlookApp() {
     <HostContext value={MAIL_HOST}>
       <Providers>
         {(openSettings) => (
-          <Layout onSettingsClick={openSettings}>
-            <MailPanel />
-          </Layout>
+          <SendNoticeProvider>
+            <Layout onSettingsClick={openSettings}>
+              <MailPanel />
+            </Layout>
+          </SendNoticeProvider>
         )}
       </Providers>
     </HostContext>

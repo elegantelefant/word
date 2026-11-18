@@ -3,6 +3,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useHost } from "@/store/host";
+import { useSendNotice, type Destination } from "@/components/SendNotice";
 import { ApiError } from "@/api/client";
 import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
@@ -19,12 +20,15 @@ const COPY = {
 interface DraftClauseProps {
   draft: (prompt: string, context: string) => Promise<string>;
   kind?: keyof typeof COPY;
+  // Where the drafter sends the text, for the send notice.
+  sendsTo: Destination;
   // Why drafting cannot run yet (for example, no Gemini key); disables the button.
   unavailable?: ReactNode;
 }
 
-export function DraftClause({ draft, kind = "clause", unavailable }: DraftClauseProps) {
+export function DraftClause({ draft, kind = "clause", sendsTo, unavailable }: DraftClauseProps) {
   const host = useHost();
+  const announce = useSendNotice();
   const copy = COPY[kind];
   const [prompt, setPrompt] = useState("");
   const [drafting, setDrafting] = useState(false);
@@ -46,6 +50,7 @@ export function DraftClause({ draft, kind = "clause", unavailable }: DraftClause
     setNotice(null);
     try {
       const selected = await host.selection();
+      await announce(sendsTo);
       await host.insert(await draft(description, selected));
       setNotice(DRAFT_INSERTED_NOTICE);
     } catch (err) {

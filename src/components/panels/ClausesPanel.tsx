@@ -24,7 +24,7 @@ export function ClausesPanel({ active = true }: { active?: boolean }) {
   return (
     <div className="space-y-3">
       {planIncludes(user, "draft")
-        ? <DraftClause draft={(prompt, context) => draftClause(prompt, context, token)} />
+        ? <DraftClause sendsTo="elefant" draft={(prompt, context) => draftClause(prompt, context, token)} />
         : <UpgradePrompt feature="Drafting" />}
       {planIncludes(user, "clauseLibrary")
         ? <ClausesContent token={token} active={active} />
@@ -48,6 +48,7 @@ function FreeClauses() {
   return (
     <div className="space-y-3">
       <DraftClause
+        sendsTo="google"
         draft={draftWithOwnKey}
         unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
       />

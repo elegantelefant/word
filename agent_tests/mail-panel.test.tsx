@@ -94,12 +94,6 @@ describe("Outlook pane while writing", () => {
     expect(vi.mocked(runReply)).toHaveBeenCalledWith("key", "gemini-3.8-flash", "accept the deadline", THREAD);
   });
 
-  it("says the email goes to Google when signed out", () => {
-    stubMailbox({ mode: "compose", body: THREAD });
-    renderPanel({ apiKey: "key" });
-    expect(screen.getByText("To do this, the email text is sent to Google with your key.")).toBeInTheDocument();
-  });
-
   it("checks the citations in the draft through Elefant, with no 'show in document' link", async () => {
     stubMailbox({ mode: "compose", body: THREAD });
     jobFlow({ jobType: "citation_check", total: 1, results: [{ citation: "[2020] SGCA 1", status: "verified" }] });
@@ -110,12 +104,6 @@ describe("Outlook pane while writing", () => {
     expect(await screen.findByText("Checked 1 citation: Found 1, Doesn't match 0, Not found 0, Unsure 0.")).toBeInTheDocument();
     expect(sentBody(0)).toEqual({ text: THREAD });
     expect(screen.queryByRole("button", { name: /Show .* in the document/ })).toBeNull();
-  });
-
-  it("says the email goes to Elefant when signed in", () => {
-    stubMailbox({ mode: "compose", body: THREAD });
-    renderPanel({ signedIn: true });
-    expect(screen.getByText("To do this, the email text is sent to Elefant with your account.")).toBeInTheDocument();
   });
 
   it("drafts a reply through Elefant with the thread as context and inserts it", async () => {
