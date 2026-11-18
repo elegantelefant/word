@@ -1,8 +1,8 @@
-// ABOUTME: Draft one clause from a description and insert it at the cursor in Word.
+// ABOUTME: Draft one clause (Word) or one email reply (Outlook) from a description and insert it at the cursor.
 // ABOUTME: The caller supplies the drafter: Elefant's API when signed in, the user's own Gemini key otherwise.
 
 import { useState, type ReactNode } from "react";
-import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
+import { useHost } from "@/store/host";
 import { ApiError } from "@/api/client";
 import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
@@ -10,13 +10,22 @@ import { PRICING_URL, useUpsell } from "@/store/upsell";
 const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
 const OUTSIDE_WORD = "Drafting needs Microsoft Word: open Elefant from the Word ribbon.";
 
+// What is being drafted, in the box's own words.
+const COPY = {
+  clause: { placeholder: "Describe the clause to draft...", label: "Draft a clause", action: "Draft clause" },
+  reply: { placeholder: "What should the reply say?", label: "Draft a reply", action: "Draft reply" },
+};
+
 interface DraftClauseProps {
   draft: (prompt: string, context: string) => Promise<string>;
+  kind?: keyof typeof COPY;
   // Why drafting cannot run yet (for example, no Gemini key); disables the button.
   unavailable?: ReactNode;
 }
 
-export function DraftClause({ draft, unavailable }: DraftClauseProps) {
+export function DraftClause({ draft, kind = "clause", unavailable }: DraftClauseProps) {
+  const host = useHost();
+  const copy = COPY[kind];
   const [prompt, setPrompt] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -27,7 +36,7 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
   async function handleDraft() {
     const description = prompt.trim();
     if (!description) return;
-    if (!isOfficeReady()) {
+    if (!host.ready()) {
       setError(OUTSIDE_WORD);
       return;
     }
@@ -36,8 +45,8 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
     setPlanLimit(false);
     setNotice(null);
     try {
-      const selected = await getSelectedText();
-      await insertText(await draft(description, selected), "end");
+      const selected = await host.selection();
+      await host.insert(await draft(description, selected));
       setNotice(DRAFT_INSERTED_NOTICE);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to draft clause");
@@ -53,8 +62,8 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe the clause to draft..."
-        aria-label="Draft a clause"
+        placeholder={copy.placeholder}
+        aria-label={copy.label}
         rows={3}
         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
       />
@@ -64,7 +73,7 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
         disabled={!!unavailable || drafting || !prompt.trim()}
         className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {drafting ? "Drafting..." : "Draft clause"}
+        {drafting ? "Drafting..." : copy.action}
       </button>
       {unavailable && <p className="text-xs text-gray-500">{unavailable}</p>}
       {notice && <p className="text-xs text-green-700">{notice}</p>}
