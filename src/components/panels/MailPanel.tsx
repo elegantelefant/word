@@ -93,7 +93,9 @@ function ThreadSummary() {
       const result = signedIn
         ? await reviewPaid(thread, token, SUMMARY_INSTRUCTIONS)
         : await reviewFree(thread, settings.apiKey, settings.model, SUMMARY_INSTRUCTIONS);
-      setSummary(result.summary ?? "");
+      const text = result.summary?.trim();
+      if (!text) throw new Error("The summary came back empty.");
+      setSummary(text);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Summary failed");
       setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));

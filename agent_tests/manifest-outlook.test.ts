@@ -18,7 +18,12 @@ describe("Outlook manifest", () => {
 
   it("is a mail add-in for the mailbox host", () => {
     expect(outlook).toMatch(/xsi:type="MailApp"/);
-    expect(outlook).toMatch(/<Set Name="Mailbox" MinVersion="1.3"\/>/);
+  });
+
+  // Outlook supports the Dialog API, which the sign-in popup uses, from Mailbox 1.4.
+  it("requires the Mailbox set that carries the sign-in dialog", () => {
+    expect(outlook).toMatch(/<Set Name="Mailbox" MinVersion="1.4"\/>/);
+    expect(outlook).toMatch(/<bt:Sets DefaultMinVersion="1.4">/);
   });
 
   it("asks only to read and write the open item", () => {

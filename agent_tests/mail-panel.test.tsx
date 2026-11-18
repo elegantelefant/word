@@ -190,6 +190,16 @@ describe("Outlook pane while reading", () => {
     expect(within(line).getByRole("link", { name: "See plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
   });
 
+  it("says so when the summary comes back empty, rather than showing a blank", async () => {
+    stubMailbox({ mode: "read", body: THREAD });
+    vi.mocked(runReview).mockResolvedValueOnce({ summary: "  ", issues: [] });
+    renderPanel({ apiKey: "key" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Summarise this thread" }));
+
+    expect(await screen.findByText("The summary came back empty.")).toBeInTheDocument();
+  });
+
   it("shows Outlook's own error when the message cannot be read", async () => {
     stubMailbox({ mode: "read", body: THREAD, failWith: "The item is not available." });
     renderPanel({ apiKey: "key" });
