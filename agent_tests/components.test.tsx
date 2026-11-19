@@ -1,11 +1,10 @@
-// ABOUTME: Component render tests for Layout, UpgradePrompt, and ErrorBoundary.
+// ABOUTME: Component render tests for Layout and ErrorBoundary.
 // ABOUTME: Verifies basic rendering and user interactions.
 
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Layout } from "@/components/Layout";
-import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthContext } from "@/store/auth";
 
@@ -75,61 +74,20 @@ describe("Layout", () => {
     expect(screen.getByText("Free")).toBeInTheDocument();
   });
 
-  it("shows the unlock banner for free tier", () => {
-    renderLayout(
-      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
-        <div />
-      </Layout>,
-    );
+  it.each([["signed out", null], ["signed in on Lite", "lite-token"]])(
+    "shows no upgrade banner on open for a free user (%s) (#97)",
+    (_, token) => {
+      render(
+        <AuthContext value={{ ...freeAuth, token }}>
+          <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+            <div />
+          </Layout>
+        </AuthContext>,
+      );
 
-    expect(screen.getByText("Unlock all features — Sign in")).toBeInTheDocument();
-  });
-
-  it("hides the unlock banner for paid tier", () => {
-    renderLayoutPaid(
-      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
-        <div />
-      </Layout>,
-    );
-
-    expect(screen.queryByText("Unlock all features — Sign in")).not.toBeInTheDocument();
-  });
-
-  it("says Upgrade rather than Sign in for signed-in free users", () => {
-    render(
-      <AuthContext value={{ ...freeAuth, token: "trial-token" }}>
-        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
-          <div />
-        </Layout>
-      </AuthContext>,
-    );
-
-    expect(screen.getByText("Unlock all features — Upgrade")).toBeInTheDocument();
-  });
-
-  it("hides the banner while auth is still loading", () => {
-    render(
-      <AuthContext value={{ ...freeAuth, loading: true }}>
-        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
-          <div />
-        </Layout>
-      </AuthContext>,
-    );
-
-    expect(screen.queryByText(/Unlock all features/)).not.toBeInTheDocument();
-  });
-
-  it("calls onSettingsClick when the unlock banner is clicked", () => {
-    const onSettings = vi.fn();
-    renderLayout(
-      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={onSettings}>
-        <div />
-      </Layout>,
-    );
-
-    fireEvent.click(screen.getByText("Unlock all features — Sign in"));
-    expect(onSettings).toHaveBeenCalledOnce();
-  });
+      expect(screen.queryByText(/Unlock all features|Upgrade/)).not.toBeInTheDocument();
+    },
+  );
 
   it("calls onTabChange when free tab clicked", () => {
     const onChange = vi.fn();
@@ -143,7 +101,7 @@ describe("Layout", () => {
     expect(onChange).toHaveBeenCalledWith("history");
   });
 
-  it("disables paid-only tabs for free users", () => {
+  it("opens a paid-only tab for free users, so its panel can say what it needs (#97)", () => {
     const onChange = vi.fn();
     renderLayout(
       <Layout activeTab="review" onTabChange={onChange} onSettingsClick={() => {}}>
@@ -151,10 +109,8 @@ describe("Layout", () => {
       </Layout>,
     );
 
-    const clausesBtn = screen.getByRole("button", { name: /Clauses/ });
-    expect(clausesBtn).toBeDisabled();
-    fireEvent.click(clausesBtn);
-    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Clauses/ }));
+    expect(onChange).toHaveBeenCalledWith("clauses");
   });
 
   it("calls onSettingsClick when gear clicked", () => {
@@ -167,15 +123,6 @@ describe("Layout", () => {
 
     fireEvent.click(screen.getByLabelText("Settings"));
     expect(onSettings).toHaveBeenCalled();
-  });
-});
-
-describe("UpgradePrompt", () => {
-  it("renders feature name and upgrade link", () => {
-    render(<UpgradePrompt feature="Clause Search" />);
-
-    expect(screen.getByText("Clause Search requires Elefant Pro")).toBeInTheDocument();
-    expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
   });
 });
 
@@ -209,5 +156,18 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Try again")).toBeInTheDocument();
 
     spy.mockRestore();
+  });
+});
+
+describe("Clauses tab for free users (BYOK drafting)", () => {
+  it("shows no lock on Clauses, since signed-out users can draft there", () => {
+    render(
+      <AuthContext value={freeAuth}>
+        <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+          <div />
+        </Layout>
+      </AuthContext>,
+    );
+    expect(screen.getByRole("button", { name: "Clauses" })).toHaveAccessibleName("Clauses");
   });
 });
