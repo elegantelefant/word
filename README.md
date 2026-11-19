@@ -51,6 +51,8 @@ Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High
 
 Download the manifest from https://addin.elefant.legal/manifest-download.xml, then follow the steps for your platform in [docs/install.md](docs/install.md).
 
+IT administrators deploying Elefant across an organisation: see the [admin deployment guide](docs/admin-deployment.md).
+
 ### Word on the web
 
 Follow the [Word on the web steps](docs/install.md#word-on-the-web) in the installation guide.

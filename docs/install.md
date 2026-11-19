@@ -8,7 +8,7 @@ Today, you use Elefant **free, with your own Gemini API key**. You get a key fro
 
 **Coming soon:** signing in to an Elefant account, which will unlock **Clauses** and **Mammoth**.
 
-**If your firm's IT team manages Office for you, ask them to deploy Elefant for you instead of installing it yourself.** It is quicker, and it avoids settings your firm may have switched off.
+**If your firm's IT team manages Office for you, ask them to deploy Elefant for you instead of installing it yourself.** It is quicker, and it avoids settings your firm may have switched off. Your IT team can follow the [admin deployment guide](admin-deployment.md).
 
 Pick the section below that matches the version of Word you use:
 
