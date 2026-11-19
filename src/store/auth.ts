@@ -9,6 +9,8 @@ export interface AuthState {
   user: MeResponse | null;
   tier: Tier;
   loading: boolean;
+  // Why the account could not be loaded, when the saved token was kept for the next try.
+  error?: string;
 }
 
 export interface AuthContextValue extends AuthState {

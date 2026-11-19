@@ -136,6 +136,27 @@ describe("SettingsPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in didn't finish. Try again.");
   });
 
+  it("says why the account could not be loaded (#87)", () => {
+    renderSettings({}, { error: "Couldn't load your Elefant account. Check your connection and try again." });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Couldn't load your Elefant account. Check your connection and try again.");
+  });
+
+  it("shows no account error line when the account loaded (#87)", () => {
+    renderSettings();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("retries with the saved token from the account error (#87)", () => {
+    localStorage.setItem("elefant_token", "saved-token");
+    const login = vi.fn(async () => {});
+    renderSettings({}, { error: "Couldn't load your Elefant account. Check your connection and try again.", login });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(login).toHaveBeenCalledWith("saved-token");
+  });
+
   it("shows account info and sign-out for paid tier", () => {
     renderSettings({}, {
       tier: "paid",
