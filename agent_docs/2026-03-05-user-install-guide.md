@@ -35,22 +35,9 @@ Works in any browser. No software to install.
 
 ### Steps
 
-1. **Download the installer**
-   → [Click here to download the Mac installer](https://elefant-word-245916757771.us-central1.run.app/install-mac.command)
+macOS will not run an installer script downloaded in a browser, so install by copying the manifest into Word's add-in folder: follow the [README macOS steps](../README.md#macos-desktop), or the manual steps below.
 
-2. **Run the installer**
-   - Find the downloaded `install-mac.command` file (usually in Downloads)
-   - Double-click it
-   - If macOS asks "Are you sure?", click **Open**
-   - The Terminal window will show "Done!" and close
-
-3. **Restart Word**
-   - Quit Word completely (Cmd+Q)
-   - Reopen Word
-
-4. **Open the add-in**
-   - Click **Home** tab → **Open Elefant** button in the ribbon
-   - The Elefant panel appears on the right
+After restarting Word, open it from **Home** → **Add-ins** → **My Add-ins** → **Developer Add-ins** → **Elefant Legal Assistant**. The ribbon button appears only after the first open.
 
 ### Manual alternative
 
