@@ -16,7 +16,7 @@ A Microsoft Word task-pane add-in: a small React SPA that Word loads through Off
 | `src/components/`, `src/store/`, `src/hooks/` | React UI, React Context state (no state library), hooks |
 | `src/api/generated`, `src/types/api.ts` | Orval output from vendored `openapi.json` (elefant-api 0.369.0) via `orval.config.ts`, aliased by `src/types/api.ts`; drift guarded by `pnpm check:contract` and `agent_tests/api-generation.test.ts` |
 | `agent_tests/` | Vitest (jsdom) — the suite CI runs; `setup.ts` + the `@google/adk` shim alias |
-| `e2e/` | Playwright against the Vite dev server on `https://localhost:3001` — a browser, not Word |
+| `e2e/` | Playwright against the Vite dev server on `http://localhost:3001` (no dev certs needed) — a browser, not Word |
 | `manifest.xml` / `manifest.prod.xml` | Sideload manifests: localhost vs Cloud Run |
 | `nginx.conf`, `Dockerfile`, `cloudbuild.yaml` | Serving + deploy; the Cloud Build trigger is not connected |
 | `agent_docs/` | Date-versioned plans, runbooks, reviews; newest wins |
@@ -28,7 +28,7 @@ pnpm install --frozen-lockfile   # pnpm@10.20.0 (packageManager pin); Node 22 in
 pnpm dev                         # Vite on https://localhost:3000 — run `pnpm certs` once first
 pnpm build                       # tsc -b && vite build — this is the typecheck
 pnpm test                        # vitest run → agent_tests/**/*.test.{ts,tsx}
-pnpm test:e2e                    # playwright test — starts its own server on :3001, needs the certs
+pnpm test:e2e                    # playwright test — starts its own HTTP server on :3001; first run needs `pnpm exec playwright install chromium`
 pnpm run deploy                  # build + docker buildx + gcloud run deploy — owner-gated
 ```
 

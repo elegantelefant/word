@@ -9,11 +9,12 @@ test.describe("App loads and renders", () => {
     await expect(page.locator("header")).toContainText("Elefant");
     await expect(page.locator("header").getByRole("button", { name: "Settings" })).toBeVisible();
 
-    // All 5 tabs present in the nav bar
     const nav = page.locator("nav");
-    for (const label of ["Review", "Clauses", "Mammoth", "Analysis", "History"]) {
+    for (const label of ["Review", "Clauses", "Mammoth", "History"]) {
       await expect(nav.getByRole("button", { name: label })).toBeVisible();
     }
+    // Full Analysis stays hidden unless the build sets VITE_FULL_ANALYSIS (#43).
+    await expect(nav.getByRole("button", { name: "Analysis" })).toHaveCount(0);
   });
 
   test("shows footer with version and Free tier", async ({ page }) => {
@@ -65,7 +66,7 @@ test.describe("Tab navigation", () => {
     await page.goto("/");
     const nav = page.locator("nav");
 
-    for (const label of ["Mammoth", "Analysis"]) {
+    for (const label of ["Mammoth"]) {
       const tab = nav.getByRole("button", { name: label });
       const svg = tab.locator("svg");
       await expect(svg).toBeVisible();
