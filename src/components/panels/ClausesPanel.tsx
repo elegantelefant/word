@@ -15,7 +15,7 @@ export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token } = useAuth();
 
   if (tier !== "paid" || !token) {
-    return <UpgradePrompt feature="Clause Search" />;
+    return <UpgradePrompt feature="Clause search" />;
   }
 
   return <ClausesContent token={token} active={active} />;
