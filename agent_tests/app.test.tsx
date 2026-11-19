@@ -51,7 +51,7 @@ describe("App", () => {
   it("renders with the Analysis tab hidden by default", () => {
     render(<App />);
     expect(screen.getByText("Elefant")).toBeInTheDocument();
-    expect(screen.getByRole("main").children).toHaveLength(4);
+    expect(screen.getByRole("main").children).toHaveLength(5);
     expect(screen.getByRole("button", { name: /History/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
     // Review tab and Review Document button both exist
@@ -63,13 +63,15 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByRole("button", { name: /Analysis/ })).toBeInTheDocument();
-    expect(screen.getByRole("main").children).toHaveLength(5);
+    expect(screen.getByRole("main").children).toHaveLength(6);
   });
 
-  it("disables paid-only tabs for free tier", () => {
+  it("opens a paid-only tab for free tier to one quiet line (#97)", () => {
     render(<App />);
-    expect(screen.getByRole("button", { name: /Clauses/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Mammoth/ })).toBeDisabled();
+    const mammothTab = screen.getByRole("button", { name: /Mammoth/ });
+    fireEvent.click(mammothTab);
+    expect(mammothTab).toHaveClass("border-blue-600");
+    expect(screen.getByText(/^Mammoth comes with Elefant.s paid plans\./)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Analysis/ })).not.toBeInTheDocument();
   });
 
@@ -202,5 +204,15 @@ describe("App", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("App with upsell off (#97, Teams on mobile)", () => {
+  it("opens a paid-only tab without any plans mention or pricing link", async () => {
+    const { UpsellContext } = await import("@/store/upsell");
+    const { container } = render(<UpsellContext value={false}><App /></UpsellContext>);
+    fireEvent.click(screen.getByRole("button", { name: /Mammoth/ }));
+    expect(container.querySelector('a[href="https://elefant.legal/pricing"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/paid plans/i);
   });
 });

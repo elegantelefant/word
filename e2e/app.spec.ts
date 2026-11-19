@@ -9,11 +9,12 @@ test.describe("App loads and renders", () => {
     await expect(page.locator("header")).toContainText("Elefant");
     await expect(page.locator("header").getByRole("button", { name: "Settings" })).toBeVisible();
 
-    // All 5 tabs present in the nav bar
     const nav = page.locator("nav");
-    for (const label of ["Review", "Clauses", "Mammoth", "Analysis", "History"]) {
+    for (const label of ["Review", "Clauses", "Mammoth", "History"]) {
       await expect(nav.getByRole("button", { name: label })).toBeVisible();
     }
+    // Full Analysis stays hidden unless the build sets VITE_FULL_ANALYSIS (#43).
+    await expect(nav.getByRole("button", { name: "Analysis" })).toHaveCount(0);
   });
 
   test("shows footer with version and Free tier", async ({ page }) => {
@@ -46,21 +47,26 @@ test.describe("Tab navigation", () => {
     await expect(page.getByPlaceholder("Review instructions")).toBeVisible();
   });
 
-  test("paid-only tabs are disabled for free tier", async ({ page }) => {
+  test("paid-only tabs open to one quiet plans line for free tier (#97)", async ({ page }) => {
     await page.goto("/");
     const nav = page.locator("nav");
 
-    for (const label of ["Clauses", "Mammoth", "Analysis"]) {
-      const tab = nav.getByRole("button", { name: label });
-      await expect(tab).toBeDisabled();
-    }
+    await nav.getByRole("button", { name: "Clauses" }).click();
+    await expect(page.getByText(/^Clause search comes with Elefant.s paid plans\./)).toBeVisible();
+    await expect(page.getByRole("link", { name: "see plans" })).toHaveAttribute("href", "https://elefant.legal/pricing");
+  });
+
+  test("free tier sees no plans pitch on open (#97)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/Unlock all features|paid plans|Upgrade/i).filter({ visible: true })).toHaveCount(0);
+    await expect(page.locator('a[href="https://elefant.legal/pricing"]').filter({ visible: true })).toHaveCount(0);
   });
 
   test("paid-only tabs show lock icon", async ({ page }) => {
     await page.goto("/");
     const nav = page.locator("nav");
 
-    for (const label of ["Clauses", "Mammoth", "Analysis"]) {
+    for (const label of ["Mammoth"]) {
       const tab = nav.getByRole("button", { name: label });
       const svg = tab.locator("svg");
       await expect(svg).toBeVisible();
@@ -85,7 +91,8 @@ test.describe("Review panel (free tier)", () => {
 
   test("shows API key prompt when no key set", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Gemini API key")).toBeVisible();
+    // The hidden Clauses pane also asks for a key (BYOK drafting); the Review prompt is the visible one.
+    await expect(page.getByText("Gemini API key").filter({ visible: true })).toBeVisible();
   });
 
   test("scope toggle switches active state", async ({ page }) => {
@@ -163,12 +170,12 @@ test.describe("Settings panel", () => {
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("AIzaSyPersistTest");
   });
 
-  test("model selector defaults to Gemini 2.5 Flash", async ({ page }) => {
+  test("model selector defaults to Gemini 4 Hydrogen", async ({ page }) => {
     await page.goto("/");
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     const select = page.locator("select");
-    await expect(select).toHaveValue("gemini-2.5-flash");
+    await expect(select).toHaveValue("gemini-4-hydrogen");
   });
 
   test("shows sign-in button for free users", async ({ page }) => {
@@ -241,12 +248,12 @@ test.describe("Visual quality and UX", () => {
     expect(size).toBeLessThanOrEqual(16);
   });
 
-  test("disabled tabs have not-allowed cursor", async ({ page }) => {
+  test("locked tabs have no not-allowed cursor, since they open (#97)", async ({ page }) => {
     await page.goto("/");
 
     const clausesTab = page.locator("nav").getByRole("button", { name: "Clauses" });
-    const disabledCursor = await clausesTab.evaluate((el) => getComputedStyle(el).cursor);
-    expect(disabledCursor).toBe("not-allowed");
+    const cursor = await clausesTab.evaluate((el) => getComputedStyle(el).cursor);
+    expect(cursor).not.toBe("not-allowed");
   });
 
   test("settings panel transitions cleanly (no layout shift)", async ({ page }) => {
@@ -298,5 +305,13 @@ test.describe("Accessibility basics", () => {
     await page.keyboard.press("Tab");
     const focused = await page.evaluate(() => document.activeElement?.tagName);
     expect(focused).toBe("BUTTON");
+  });
+});
+
+test.describe("Citations tab (#106)", () => {
+  test("opens to one quiet line for a signed-out user", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("nav").getByRole("button", { name: /Citations/ }).click();
+    await expect(page.getByText("Citation checking needs an Elefant account. Sign in from Settings.")).toBeVisible();
   });
 });
