@@ -85,7 +85,7 @@ describe("SettingsPanel", () => {
         (_, element) =>
           element?.tagName === "P" &&
           element.textContent?.includes(
-            "Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.",
+            "Stored in this browser. When you review or draft for free, your API key and document content are sent to Google Gemini.",
           ) === true,
       ),
     ).toBeInTheDocument();
@@ -115,6 +115,17 @@ describe("SettingsPanel", () => {
   it("shows sign-in button for free tier", () => {
     renderSettings();
     expect(screen.getByText("Sign in to Elefant")).toBeInTheDocument();
+  });
+
+  it("gives a signed-in Lite user the Account section and no plans pitch (owner, 17 Nov: Lite uses Elefant)", () => {
+    renderSettings({}, {
+      tier: "paid",
+      token: "lite-token",
+      user: { user: { id: "u1", email: "lee@example.com", name: "Lee" }, org: null, entitlements: { plan: "lite" } } as never,
+    });
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(screen.queryByText("Sign in to Elefant")).toBeNull();
+    expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
   });
 
   it("shows account info and sign-out for paid tier", () => {
