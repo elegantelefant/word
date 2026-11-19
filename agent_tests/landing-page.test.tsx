@@ -26,12 +26,22 @@ describe("LandingPage", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("offers desktop installers for both platforms", () => {
+  it("sends macOS users to the folder steps, not a script macOS will not run (#74)", () => {
     render(<LandingPage />);
     expect(screen.getByText("macOS").closest("a")).toHaveAttribute(
       "href",
-      "/install-mac.command",
+      "https://github.com/elegantelefant/word#macos-desktop",
     );
+  });
+
+  it("reads as one sentence for desktop users, and says the macOS link opens a new tab", () => {
+    const { container } = render(<LandingPage />);
+    expect(container.textContent).toContain("Follow the steps for macOS (opens in a new tab), or download the installer for Windows.");
+    expect(screen.getByText("macOS").closest("a")).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("offers the Windows installer", () => {
+    render(<LandingPage />);
     expect(screen.getByText("Windows").closest("a")).toHaveAttribute(
       "href",
       "/install-windows.bat",
