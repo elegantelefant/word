@@ -50,7 +50,8 @@ export default defineConfig({
     },
   },
   server: {
-    https: devCerts(),
+    // Word needs HTTPS; the e2e browser does not, so it runs without the dev certs (#62).
+    https: process.env.DEV_SERVER_HTTP ? undefined : devCerts(),
     port: 3000,
     headers: {
       "Access-Control-Allow-Origin": "*",
