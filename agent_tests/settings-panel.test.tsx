@@ -128,6 +128,14 @@ describe("SettingsPanel", () => {
     expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
   });
 
+  it("says sign-in did not finish when the dialog fails (#72)", async () => {
+    renderSettings({}, { login: () => Promise.reject(new Error("No token in dialog response")) });
+
+    fireEvent.click(screen.getByText("Sign in to Elefant"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in didn't finish. Try again.");
+  });
+
   it("shows account info and sign-out for paid tier", () => {
     renderSettings({}, {
       tier: "paid",

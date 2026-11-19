@@ -14,6 +14,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { settings, updateSettings } = useSettings();
   const { tier, user, login, logout } = useAuth();
   const [keyVisible, setKeyVisible] = useState(false);
+  const [signInFailed, setSignInFailed] = useState(false);
+
+  const signIn = () => {
+    setSignInFailed(false);
+    login().catch(() => setSignInFailed(true));
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -98,11 +104,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <section className="border-t border-gray-100 pt-4">
             <p className="mb-2.5 text-xs leading-relaxed text-gray-500">Have an Elefant account? Sign in for full features.</p>
             <button
-              onClick={() => void login()}
+              onClick={signIn}
               className="w-full rounded-md bg-blue-600 px-3 py-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
             >
               Sign in to Elefant
             </button>
+            {signInFailed && <p role="alert" className="mt-2 text-xs text-red-600">Sign-in didn't finish. Try again.</p>}
           </section>
         )}
       </div>
