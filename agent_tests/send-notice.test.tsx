@@ -56,7 +56,7 @@ describe("first send on this device", () => {
     renderPane();
     summarise();
 
-    expect(await screen.findByRole("dialog")).toHaveTextContent(/Google/);
+    expect(await screen.findByRole("dialog")).toHaveTextContent("When you use your own Gemini key, the text you send goes from this device to Google, using your own key.");
     expect(vi.mocked(runReview)).not.toHaveBeenCalled();
 
     fireEvent.click(continueButton());

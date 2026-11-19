@@ -11,7 +11,7 @@ export const SEND_TOAST_MS = 2500;
 const ACCEPTED_KEY = (to: Destination) => `elefant_send_ack_${to}`;
 
 const SCREEN: Record<Destination, string> = {
-  google: "When you use your own Gemini key, the text you send goes from this device to Google, under your key's terms.",
+  google: "When you use your own Gemini key, the text you send goes from this device to Google, using your own key.",
   elefant: "When you're signed in, the text you send goes from this device to Elefant, under your Elefant account.",
 };
 const TOAST: Record<Destination, string> = {
