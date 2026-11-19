@@ -2,7 +2,7 @@
 // ABOUTME: Verifies localStorage round-trip for JWT tokens and that dialog messages come from Elefant.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getSavedToken, saveToken, clearToken, openLoginDialog, tokenExpiresAt } from "@/api/auth";
+import { getSavedToken, saveToken, clearToken, openLoginDialog, tokenExpiresAt, setClickOnlySignIn, signInNeedsClick } from "@/api/auth";
 
 beforeEach(() => {
   localStorage.clear();
@@ -153,5 +153,22 @@ describe("sign-in dialog", () => {
 
     await expect(login).rejects.toThrow("Dialog message from an unexpected origin");
     expect(getSavedToken()).toBeNull();
+  });
+});
+
+describe("click-only sign-in (Teams)", () => {
+  afterEach(() => setClickOnlySignIn(null));
+
+  it("signs in through the registered click-only sign-in and keeps its token", async () => {
+    setClickOnlySignIn(async () => "teams.jwt.token");
+
+    await expect(openLoginDialog()).resolves.toBe("teams.jwt.token");
+    expect(getSavedToken()).toBe("teams.jwt.token");
+  });
+
+  it("reports that sign-in needs a click only once a host registers one", () => {
+    expect(signInNeedsClick()).toBe(false);
+    setClickOnlySignIn(async () => "teams.jwt.token");
+    expect(signInNeedsClick()).toBe(true);
   });
 });
