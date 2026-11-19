@@ -12,15 +12,11 @@ import { getSavedToken, clearToken, openLoginDialog, saveToken, tokenExpiresAt }
 const REFRESH_LEAD_MS = 60_000;
 const ACCOUNT_LOAD_FAILED = "Couldn't load your Elefant account. Check your connection and try again.";
 
+// "paid" is Elefant mode: any signed-in account, Lite included, works through Elefant and spends that
+// account's own quota and credits, which the server enforces (owner, 17 Nov). Only an anonymous
+// session stays on the user's own Gemini key. What each plan includes is decided per feature.
 function determineTier(me: MeResponse): Tier {
-  if (me.org?.accountType === "commercial") return "paid";
-  const entitlements = me.entitlements;
-  if (entitlements?.source === "admin_grant" && (
-    entitlements.expiresAt === null || (
-      typeof entitlements.expiresAt === "string" && Date.parse(entitlements.expiresAt) > Date.now()
-    )
-  )) return "paid";
-  return "free";
+  return me.anonymous ? "free" : "paid";
 }
 
 export function useAuthProvider(): AuthContextValue {

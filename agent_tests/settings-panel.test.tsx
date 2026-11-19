@@ -16,7 +16,7 @@ function renderSettings(
   authOverrides: Partial<AuthContextValue> = {},
 ) {
   const settings: SettingsContextValue = {
-    settings: { apiKey: "", model: "gemini-2.5-flash" },
+    settings: { apiKey: "", model: "gemini-4-hydrogen" },
     updateSettings: vi.fn(),
     ...settingsOverrides,
   };
@@ -56,7 +56,7 @@ describe("SettingsPanel", () => {
     renderSettings();
     const select = screen.getByRole("combobox");
     const options = [...select.querySelectorAll("option")].map((o) => o.textContent);
-    expect(options).toEqual(["Gemini 2.5 Flash", "Gemini 2.5 Pro", "Gemini 2.0 Flash"]);
+    expect(options).toEqual(["Gemini 4 Hydrogen", "Gemini 3.8 Flash", "Gemini 3.5 Flash-Lite"]);
   });
 
   it("shows API key input for free tier", () => {
@@ -85,7 +85,7 @@ describe("SettingsPanel", () => {
         (_, element) =>
           element?.tagName === "P" &&
           element.textContent?.includes(
-            "Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.",
+            "Stored in this browser. When you review or draft for free, your API key and document content are sent to Google Gemini.",
           ) === true,
       ),
     ).toBeInTheDocument();
@@ -98,9 +98,9 @@ describe("SettingsPanel", () => {
     const { settings } = renderSettings();
     const select = screen.getByRole("combobox");
 
-    fireEvent.change(select, { target: { value: "gemini-2.5-pro" } });
+    fireEvent.change(select, { target: { value: "gemini-3.8-flash" } });
 
-    expect(settings.updateSettings).toHaveBeenCalledWith({ model: "gemini-2.5-pro" });
+    expect(settings.updateSettings).toHaveBeenCalledWith({ model: "gemini-3.8-flash" });
   });
 
   it("calls updateSettings when API key changes", () => {
@@ -115,6 +115,25 @@ describe("SettingsPanel", () => {
   it("shows sign-in button for free tier", () => {
     renderSettings();
     expect(screen.getByText("Sign in to Elefant")).toBeInTheDocument();
+  });
+
+  it("gives a signed-in Lite user the Account section and no plans pitch (owner, 17 Nov: Lite uses Elefant)", () => {
+    renderSettings({}, {
+      tier: "paid",
+      token: "lite-token",
+      user: { user: { id: "u1", email: "lee@example.com", name: "Lee" }, org: null, entitlements: { plan: "lite" } } as never,
+    });
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(screen.queryByText("Sign in to Elefant")).toBeNull();
+    expect(screen.queryByRole("link", { name: /plans/i })).toBeNull();
+  });
+
+  it("says sign-in did not finish when the dialog fails (#72)", async () => {
+    renderSettings({}, { login: () => Promise.reject(new Error("No token in dialog response")) });
+
+    fireEvent.click(screen.getByText("Sign in to Elefant"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in didn't finish. Try again.");
   });
 
   it("says why the account could not be loaded (#87)", () => {
@@ -174,7 +193,7 @@ describe("SettingsPanel", () => {
     const onClose = vi.fn();
 
     render(
-      <SettingsContext value={{ settings: { apiKey: "", model: "gemini-2.5-flash" }, updateSettings: noop }}>
+      <SettingsContext value={{ settings: { apiKey: "", model: "gemini-4-hydrogen" }, updateSettings: noop }}>
         <AuthContext value={{ ...AUTH_INITIAL, login: noopAsync, logout: noop }}>
           <SettingsPanel onClose={onClose} />
         </AuthContext>
