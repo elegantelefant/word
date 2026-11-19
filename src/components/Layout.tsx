@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 import { useAuth } from "@/store/auth";
 import { isFullAnalysisEnabled } from "@/lib/features";
+import { planIncludes } from "@/lib/plan-features";
 
 export type TabId = "review" | "clauses" | "mammoth" | "analysis" | "history";
 
@@ -34,7 +35,7 @@ interface LayoutProps {
 }
 
 export function Layout({ activeTab, onTabChange, onSettingsClick, children }: LayoutProps) {
-  const { tier } = useAuth();
+  const { tier, user } = useAuth();
 
   return (
     <div className="flex h-screen flex-col">
@@ -54,7 +55,8 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
       <nav className="flex border-b border-gray-200">
         {getTabs().map((tab) => {
-          const locked = tab.paidOnly && tier !== "paid";
+          // Mammoth is switched on per organisation, so its lock follows the plan, not sign-in (#98).
+          const locked = tab.paidOnly && (tier !== "paid" || (tab.id === "mammoth" && !planIncludes(user, "mammoth")));
           // A locked tab still opens: its panel says, in one line, which plans include it (#97).
           const isDisabled = tab.disabled;
           return (
@@ -75,7 +77,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
                 {locked && (
                   <>
                     <LockIcon />
-                    <span className="sr-only">, needs a paid plan</span>
+                    <span className="sr-only">{tier === "paid" && tab.id === "mammoth" ? ", not switched on for your organisation" : ", needs a paid plan"}</span>
                   </>
                 )}
               </span>
@@ -91,7 +93,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
           tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
         }`}>
-          {tier === "paid" ? "Pro" : "Free"}
+          {tier === "paid" ? planLabel(user?.entitlements?.plan, user?.org?.accountType) : "Free"}
         </span>
       </footer>
     </div>
@@ -124,4 +126,18 @@ function SettingsIcon() {
       <circle cx="8" cy="8" r="2" />
     </svg>
   );
+}
+
+// Sellable plan names as /me reports them (monorepo core/subscription_plans.py display_name).
+const PLAN_LABELS: Record<string, string> = {
+  lite: "Lite", explorer: "Explorer", pro: "Pro", business: "Business",
+  enterprise: "Enterprise", api: "API", academia: "Academia",
+};
+
+// A fresh account has no entitlement row, so /me sends no plan; its org profile names it instead (monorepo me.py).
+const PROFILE_LABELS: Record<string, string> = { individual: "Lite", personal: "Lite", commercial: "Pro", educational: "Academia" };
+
+function planLabel(plan: string | null | undefined, profile: string | undefined): string {
+  if (plan) return PLAN_LABELS[plan] ?? "Elefant";
+  return (profile && (PROFILE_LABELS[profile] ?? PLAN_LABELS[profile])) || "Elefant";
 }

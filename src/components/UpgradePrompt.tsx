@@ -1,4 +1,4 @@
-// ABOUTME: One quiet line shown to free and Lite users on a paid-only feature.
+// ABOUTME: One quiet line where a feature is not available: signed out, or not in the signed-in plan.
 // ABOUTME: Points to Settings to sign in and to the pricing page; no pitch where upsell is off.
 
 import { useAuth } from "@/store/auth";
@@ -29,8 +29,9 @@ export function UpgradePrompt({ feature }: UpgradePromptProps) {
 
   return (
     <p className="py-6 text-center text-xs text-gray-500">
-      {feature} comes with Elefant's paid plans.{" "}
-      {token ? <>{plans("See plans")}.</> : <>Sign in from Settings, or {plans("see plans")}.</>}
+      {token
+        ? <>{feature} isn't included in your plan. {plans("See plans")}.</>
+        : <>{feature} comes with Elefant's paid plans. Sign in from Settings, or {plans("see plans")}.</>}
     </p>
   );
 }

@@ -9,6 +9,9 @@ import { reviewFree, reviewPaid, type FreeReviewResponse } from "@/api/review";
 import type { ReviewIssue, ReviewResponse } from "@/types/api";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
+import { ApiError } from "@/api/client";
+import { isPlanLimit } from "@/lib/plan-features";
+import { PRICING_URL, useUpsell } from "@/store/upsell";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
 export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
@@ -53,6 +56,8 @@ export function ReviewPanel() {
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [planLimit, setPlanLimit] = useState(false);
+  const upsell = useUpsell();
   const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
@@ -61,6 +66,7 @@ export function ReviewPanel() {
   async function handleReview() {
     setLoading(true);
     setError(null);
+    setPlanLimit(false);
     setResult(null);
 
     try {
@@ -93,6 +99,8 @@ export function ReviewPanel() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Review failed");
+      // Out of allowance or credits, or not in the plan: the one place a plans link is useful (#98).
+      setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
       setLoading(false);
     }
@@ -157,7 +165,17 @@ export function ReviewPanel() {
       {/* Error */}
       {error && (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">
-          <span className="flex-1">{error}</span>
+          <span className="flex-1">
+            {error}
+            {upsell && planLimit && (
+              <>
+                {" "}
+                <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  See plans
+                </a>
+              </>
+            )}
+          </span>
           <button
             onClick={() => setError(null)}
             className="shrink-0 text-red-400 transition-colors hover:text-red-600"

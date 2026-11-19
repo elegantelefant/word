@@ -3,6 +3,9 @@
 
 import { useState, type ReactNode } from "react";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
+import { ApiError } from "@/api/client";
+import { isPlanLimit } from "@/lib/plan-features";
+import { PRICING_URL, useUpsell } from "@/store/upsell";
 
 const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
 const OUTSIDE_WORD = "Drafting needs Microsoft Word: open Elefant from the Word ribbon.";
@@ -18,6 +21,8 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
   const [drafting, setDrafting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [planLimit, setPlanLimit] = useState(false);
+  const upsell = useUpsell();
 
   async function handleDraft() {
     const description = prompt.trim();
@@ -28,6 +33,7 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
     }
     setDrafting(true);
     setError(null);
+    setPlanLimit(false);
     setNotice(null);
     try {
       const selected = await getSelectedText();
@@ -35,6 +41,8 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
       setNotice(DRAFT_INSERTED_NOTICE);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to draft clause");
+      // Out of allowance or credits, or not in the plan: the one place a plans link is useful (#98).
+      setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
       setDrafting(false);
     }
@@ -60,7 +68,19 @@ export function DraftClause({ draft, unavailable }: DraftClauseProps) {
       </button>
       {unavailable && <p className="text-xs text-gray-500">{unavailable}</p>}
       {notice && <p className="text-xs text-green-700">{notice}</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && (
+        <p className="text-xs text-red-600">
+          {error}
+          {upsell && planLimit && (
+            <>
+              {" "}
+              <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                See plans
+              </a>
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
