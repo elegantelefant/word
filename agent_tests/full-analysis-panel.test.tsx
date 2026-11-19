@@ -42,7 +42,7 @@ beforeEach(() => {
 describe("FullAnalysisPanel — free tier", () => {
   it("shows upgrade prompt", () => {
     renderWithAuth();
-    expect(screen.getByText("Full Analysis requires Elefant Pro")).toBeInTheDocument();
+    expect(screen.getByText(/^Full Analysis comes with Elefant.s paid plans\./)).toBeInTheDocument();
   });
 });
 

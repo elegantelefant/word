@@ -8,6 +8,7 @@ import { ReviewPanel } from "./components/panels/ReviewPanel";
 import { ClausesPanel } from "./components/panels/ClausesPanel";
 import { MammothPanel } from "./components/panels/MammothPanel";
 import { FullAnalysisPanel } from "./components/panels/FullAnalysisPanel";
+import { CitationsPanel } from "./components/panels/CitationsPanel";
 import { HistoryPanel } from "./components/panels/HistoryPanel";
 import { SettingsContext, loadSettings, saveSettings, type Settings } from "./store/settings";
 import { AuthContext } from "./store/auth";
@@ -65,6 +66,7 @@ function TabContent({ activeTab }: { activeTab: TabId }) {
       <TabPane active={activeTab === "mammoth"}>
         <MammothPanel active={activeTab === "mammoth"} />
       </TabPane>
+      <TabPane active={activeTab === "citations"}><CitationsPanel /></TabPane>
       {fullAnalysisEnabled && (
         <TabPane active={activeTab === "analysis"}><FullAnalysisPanel /></TabPane>
       )}

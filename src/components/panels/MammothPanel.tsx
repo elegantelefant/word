@@ -15,6 +15,9 @@ import {
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
+import { planIncludes } from "@/lib/plan-features";
+
+const MAMMOTH_NOT_ENABLED = "Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.";
 
 const REQUEST_TYPES: { value: RequestType; label: string }[] = [
   { value: "review", label: "Review" },
@@ -41,16 +44,18 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function MammothPanel({ active = true }: { active?: boolean }) {
-  const { tier, token } = useAuth();
+  const { tier, token, user } = useAuth();
 
   if (tier !== "paid" || !token) {
     return <UpgradePrompt feature="Mammoth" />;
   }
 
-  return <MammothContent token={token} active={active} />;
+  // No public plan includes Mammoth; it is switched on per organisation. Without it, already-lodged
+  // matters stay readable (the server keeps GET open) and only lodging is hidden (#98, #44's copy).
+  return <MammothContent token={token} active={active} canLodge={planIncludes(user, "mammoth")} />;
 }
 
-function MammothContent({ token, active }: { token: string; active: boolean }) {
+function MammothContent({ token, active, canLodge }: { token: string; active: boolean; canLodge: boolean }) {
   const [view, setView] = useState<"create" | "list">("list");
   const [requests, setRequests] = useState<LegalRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,14 +92,16 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
         >
           Requests
         </button>
-        <button
-          onClick={() => setView("create")}
-          className={`rounded px-2 py-1 text-xs font-medium ${
-            view === "create" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          + New
-        </button>
+        {canLodge && (
+          <button
+            onClick={() => setView("create")}
+            className={`rounded px-2 py-1 text-xs font-medium ${
+              view === "create" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            + New
+          </button>
+        )}
         <button
           type="button"
           onClick={() => void refresh()}
@@ -106,9 +113,10 @@ function MammothContent({ token, active }: { token: string; active: boolean }) {
         </button>
       </div>
 
+      {!canLodge && <p className="text-xs text-gray-500">{MAMMOTH_NOT_ENABLED}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      {view === "create" ? (
+      {canLodge && view === "create" ? (
         <CreateForm
           token={token}
           onCreated={() => {
@@ -154,7 +162,7 @@ function CreateForm({ token, onCreated }: { token: string; onCreated: () => void
       onCreated();
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
-        setError("Mammoth deep research isn't switched on for your organisation yet. Email ping@elefant.legal with your organisation name and we'll enable it.");
+        setError(MAMMOTH_NOT_ENABLED);
       } else {
         setError(err instanceof Error ? err.message : "Failed to create request");
       }
