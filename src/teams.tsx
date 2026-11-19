@@ -6,17 +6,18 @@ import { createRoot } from "react-dom/client";
 import { TeamsApp } from "./TeamsApp";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { setClickOnlySignIn } from "./api/auth";
-import { signInWithTeams, startTeams } from "./lib/teams";
+import { signInWithTeams, startTeams, teamsClientType, upsellAllowed } from "./lib/teams";
 import "./index.css";
 
-void startTeams().then((inTeams) => {
+void startTeams().then(async (inTeams) => {
   if (inTeams) setClickOnlySignIn(signInWithTeams);
+  const upsell = inTeams ? await upsellAllowed(teamsClientType()) : true;
   const root = document.getElementById("root");
   if (!root) throw new Error("Root element not found");
   createRoot(root).render(
     <StrictMode>
       <ErrorBoundary>
-        <TeamsApp />
+        <TeamsApp upsell={upsell} />
       </ErrorBoundary>
     </StrictMode>,
   );
