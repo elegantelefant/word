@@ -38,7 +38,7 @@ beforeEach(() => {
 describe("MammothPanel — free tier", () => {
   it("shows upgrade prompt", () => {
     renderWithAuth();
-    expect(screen.getByText("Mammoth requires Elefant Pro")).toBeInTheDocument();
+    expect(screen.getByText(/^Mammoth comes with Elefant.s paid plans\./)).toBeInTheDocument();
   });
 });
 

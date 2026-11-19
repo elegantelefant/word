@@ -1,5 +1,5 @@
 // ABOUTME: Tests security headers in the production nginx configuration.
-// ABOUTME: Verifies the task pane enforces an exact server-level Content Security Policy.
+// ABOUTME: Verifies the exact server-level CSP and the manifest download headers and links.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -59,5 +59,35 @@ describe("production nginx configuration", () => {
 
     expect(rootLocation).not.toBeNull();
     expect(rootLocation![1]).not.toMatch(/^\s+add_header\b/m);
+  });
+});
+
+describe("manifest download (#86)", () => {
+  const locationBlock = (path: string) => {
+    const block = activeConfig.match(new RegExp(`^ {4}location = ${path.replace(/\./g, "\\.")} \\{\\r?\\n([\\s\\S]*?)^ {4}\\}`, "m"))?.[1];
+    if (block === undefined) throw new Error(`nginx.conf has no "location = ${path}" block`);
+    return block;
+  };
+
+  it("serves the manifest from a download path as an attachment named manifest.xml", () => {
+    const block = locationBlock("/manifest-download.xml");
+    expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
+    expect(block).toMatch(/add_header Content-Disposition 'attachment; filename="manifest\.xml"' always;/);
+    expect(block).toContain('add_header Access-Control-Allow-Origin "*" always;');
+    // The type comes from the server-level types block; a second add_header doubles it (#86).
+    expect(block).not.toMatch(/add_header Content-Type/);
+  });
+
+  it.each(["README.md", "agent_docs/2026-03-05-user-install-guide.md"])("points %s's user download links at the download path", (path) => {
+    const doc = readFileSync(resolve(process.cwd(), path), "utf8");
+    const install = path === "README.md" ? doc.slice(doc.indexOf("## User installation"), doc.indexOf("## Privacy")) : doc;
+    expect(install).toContain("https://addin.elefant.legal/manifest-download.xml");
+    expect(install).not.toMatch(/https:\/\/[^)\s]+\/manifest\.xml/);
+  });
+
+  it("leaves /manifest.xml without Content-Disposition for the admin centre's manifest URL", () => {
+    const block = locationBlock("/manifest.xml");
+    expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
+    expect(block).not.toContain("Content-Disposition");
   });
 });

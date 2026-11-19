@@ -75,20 +75,23 @@ describe("auth token persistence", () => {
 type DialogHandler = (arg: { message?: string; origin?: string }) => void;
 
 function stubOfficeDialog(onOpen: (url: string) => void = () => {}) {
-  const handlers: Record<string, DialogHandler> = {};
+  const handlers: Record<string, DialogHandler> & { open?: boolean } = {};
   vi.stubGlobal("Word", {});
   vi.stubGlobal("Office", {
     context: {
       ui: {
         displayDialogAsync: (url: string, _options: unknown, done: (result: unknown) => void) => {
           onOpen(url);
+          handlers.open = true;
           done({
             status: "succeeded",
             value: {
               addEventHandler: (type: string, handler: DialogHandler) => {
                 handlers[type] = handler;
               },
-              close: () => {},
+              close: () => {
+                handlers.open = false;
+              },
             },
           });
         },
@@ -110,6 +113,36 @@ describe("sign-in dialog", () => {
 
     await expect(login).resolves.toBe("jwt-1");
     expect(opened).toBe(`${window.location.origin}/sign-in.html`);
+  });
+
+  it("closes the dialog when the callback reports it could not get a token (#72)", async () => {
+    const handlers = stubOfficeDialog();
+
+    const login = openLoginDialog();
+    handlers.DialogMessageReceived({ origin: "https://elefant.legal", message: JSON.stringify({ error: "token_unavailable" }) });
+
+    await expect(login).rejects.toThrow("No token in dialog response");
+    expect(handlers.open).toBe(false);
+  });
+
+  it("closes the dialog when a message comes from an unexpected origin (#72)", async () => {
+    const handlers = stubOfficeDialog();
+
+    const login = openLoginDialog();
+    handlers.DialogMessageReceived({ origin: "https://evil.example", message: JSON.stringify({ token: "stolen" }) });
+
+    await expect(login).rejects.toThrow();
+    expect(handlers.open).toBe(false);
+  });
+
+  it("closes the dialog when its message is not JSON (#72)", async () => {
+    const handlers = stubOfficeDialog();
+
+    const login = openLoginDialog();
+    handlers.DialogMessageReceived({ origin: "https://elefant.legal", message: "not json" });
+
+    await expect(login).rejects.toThrow("Invalid dialog response");
+    expect(handlers.open).toBe(false);
   });
 
   it("rejects a dialog message from an origin other than Elefant's (#53)", async () => {

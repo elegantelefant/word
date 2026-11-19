@@ -12,7 +12,7 @@ Works in any browser. No software to install.
 ### Steps
 
 1. **Download the manifest file**
-   → [Click here to download manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+   → [Click here to download manifest.xml](https://addin.elefant.legal/manifest-download.xml)
    *(Save it somewhere you can find it, e.g. Downloads)*
 
 2. **Open Word Online**
@@ -43,7 +43,7 @@ After restarting Word, open it from **Home** → **Add-ins** → **My Add-ins** 
 
 If you prefer not to run the installer script:
 
-1. Download [manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+1. Download [manifest.xml](https://addin.elefant.legal/manifest-download.xml)
 2. Open Finder → Go → Go to Folder → paste:
    ```
    ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
@@ -79,7 +79,7 @@ If you prefer not to run the installer script:
 
 If you prefer not to run the installer script:
 
-1. Download [manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+1. Download [manifest.xml](https://addin.elefant.legal/manifest-download.xml)
 2. Open File Explorer and navigate to:
    ```
    \\localhost\c$\Users\<YourUsername>\AppData\Local\Microsoft\Office\16.0\Wef
