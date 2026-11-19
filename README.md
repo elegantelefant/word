@@ -47,6 +47,8 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ## User installation
 
+Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High, DoD) and Microsoft 365 operated by 21Vianet in China are not supported.
+
 ### Word on the web
 
 1. Download the [production manifest](https://addin.elefant.legal/manifest-download.xml).

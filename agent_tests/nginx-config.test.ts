@@ -1,9 +1,38 @@
 // ABOUTME: Tests security headers in the production nginx configuration.
-// ABOUTME: Verifies the exact server-level CSP and the manifest download headers and links.
+// ABOUTME: Verifies the CSP (including which hosts may frame the pages, #85) and the manifest download (#86).
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+
+// Hosts allowed to embed the task pane and the Teams tab (#85). Commercial cloud only; sources in nginx.conf.
+const FRAME_ANCESTORS = [
+  "'self'",
+  "https://*.officeapps.live.com",
+  "https://*.office.guest.usercontent.microsoft",
+  "https://*.sharepoint.com",
+  "https://onedrive.live.com",
+  "https://*.cloud.microsoft",
+  "https://teams.microsoft.com",
+  "https://*.teams.microsoft.com",
+  "https://*.microsoft365.com",
+  "https://*.office.com",
+  "https://outlook.office.com",
+  "https://outlook.office365.com",
+  "https://outlook-sdf.office.com",
+  "https://outlook-sdf.office365.com",
+];
+
+// Commercial entries of OfficeOnlineDomainList in the CDN office.js that index.html loads
+// (appsforoffice.microsoft.com/lib/1/hosted/word-web-16.00.js, fetched 2026-11-17).
+const OFFICE_WEB_DOMAINS = [
+  "*.officeapps.live.com",
+  "*.office.svc.cloud.microsoft",
+  "*.office.guest.usercontent.microsoft",
+  "*.excel.cloud.microsoft",
+  "*.word.cloud.microsoft",
+  "*.powerpoint.cloud.microsoft",
+];
 
 const nginxConfigPath = resolve(process.cwd(), "nginx.conf");
 
@@ -49,6 +78,7 @@ describe("production nginx configuration", () => {
       "object-src": ["'none'"],
       "base-uri": ["'self'"],
       "form-action": ["'self'"],
+      "frame-ancestors": FRAME_ANCESTORS,
     });
   });
 
@@ -89,5 +119,42 @@ describe("manifest download (#86)", () => {
     const block = locationBlock("/manifest.xml");
     expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
     expect(block).not.toContain("Content-Disposition");
+  });
+});
+
+describe("frame-ancestors (#85)", () => {
+  const csp = activeConfig.match(/add_header Content-Security-Policy "([^"]+)"/)![1]!;
+  const directiveNames = csp.split(";").map((d) => d.trim().split(/\s+/)[0]).filter(Boolean);
+  const served = csp.match(/frame-ancestors ([^;]+)/)![1]!.trim().split(/\s+/);
+  const matchesSource = (domain: string) => served.some((source) => {
+    const host = source.replace("https://", "");
+    return host === domain || (host.startsWith("*.") && domain.endsWith(host.slice(1)));
+  });
+
+  it("covers every commercial Word for the web domain in the CDN office.js", () => {
+    expect(OFFICE_WEB_DOMAINS.filter((domain) => !matchesSource(domain))).toEqual([]);
+  });
+
+  it("names each CSP directive once, since browsers obey only the first copy", () => {
+    expect(new Set(directiveNames).size).toBe(directiveNames.length);
+  });
+
+  it("sends no X-Frame-Options, which would override frame-ancestors for older hosts", () => {
+    expect(activeConfig).not.toMatch(/X-Frame-Options/i);
+  });
+
+  it("keeps add_header out of every location except the non-HTML ones, so pages keep the CSP", () => {
+    const locationsWithHeaders = [...activeConfig.matchAll(/^ {4}location ([^{]+)\{\r?\n([\s\S]*?)^ {4}\}/gm)]
+      .filter((m) => /^\s+add_header\b/m.test(m[2]!))
+      .map((m) => m[1]!.trim());
+    const nonHtml = ["= /manifest.xml", "= /manifest-download.xml", "~ \\.(command|bat)$", "/assets/"];
+    expect(locationsWithHeaders.filter((location) => !nonHtml.includes(location))).toEqual([]);
+  });
+});
+
+describe("supported clouds (#85, owner 17 Nov)", () => {
+  it("says in the README that sovereign clouds are not supported at launch", () => {
+    const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+    expect(readme).toContain("Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High, DoD) and Microsoft 365 operated by 21Vianet in China are not supported.");
   });
 });
