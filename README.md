@@ -49,7 +49,7 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ### Word on the web
 
-1. Download the [production manifest](https://addin.elefant.legal/manifest.xml).
+1. Download the [production manifest](https://addin.elefant.legal/manifest-download.xml).
 2. Open a document in Word on the web.
 3. Open **Add-ins** and select **More Add-ins**.
 4. Choose **My Add-ins** → **Upload My Add-in**.
@@ -251,7 +251,7 @@ The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml
 - CORS headers required by the Office add-in.
 - The Content Security Policy for the Word task pane.
 - The `application/xml` content type for the manifest.
-- `Content-Disposition: attachment` for `.command` and `.bat` installers.
+- `Content-Disposition: attachment` for `.command` and `.bat` installers, and for `/manifest-download.xml` (the manifest as a file; `/manifest.xml` stays inline for the admin centre).
 - SPA fallback through `try_files` and `index.html`.
 - One-year caching for Vite-hashed assets under `/assets/`.
 
