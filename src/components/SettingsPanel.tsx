@@ -64,7 +64,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-blue-500 hover:underline">
                 Google AI Studio
               </a>
-              . Stored in this browser. When you run a free review, your API key and document content are sent to Google Gemini.
+              . Stored in this browser. When you review or draft for free, your API key and document content are sent to Google Gemini.
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
               Outside the EEA, Switzerland and UK, Google uses prompts and responses sent with unpaid keys to improve its
@@ -102,7 +102,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               Signed in on a free Elefant plan, which uses your own Gemini key here.
               {upsell && (
                 <>
-                  {" "}Paid plans add clauses, drafting and Mammoth.{" "}
+                  {" "}Paid plans add the clause library and Mammoth.{" "}
                   <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     See plans
                   </a>
