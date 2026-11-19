@@ -16,7 +16,7 @@ function renderSettings(
   authOverrides: Partial<AuthContextValue> = {},
 ) {
   const settings: SettingsContextValue = {
-    settings: { apiKey: "", model: "gemini-2.5-flash" },
+    settings: { apiKey: "", model: "gemini-4-hydrogen" },
     updateSettings: vi.fn(),
     ...settingsOverrides,
   };
@@ -56,7 +56,7 @@ describe("SettingsPanel", () => {
     renderSettings();
     const select = screen.getByRole("combobox");
     const options = [...select.querySelectorAll("option")].map((o) => o.textContent);
-    expect(options).toEqual(["Gemini 2.5 Flash", "Gemini 2.5 Pro", "Gemini 2.0 Flash"]);
+    expect(options).toEqual(["Gemini 4 Hydrogen", "Gemini 3.8 Flash", "Gemini 3.5 Flash-Lite"]);
   });
 
   it("shows API key input for free tier", () => {
@@ -98,9 +98,9 @@ describe("SettingsPanel", () => {
     const { settings } = renderSettings();
     const select = screen.getByRole("combobox");
 
-    fireEvent.change(select, { target: { value: "gemini-2.5-pro" } });
+    fireEvent.change(select, { target: { value: "gemini-3.8-flash" } });
 
-    expect(settings.updateSettings).toHaveBeenCalledWith({ model: "gemini-2.5-pro" });
+    expect(settings.updateSettings).toHaveBeenCalledWith({ model: "gemini-3.8-flash" });
   });
 
   it("calls updateSettings when API key changes", () => {
@@ -164,7 +164,7 @@ describe("SettingsPanel", () => {
     const onClose = vi.fn();
 
     render(
-      <SettingsContext value={{ settings: { apiKey: "", model: "gemini-2.5-flash" }, updateSettings: noop }}>
+      <SettingsContext value={{ settings: { apiKey: "", model: "gemini-4-hydrogen" }, updateSettings: noop }}>
         <AuthContext value={{ ...AUTH_INITIAL, login: noopAsync, logout: noop }}>
           <SettingsPanel onClose={onClose} />
         </AuthContext>
