@@ -6,9 +6,12 @@ import type { AuthContextValue, AuthState } from "@/store/auth";
 import { AUTH_INITIAL } from "@/store/auth";
 import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
+import { ApiError } from "@/api/client";
 import { getSavedToken, clearToken, openLoginDialog, saveToken, signInNeedsClick, tokenExpiresAt } from "@/api/auth";
 
 const REFRESH_LEAD_MS = 60_000;
+const ACCOUNT_LOAD_FAILED = "Couldn't load your Elefant account. Check your connection and try again.";
+
 // "paid" is Elefant mode: any signed-in account, Lite included, works through Elefant and spends that
 // account's own quota and credits, which the server enforces (owner, 17 Nov). Only an anonymous
 // session stays on the user's own Gemini key. What each plan includes is decided per feature.
@@ -41,8 +44,14 @@ export function useAuthProvider(): AuthContextValue {
       if (!isCurrent()) return;
       const tier = determineTier(user);
       setState({ token, user, tier, loading: false });
-    } catch {
-      if (isCurrent()) logout();
+    } catch (err) {
+      if (!isCurrent()) return;
+      // Only a 401 means the token is bad. Any other failure keeps it, so a retry or the next open can use it (#87).
+      if (err instanceof ApiError && err.isAuthError) {
+        logout();
+        return;
+      }
+      setState({ ...AUTH_INITIAL, error: ACCOUNT_LOAD_FAILED });
     }
   }, [logout]);
 

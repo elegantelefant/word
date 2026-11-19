@@ -170,12 +170,12 @@ test.describe("Settings panel", () => {
     await expect(page.getByPlaceholder("AIza...")).toHaveValue("AIzaSyPersistTest");
   });
 
-  test("model selector defaults to Gemini 2.5 Flash", async ({ page }) => {
+  test("model selector defaults to Gemini 4 Hydrogen", async ({ page }) => {
     await page.goto("/");
     await page.locator("header").getByRole("button", { name: "Settings" }).click();
 
     const select = page.locator("select");
-    await expect(select).toHaveValue("gemini-2.5-flash");
+    await expect(select).toHaveValue("gemini-4-hydrogen");
   });
 
   test("shows sign-in button for free users", async ({ page }) => {
@@ -305,5 +305,13 @@ test.describe("Accessibility basics", () => {
     await page.keyboard.press("Tab");
     const focused = await page.evaluate(() => document.activeElement?.tagName);
     expect(focused).toBe("BUTTON");
+  });
+});
+
+test.describe("Citations tab (#106)", () => {
+  test("opens to one quiet line for a signed-out user", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("nav").getByRole("button", { name: /Citations/ }).click();
+    await expect(page.getByText("Citation checking needs an Elefant account. Sign in from Settings.")).toBeVisible();
   });
 });

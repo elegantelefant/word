@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "check:contract": "node scripts/check-contract-drift.mjs",
+    "check:models": "node scripts/check-gemini-models.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "certs": "office-addin-dev-certs install",

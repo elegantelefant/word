@@ -89,6 +89,9 @@ function openOfficeDialog(url: string): Promise<string> {
         dialog.addEventHandler(
           "DialogMessageReceived" as string,
           (arg: { message?: string; origin?: string }) => {
+            // Every message ends the dialog: the callback posts once, and a dialog left open
+            // on an error is a blank window the user cannot get past (#72).
+            dialog.close();
             if (arg.origin !== new URL(API_URL).origin) {
               reject(new Error("Dialog message from an unexpected origin"));
               return;
@@ -96,7 +99,6 @@ function openOfficeDialog(url: string): Promise<string> {
             try {
               const data = JSON.parse(arg.message ?? "");
               if (data.token) {
-                dialog.close();
                 saveToken(data.token);
                 resolve(data.token);
               } else {

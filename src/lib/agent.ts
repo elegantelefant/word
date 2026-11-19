@@ -53,6 +53,9 @@ function describeReviewError(errorCode: string | undefined, errorMessage: string
   if (errorCode === "400" && /api key/i.test(errorMessage)) {
     return "Your Gemini API key wasn't accepted. Check it in Settings.";
   }
+  if (errorCode === "404") {
+    return "Gemini no longer offers this model. Choose another model in Settings.";
+  }
   if (errorCode === "429") {
     return "Gemini's usage limit was reached. Try again in a little while.";
   }

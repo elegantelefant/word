@@ -12,7 +12,7 @@ Works in any browser. No software to install.
 ### Steps
 
 1. **Download the manifest file**
-   → [Click here to download manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+   → [Click here to download manifest.xml](https://addin.elefant.legal/manifest-download.xml)
    *(Save it somewhere you can find it, e.g. Downloads)*
 
 2. **Open Word Online**
@@ -35,28 +35,15 @@ Works in any browser. No software to install.
 
 ### Steps
 
-1. **Download the installer**
-   → [Click here to download the Mac installer](https://elefant-word-245916757771.us-central1.run.app/install-mac.command)
+macOS will not run an installer script downloaded in a browser, so install by copying the manifest into Word's add-in folder: follow the [README macOS steps](../README.md#macos-desktop), or the manual steps below.
 
-2. **Run the installer**
-   - Find the downloaded `install-mac.command` file (usually in Downloads)
-   - Double-click it
-   - If macOS asks "Are you sure?", click **Open**
-   - The Terminal window will show "Done!" and close
-
-3. **Restart Word**
-   - Quit Word completely (Cmd+Q)
-   - Reopen Word
-
-4. **Open the add-in**
-   - Click **Home** tab → **Open Elefant** button in the ribbon
-   - The Elefant panel appears on the right
+After restarting Word, open it from **Home** → **Add-ins** → **My Add-ins** → **Developer Add-ins** → **Elefant Legal Assistant**. The ribbon button appears only after the first open.
 
 ### Manual alternative
 
 If you prefer not to run the installer script:
 
-1. Download [manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+1. Download [manifest.xml](https://addin.elefant.legal/manifest-download.xml)
 2. Open Finder → Go → Go to Folder → paste:
    ```
    ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
@@ -92,7 +79,7 @@ If you prefer not to run the installer script:
 
 If you prefer not to run the installer script:
 
-1. Download [manifest.xml](https://elefant-word-245916757771.us-central1.run.app/manifest.xml)
+1. Download [manifest.xml](https://addin.elefant.legal/manifest-download.xml)
 2. Open File Explorer and navigate to:
    ```
    \\localhost\c$\Users\<YourUsername>\AppData\Local\Microsoft\Office\16.0\Wef
