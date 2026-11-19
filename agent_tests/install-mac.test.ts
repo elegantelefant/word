@@ -1,13 +1,13 @@
-// ABOUTME: Tests the macOS install path the README gives against the folder Word on Mac sideloads from.
-// ABOUTME: Reads README.md and the script as text: nothing here runs them on macOS.
+// ABOUTME: Tests the macOS install path the user install guide gives against the folder Word on Mac sideloads from.
+// ABOUTME: Reads docs/install.md and the script as text: nothing here runs them on macOS.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
-const readme = read("README.md");
-const macSection = readme.slice(readme.indexOf("### macOS desktop"), readme.indexOf("For detailed platform-specific"));
+const installGuide = read("docs/install.md");
+const macSection = installGuide.slice(installGuide.indexOf("## Word for Mac"), installGuide.indexOf("## Word for Windows"));
 const macInstaller = read("public/install-mac.command");
 const WEF_FOLDER = "~/Library/Containers/com.microsoft.Word/Data/Documents/wef";
 
@@ -30,7 +30,7 @@ describe("macOS install (#74)", () => {
   });
 
   it("says where Word on Mac lists a sideloaded add-in", () => {
-    expect(macSection).toContain("**My Add-ins** → **Developer Add-ins**");
+    expect(macSection).toContain("**Elefant Legal Assistant** under **Developer Add-ins**");
   });
 
   it("does not promise a Home > Open Elefant button after the script runs", () => {

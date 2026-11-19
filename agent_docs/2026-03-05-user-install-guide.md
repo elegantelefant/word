@@ -1,4 +1,4 @@
-Superseded by docs/install.md (2026-11-15); the links below are out of date.
+Superseded by docs/install.md (2026-11-15); kept for history.
 
 # Elefant Word Add-in — Installation Guide
 
