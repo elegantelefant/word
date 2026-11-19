@@ -62,6 +62,15 @@ describe("runReview error messages", () => {
     );
   });
 
+  it("maps a 404 to a message that says the model is no longer offered (#71)", async () => {
+    errorMessageRef.current = googleError(404, "models/gemini-2.5-flash is not found for API version v1beta, or is not supported for generateContent.", "NOT_FOUND");
+    const { runReview } = await import("@/lib/agent");
+
+    await expect(runReview("key", "gemini-2.5-flash", "Review this contract clause please.")).rejects.toThrow(
+      "Gemini no longer offers this model. Choose another model in Settings.",
+    );
+  });
+
   it("maps an unrecognised code to a generic message naming the code", async () => {
     errorMessageRef.current = googleError(500, "Internal error.", "INTERNAL");
     const { runReview } = await import("@/lib/agent");

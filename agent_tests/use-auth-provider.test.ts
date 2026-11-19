@@ -33,13 +33,14 @@ afterEach(() => {
 const PAID_ME = {
   user: { id: "u1", email: "a@b.com", name: "Alice" },
   org: { id: "o1", name: "LegalCo", slug: "legalco", accountType: "commercial" },
-  entitlements: ["review", "clauses"],
+  entitlements: { source: "none", plan: "pro", expiresAt: null },
 };
 
-const FREE_ME = {
+const GUEST_ME = {
   user: { id: "u2", email: "b@b.com", name: "Bob" },
-  org: { id: "o2", name: "FreeCo", slug: "freeco", accountType: "free" },
-  entitlements: [],
+  org: null,
+  entitlements: { source: "none" },
+  anonymous: true,
 };
 
 describe("useAuthProvider", () => {
@@ -83,9 +84,9 @@ describe("useAuthProvider", () => {
     expect(result.current.tier).toBe("paid");
   });
 
-  it("detects free tier from accountType", async () => {
+  it("keeps an anonymous session on own-key mode", async () => {
     const { getMe } = await import("@/api/account");
-    vi.mocked(getMe).mockResolvedValue(FREE_ME);
+    vi.mocked(getMe).mockResolvedValue(GUEST_ME);
 
     const { result } = renderHook(() => useAuthProvider());
 
@@ -94,13 +95,14 @@ describe("useAuthProvider", () => {
     });
 
     expect(result.current.tier).toBe("free");
-    expect(result.current.user).toEqual(FREE_ME);
+    expect(result.current.user).toEqual(GUEST_ME);
   });
 
-  it("detects trial as free tier", async () => {
+  it("puts a trial account on Elefant mode, like any signed-in account", async () => {
     const trialMe = {
       ...PAID_ME,
       org: { ...PAID_ME.org, accountType: "trial" },
+      entitlements: { ...PAID_ME.entitlements, plan: "lite", isTrialWindowLive: true },
     };
     const { getMe } = await import("@/api/account");
     vi.mocked(getMe).mockResolvedValue(trialMe);
@@ -111,7 +113,7 @@ describe("useAuthProvider", () => {
       await result.current.login("trial-tok");
     });
 
-    expect(result.current.tier).toBe("free");
+    expect(result.current.tier).toBe("paid");
   });
 
   it.each([null, undefined])("loads a profile whose organization is %s", async (org) => {
@@ -180,11 +182,12 @@ describe("useAuthProvider", () => {
     expect(result.current.tier).toBe("free");
   });
 
-  it("clears token when getMe fails", async () => {
+  it("clears token when getMe answers 401", async () => {
     const { getMe } = await import("@/api/account");
+    const { ApiError } = await import("@/api/client");
     const { clearToken, getSavedToken } = await import("@/api/auth");
     vi.mocked(getSavedToken).mockReturnValue("bad-tok");
-    vi.mocked(getMe).mockRejectedValue(new Error("401 Unauthorized"));
+    vi.mocked(getMe).mockRejectedValue(new ApiError(401, "Session expired. Please sign in again."));
 
     const { result } = renderHook(() => useAuthProvider());
 
@@ -317,6 +320,22 @@ describe("useAuthProvider token refresh", () => {
     expect(result.current.token).toBeNull();
   });
 
+  it("does not show an account error for a refresh that fails after logout (#87)", async () => {
+    let failProfile!: (error: Error) => void;
+    vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
+    vi.mocked(getMe).mockResolvedValueOnce(PAID_ME)
+      .mockReturnValueOnce(new Promise((_, reject) => { failProfile = reject; }));
+    vi.mocked(openLoginDialog).mockResolvedValue(tokenExpiringIn(7_200_000));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_540_000); });
+    act(() => { result.current.logout(); });
+
+    const { NetworkError } = await import("@/api/client");
+    await act(async () => { failProfile(new NetworkError("Network request failed. Check your connection.")); });
+    expect(result.current.error).toBeUndefined();
+  });
+
   it("does not restore a refreshed profile that arrives after logout", async () => {
     let finishProfile!: (user: typeof PAID_ME) => void;
     vi.mocked(getSavedToken).mockReturnValue(tokenExpiringIn(3_600_000));
@@ -333,5 +352,32 @@ describe("useAuthProvider token refresh", () => {
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
     expect(result.current.loading).toBe(false);
+  });
+});
+
+describe("useAuthProvider in a host where sign-in needs a click (Teams)", () => {
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
+    vi.mocked(getMe).mockResolvedValue(PAID_ME);
+    const { setClickOnlySignIn } = await import("@/api/auth");
+    setClickOnlySignIn(async () => "teams.jwt.token");
+  });
+
+  afterEach(async () => {
+    const { setClickOnlySignIn } = await import("@/api/auth");
+    setClickOnlySignIn(null);
+  });
+
+  it("does not reopen sign-in on a timer, so the user stays signed in until the token expires", async () => {
+    const saved = tokenExpiringIn(3_600_000);
+    vi.mocked(getSavedToken).mockReturnValue(saved);
+    vi.mocked(openLoginDialog).mockResolvedValue(tokenExpiringIn(7_200_000));
+    const { result } = renderHook(() => useAuthProvider());
+    await act(async () => {});
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_599_000); });
+    expect(openLoginDialog).not.toHaveBeenCalled();
+    expect(result.current.token).toBe(saved);
   });
 });

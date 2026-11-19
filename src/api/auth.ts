@@ -1,7 +1,8 @@
-// ABOUTME: Auth module — opens Office dialog for Elefant login, exchanges for JWT.
-// ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync).
+// ABOUTME: Auth module — opens Office dialog (or a host's registered popup, e.g. Teams) for Elefant login.
+// ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync); keeps the JWT in localStorage.
 
 import { isOfficeReady } from "@/lib/office";
+import { isMailboxReady } from "@/lib/mailbox";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
@@ -43,13 +44,32 @@ export function tokenExpiresAt(token: string): number | null {
   }
 }
 
+// A host whose sign-in popup may only open from a user's click (Teams: lib/teams.ts) registers it
+// here, so the Word pane never loads that host's SDK and the refresh timer leaves re-sign-in to the user.
+let clickOnlySignIn: (() => Promise<string>) | null = null;
+
+export function setClickOnlySignIn(signIn: (() => Promise<string>) | null): void {
+  clickOnlySignIn = signIn;
+}
+
+export function signInNeedsClick(): boolean {
+  return clickOnlySignIn !== null;
+}
+
 /**
  * Opens the Elefant login page in an Office dialog.
  * The dialog posts back a token via Office.context.ui.messageParent().
  * Falls back to window.open() outside Office.
+ * A host that registered a click-only sign-in (Teams) uses that instead.
  */
 export function openLoginDialog(): Promise<string> {
-  if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
+  if (clickOnlySignIn) {
+    return clickOnlySignIn().then((token) => {
+      saveToken(token);
+      return token;
+    });
+  }
+  if ((isOfficeReady() || isMailboxReady()) && Office.context?.ui?.displayDialogAsync) {
     return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }
 
@@ -70,6 +90,9 @@ function openOfficeDialog(url: string): Promise<string> {
         dialog.addEventHandler(
           "DialogMessageReceived" as string,
           (arg: { message?: string; origin?: string }) => {
+            // Every message ends the dialog: the callback posts once, and a dialog left open
+            // on an error is a blank window the user cannot get past (#72).
+            dialog.close();
             if (arg.origin !== new URL(API_URL).origin) {
               reject(new Error("Dialog message from an unexpected origin"));
               return;
@@ -77,7 +100,6 @@ function openOfficeDialog(url: string): Promise<string> {
             try {
               const data = JSON.parse(arg.message ?? "");
               if (data.token) {
-                dialog.close();
                 saveToken(data.token);
                 resolve(data.token);
               } else {

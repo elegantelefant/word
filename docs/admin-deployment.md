@@ -25,7 +25,7 @@ Centralised deployment pushes Elefant to the users and groups you choose. Users 
 1. Sign in to the Microsoft 365 admin centre.
 2. Go to **Settings → Integrated apps**, then select the **Add-ins** link.
 3. Select **Deploy Add-in**, then **Next**.
-4. Choose to upload a custom add-in. Either choose the manifest file, or provide its URL: `https://addin.elefant.legal/manifest.xml`. Then select **Upload**.
+4. Choose to upload a custom add-in. Either choose the manifest file (download it from <https://addin.elefant.legal/manifest-download.xml>), or provide its URL: `https://addin.elefant.legal/manifest.xml`. Then select **Upload**.
 5. Choose who gets the add-in: **Everyone**, **Specific users/groups**, or **Just me**.
 6. Select **Deploy**.
 
@@ -45,7 +45,7 @@ This suits small offices or testing. Each user's copy of Word is pointed at a ne
 ### Step 1: Make a shared folder
 
 1. Create a folder, for example `C:\ElefantAddin`.
-2. Download <https://addin.elefant.legal/manifest.xml> and save it in that folder.
+2. Download <https://addin.elefant.legal/manifest-download.xml> and save it in that folder. If your browser shows the file's text instead of saving it, press Ctrl+S and save it as manifest.xml.
 3. Right-click the folder, choose **Properties**, open the **Sharing** tab, select **Share…**, then **Share**.
 4. Note the folder's network path, for example `\\COMPUTERNAME\ElefantAddin`.
 

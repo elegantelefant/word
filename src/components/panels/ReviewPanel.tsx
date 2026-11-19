@@ -6,9 +6,13 @@ import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
 import { reviewFree, reviewPaid, type FreeReviewResponse } from "@/api/review";
-import type { ReviewIssue, ReviewResponse } from "@/types/api";
+import type { ReviewIssue, ReviewResponse, Tier } from "@/types/api";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { addToLocalHistory } from "@/lib/history";
+import { ApiError } from "@/api/client";
+import { isPlanLimit } from "@/lib/plan-features";
+import { PRICING_URL, useUpsell } from "@/store/upsell";
+import { useSendNotice } from "@/components/SendNotice";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
 export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
@@ -27,6 +31,16 @@ function freeReviewView(result: FreeReviewResponse): ReviewView {
       suggestion: issue.suggestion || undefined,
     })),
   };
+}
+
+/** Runs one review on the tier's service: Elefant when signed in to Pro, the user's Gemini key otherwise. */
+export async function reviewText(
+  text: string,
+  { tier, token, apiKey, model, instructions }: { tier: Tier; token: string | null; apiKey: string; model: string; instructions: string },
+): Promise<ReviewView> {
+  return tier === "paid" && token
+    ? reviewPaid(text, token, instructions || undefined)
+    : freeReviewView(await reviewFree(text, apiKey, model, instructions || undefined));
 }
 
 type Scope = "selection" | "document";
@@ -53,6 +67,9 @@ export function ReviewPanel() {
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [planLimit, setPlanLimit] = useState(false);
+  const upsell = useUpsell();
+  const announce = useSendNotice();
   const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
@@ -61,6 +78,7 @@ export function ReviewPanel() {
   async function handleReview() {
     setLoading(true);
     setError(null);
+    setPlanLimit(false);
     setResult(null);
 
     try {
@@ -81,10 +99,9 @@ export function ReviewPanel() {
         return;
       }
 
-      const response: ReviewView =
-        tier === "paid" && token
-          ? await reviewPaid(text, token, instructions || undefined)
-          : freeReviewView(await reviewFree(text, settings.apiKey, settings.model, instructions || undefined));
+      const paid = tier === "paid" && !!token;
+      await announce(paid ? "elefant" : "google");
+      const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions });
 
       setResult(response);
 
@@ -93,6 +110,8 @@ export function ReviewPanel() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Review failed");
+      // Out of allowance or credits, or not in the plan: the one place a plans link is useful (#98).
+      setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
       setLoading(false);
     }
@@ -157,7 +176,17 @@ export function ReviewPanel() {
       {/* Error */}
       {error && (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">
-          <span className="flex-1">{error}</span>
+          <span className="flex-1">
+            {error}
+            {upsell && planLimit && (
+              <>
+                {" "}
+                <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  See plans
+                </a>
+              </>
+            )}
+          </span>
           <button
             onClick={() => setError(null)}
             className="shrink-0 text-red-400 transition-colors hover:text-red-600"
@@ -174,7 +203,8 @@ export function ReviewPanel() {
   );
 }
 
-export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert: (text: string) => void }) {
+/** Without onInsert there is no document to insert into, so suggestions show no Insert button. */
+export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert?: (text: string) => void }) {
   return (
     <div className="space-y-3">
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
@@ -194,7 +224,7 @@ export function ReviewResults({ result, onInsert }: { result: ReviewView; onInse
   );
 }
 
-function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (text: string) => void }) {
+function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert?: (text: string) => void }) {
   const category = issue.category || "other";
   const suggestion = issue.suggestion;
   return (
@@ -222,12 +252,14 @@ function IssueCard({ issue, onInsert }: { issue: ReviewIssueView; onInsert: (tex
       {suggestion && (
         <div className="mt-1.5 flex items-start gap-1">
           <p className="flex-1 text-xs text-green-700">{suggestion}</p>
-          <button
-            onClick={() => onInsert(suggestion)}
-            className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
-          >
-            Insert
-          </button>
+          {onInsert && (
+            <button
+              onClick={() => onInsert(suggestion)}
+              className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 hover:bg-green-100"
+            >
+              Insert
+            </button>
+          )}
         </div>
       )}
     </div>
