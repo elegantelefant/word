@@ -4,21 +4,25 @@
 import type { ReactNode } from "react";
 import { useAuth } from "@/store/auth";
 import { isFullAnalysisEnabled } from "@/lib/features";
+import { planIncludes, type PlanFeature } from "@/lib/plan-features";
 
-export type TabId = "review" | "clauses" | "mammoth" | "analysis" | "history";
+export type TabId = "review" | "clauses" | "mammoth" | "citations" | "analysis" | "history";
 
 interface Tab {
   id: TabId;
   label: string;
   disabled?: boolean;
   paidOnly?: boolean;
+  // A plan feature that must be included, read from /me (lib/plan-features).
+  feature?: PlanFeature;
 }
 
 function getTabs(): Tab[] {
   return [
     { id: "review", label: "Review" },
-    { id: "clauses", label: "Clauses", paidOnly: true },
-    { id: "mammoth", label: "Mammoth", paidOnly: true },
+    { id: "clauses", label: "Clauses" },
+    { id: "mammoth", label: "Mammoth", paidOnly: true, feature: "mammoth" },
+    { id: "citations", label: "Citations", paidOnly: true, feature: "citationCheck" },
     ...(isFullAnalysisEnabled(import.meta.env.VITE_FULL_ANALYSIS)
       ? [{ id: "analysis" as const, label: "Analysis", paidOnly: true }]
       : []),
@@ -27,14 +31,15 @@ function getTabs(): Tab[] {
 }
 
 interface LayoutProps {
-  activeTab: TabId;
-  onTabChange: (tab: TabId) => void;
+  // Without onTabChange there is no tab bar (Outlook's pane shows its actions directly).
+  activeTab?: TabId;
+  onTabChange?: (tab: TabId) => void;
   onSettingsClick: () => void;
   children: ReactNode;
 }
 
 export function Layout({ activeTab, onTabChange, onSettingsClick, children }: LayoutProps) {
-  const { tier, token, loading } = useAuth();
+  const { tier, user } = useAuth();
 
   return (
     <div className="flex h-screen flex-col">
@@ -52,24 +57,12 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         </button>
       </header>
 
-      {!loading && tier !== "paid" && (
-        <button
-          onClick={onSettingsClick}
-          className="flex w-full items-center justify-center gap-1 border-b border-blue-100 bg-blue-50 px-3 py-1.5 text-[11px] text-blue-700 transition-colors hover:bg-blue-100"
-        >
-          <LockIcon />
-          <span>
-            {token
-              ? "Unlock all features — Upgrade"
-              : "Unlock all features — Sign in"}
-          </span>
-        </button>
-      )}
-
-      <nav className="flex border-b border-gray-200">
+      {onTabChange && <nav className="flex border-b border-gray-200">
         {getTabs().map((tab) => {
-          const locked = tab.paidOnly && tier !== "paid";
-          const isDisabled = tab.disabled || locked;
+          // Mammoth and citation checks depend on the plan, so their locks follow /me, not sign-in (#98, #106).
+          const locked = tab.paidOnly && (tier !== "paid" || (tab.feature !== undefined && !planIncludes(user, tab.feature)));
+          // A locked tab still opens: its panel says, in one line, which plans include it (#97).
+          const isDisabled = tab.disabled;
           return (
             <button
               key={tab.id}
@@ -82,16 +75,20 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
                     ? "cursor-not-allowed text-gray-300"
                     : "text-gray-500 hover:text-gray-700"
               }`}
-              title={locked ? "Requires Elefant Pro" : undefined}
             >
               <span className="inline-flex items-center gap-0.5">
                 {tab.label}
-                {locked && <LockIcon />}
+                {locked && (
+                  <>
+                    <LockIcon />
+                    <span className="sr-only">{tier !== "paid" ? ", needs a paid plan" : tab.id === "mammoth" ? ", not switched on for your organisation" : ", not in your plan"}</span>
+                  </>
+                )}
               </span>
             </button>
           );
         })}
-      </nav>
+      </nav>}
 
       <main className="flex-1 overflow-y-auto p-3">{children}</main>
 
@@ -100,7 +97,7 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
           tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
         }`}>
-          {tier === "paid" ? "Pro" : "Free"}
+          {tier === "paid" ? planLabel(user?.entitlements?.plan, user?.org?.accountType) : "Free"}
         </span>
       </footer>
     </div>
@@ -119,7 +116,7 @@ function ElefantLogo() {
 
 function LockIcon() {
   return (
-    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="shrink-0" aria-hidden="true">
       <rect x="3" y="8" width="10" height="7" rx="1.5" />
       <path d="M5 8V5.5a3 3 0 016 0V8" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
@@ -133,4 +130,18 @@ function SettingsIcon() {
       <circle cx="8" cy="8" r="2" />
     </svg>
   );
+}
+
+// Sellable plan names as /me reports them (monorepo core/subscription_plans.py display_name).
+const PLAN_LABELS: Record<string, string> = {
+  lite: "Lite", explorer: "Explorer", pro: "Pro", business: "Business",
+  enterprise: "Enterprise", api: "API", academia: "Academia",
+};
+
+// A fresh account has no entitlement row, so /me sends no plan; its org profile names it instead (monorepo me.py).
+const PROFILE_LABELS: Record<string, string> = { individual: "Lite", personal: "Lite", commercial: "Pro", educational: "Academia" };
+
+function planLabel(plan: string | null | undefined, profile: string | undefined): string {
+  if (plan) return PLAN_LABELS[plan] ?? "Elefant";
+  return (profile && (PROFILE_LABELS[profile] ?? PLAN_LABELS[profile])) || "Elefant";
 }

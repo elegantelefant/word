@@ -61,11 +61,10 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
       throw new ApiError(401, "Session expired. Please sign in again.");
     }
 
-    if (res.status === 429) {
-      throw new ApiError(429, "Too many requests. Please wait a moment.");
-    }
-
-    let message = "Something went wrong while contacting Elefant. Please try again.";
+    // A plain 429 is the edge rate limiter; a quota refusal carries its own message and reason (#98).
+    let message = res.status === 429
+      ? "Too many requests. Please wait a moment."
+      : "Something went wrong while contacting Elefant. Please try again.";
     let reason: string | undefined;
 
     try {
@@ -75,17 +74,24 @@ export async function apiFetch<T>(path: string, token: string, options: RequestO
         const data = "data" in body && typeof body.data === "object" && body.data !== null
           ? body.data
           : undefined;
+        // Backend refusals arrive as an error envelope: the reason sits in data.detail (monorepo error_responses.py).
+        const detail = data && "detail" in data && typeof data.detail === "object" && data.detail !== null
+          ? data.detail
+          : undefined;
 
-        if ("message" in body && typeof body.message === "string") {
-          message = body.message;
-        } else if (data && "message" in data && typeof data.message === "string") {
-          message = data.message;
+        if (detail && "reason" in detail && typeof detail.reason === "string") {
+          reason = detail.reason;
         }
 
-        if ("statusMessage" in body && typeof body.statusMessage === "string") {
-          reason = body.statusMessage;
-        } else if (data && "reason" in data && typeof data.reason === "string") {
-          reason = data.reason;
+        // Nitro copies statusMessage ("backend_error", "Too Many Requests") into the top-level message,
+        // so the backend's own words in data win, and a top-level copy of statusMessage is no message.
+        // A 5xx without a reason is the proxy's or the platform's own diagnostics: not for users.
+        const showsBackendMessage = res.status < 500 || reason !== undefined;
+        if (showsBackendMessage && data && "message" in data && typeof data.message === "string") {
+          message = data.message;
+        } else if (showsBackendMessage && "message" in body && typeof body.message === "string"
+          && !("statusMessage" in body && body.statusMessage === body.message)) {
+          message = body.message;
         }
       }
     } catch {

@@ -1,15 +1,16 @@
-// ABOUTME: Entry point — decides between the task pane app and the landing page.
-// ABOUTME: Waits for Office.onReady inside Word; shows install steps in a browser.
+// ABOUTME: Entry point — decides between the Word pane, the Outlook pane and the landing page.
+// ABOUTME: Waits for Office.onReady inside Office; shows install steps in a browser.
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { OutlookApp } from "./OutlookApp";
 import { LandingPage } from "./components/LandingPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { chooseComponent } from "./lib/mount-decision";
 import "./index.css";
 
-const mount = (Component: typeof App | typeof LandingPage) => {
+const mount = (Component: typeof App | typeof OutlookApp | typeof LandingPage) => {
   const root = document.getElementById("root");
   if (!root) throw new Error("Root element not found");
   createRoot(root).render(
@@ -26,7 +27,7 @@ const mount = (Component: typeof App | typeof LandingPage) => {
 // is what actually distinguishes a task pane from someone opening the URL.
 if (typeof Office !== "undefined") {
   Office.onReady((info: { host: unknown; platform: unknown }) => {
-    mount(chooseComponent(info.host, import.meta.env.DEV) === "app" ? App : LandingPage);
+    mount({ app: App, outlook: OutlookApp, landing: LandingPage }[chooseComponent(info.host, import.meta.env.DEV)]);
   });
 } else {
   // Office.js failed to load. Inside Word that's a CDN problem, not a reason to

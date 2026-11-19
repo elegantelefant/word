@@ -1,24 +1,82 @@
-// ABOUTME: Clauses panel — search and browse clause databases, insert into Word.
-// ABOUTME: Paid-only feature; shows UpgradePrompt for free-tier users.
+// ABOUTME: Clauses panel — search and browse clause databases, insert into Word; exports the plan-gated drafting Teams reuses.
+// ABOUTME: Signed in, the clause library and Elefant drafting; signed out, drafting with the user's Gemini key.
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/store/auth";
+import { useSettings } from "@/store/settings";
+import { useUpsell } from "@/store/upsell";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { DraftClause } from "@/components/DraftClause";
+import { planIncludes } from "@/lib/plan-features";
 import { draftClause, listClauseDatabases, listClauses, suggestClause, type Clause, type ClauseDatabase } from "@/api/clauses";
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
-
-const DRAFT_INSERTED_NOTICE = "Inserted at the cursor. Undo with Ctrl+Z (Cmd+Z on Mac).";
+import { useSendNotice } from "@/components/SendNotice";
 
 export function ClausesPanel({ active = true }: { active?: boolean }) {
-  const { tier, token } = useAuth();
+  const { tier, token, user } = useAuth();
 
   if (tier !== "paid" || !token) {
-    return <UpgradePrompt feature="Clause Search" />;
+    return <FreeClauses />;
   }
 
-  return <ClausesContent token={token} active={active} />;
+  // Each part shows only if the account's plan includes it; Lite drafts but has no clause library (#98).
+  return (
+    <div className="space-y-3">
+      <ClauseDrafting />
+      {planIncludes(user, "clauseLibrary")
+        ? <ClausesContent token={token} active={active} />
+        : <UpgradePrompt feature="Clause search" />}
+    </div>
+  );
+}
+
+
+/** Elefant drafting when the signed-in plan includes it; signed out, the user's own Gemini key, as free review does. */
+export function ClauseDrafting({ copy }: { copy?: boolean }) {
+  const { tier, token, user } = useAuth();
+
+  if (tier === "paid" && token) {
+    return planIncludes(user, "draft")
+      ? <DraftClause copy={copy} sendsTo="elefant" draft={(prompt, context) => draftClause(prompt, context, token)} />
+      : <UpgradePrompt feature="Drafting" />;
+  }
+  return <OwnKeyDrafting copy={copy} />;
+}
+
+function OwnKeyDrafting({ copy }: { copy?: boolean }) {
+  const { settings } = useSettings();
+
+  async function draftWithOwnKey(prompt: string, context: string) {
+    const { runDraft } = await import("@/lib/agent");
+    return runDraft(settings.apiKey, settings.model, prompt, context);
+  }
+
+  return (
+    <DraftClause
+      copy={copy}
+      sendsTo="google"
+      draft={draftWithOwnKey}
+      unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
+    />
+  );
+}
+
+/** Signed out: drafting with the user's own key; the clause library needs Elefant. */
+function FreeClauses() {
+  const { token } = useAuth();
+  const upsell = useUpsell();
+
+  return (
+    <div className="space-y-3">
+      <ClauseDrafting />
+      {upsell && !token && (
+        <p className="text-xs text-gray-500">Signed in, Elefant drafts with its own models. Paid plans add your clause library.</p>
+      )}
+      <UpgradePrompt feature="Clause search" />
+    </div>
+  );
 }
 
 function ClausesContent({
@@ -29,6 +87,7 @@ function ClausesContent({
   active: boolean;
 }) {
   const [databases, setDatabases] = useState<ClauseDatabase[]>([]);
+  const announce = useSendNotice();
   const [activeDb, setActiveDb] = useState<string | null>(null);
   const [clauses, setClauses] = useState<Clause[]>([]);
   const [search, setSearch] = useState("");
@@ -39,9 +98,6 @@ function ClausesContent({
   const [databasesError, setDatabasesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [draftPrompt, setDraftPrompt] = useState("");
-  const [drafting, setDrafting] = useState(false);
-  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
   const refreshDatabases = useCallback(async () => {
     const isLatest = beginDatabases();
@@ -110,6 +166,7 @@ function ClausesContent({
     try {
       const selected = await getSelectedText();
       if (!isLatest()) return;
+      await announce("elefant");
       const suggestions = await suggestClause(activeDb, selected, token);
       if (!isLatest()) return;
       setClauses(suggestions);
@@ -119,24 +176,6 @@ function ClausesContent({
       if (isLatest()) setError(err instanceof Error ? err.message : "Failed to suggest clauses");
     } finally {
       if (isLatest()) setLoadingClauses(false);
-    }
-  }
-
-  async function handleDraft() {
-    const prompt = draftPrompt.trim();
-    if (!prompt || !isOfficeReady()) return;
-    setDrafting(true);
-    setError(null);
-    setDraftNotice(null);
-    try {
-      const selected = await getSelectedText();
-      const draft = await draftClause(prompt, selected, token);
-      await insertText(draft, "end");
-      setDraftNotice(DRAFT_INSERTED_NOTICE);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to draft clause");
-    } finally {
-      setDrafting(false);
     }
   }
 
@@ -152,26 +191,6 @@ function ClausesContent({
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
-      </div>
-      {/* Draft a clause */}
-      <div className="space-y-1.5">
-        <textarea
-          value={draftPrompt}
-          onChange={(e) => setDraftPrompt(e.target.value)}
-          placeholder="Describe the clause to draft..."
-          aria-label="Draft a clause"
-          rows={3}
-          className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => void handleDraft()}
-          disabled={drafting || !draftPrompt.trim()}
-          className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {drafting ? "Drafting..." : "Draft clause"}
-        </button>
-        {draftNotice && <p className="text-xs text-green-700">{draftNotice}</p>}
       </div>
 
       {/* Database selector (if multiple) */}

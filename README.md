@@ -47,6 +47,10 @@ Always review AI-generated legal output before relying on or inserting it.
 
 ## User installation
 
+Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High, DoD) and Microsoft 365 operated by 21Vianet in China are not supported.
+
+Download the manifest from https://addin.elefant.legal/manifest-download.xml, then follow the steps for your platform in [docs/install.md](docs/install.md).
+
 ### Word on the web
 
 Follow the [Word on the web steps](docs/install.md#word-on-the-web) in the installation guide.
@@ -239,7 +243,7 @@ The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml
 - CORS headers required by the Office add-in.
 - The Content Security Policy for the Word task pane.
 - The `application/xml` content type for the manifest.
-- `Content-Disposition: attachment` for `.command` and `.bat` installers.
+- `Content-Disposition: attachment` for `.command` and `.bat` installers, and for `/manifest-download.xml` (the manifest as a file; `/manifest.xml` stays inline for the admin centre).
 - SPA fallback through `try_files` and `index.html`.
 - One-year caching for Vite-hashed assets under `/assets/`.
 

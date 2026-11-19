@@ -1,0 +1,26 @@
+// ABOUTME: Outlook task pane root: the shared providers and header, with the mail actions in place of Word's tabs.
+// ABOUTME: Points the shared panels at the open message through the mail host.
+
+import { Layout } from "./components/Layout";
+import { Providers } from "./components/Providers";
+import { MailPanel } from "./components/panels/MailPanel";
+import { SendNoticeProvider } from "./components/SendNotice";
+import { HostContext } from "./store/host";
+import { MAIL_HOST } from "./lib/mailbox";
+
+export function OutlookApp() {
+  return (
+    <HostContext value={MAIL_HOST}>
+      {/* Outside Providers, so opening Settings never strands a send waiting on Continue. */}
+      <SendNoticeProvider>
+        <Providers>
+          {(openSettings) => (
+            <Layout onSettingsClick={openSettings}>
+              <MailPanel />
+            </Layout>
+          )}
+        </Providers>
+      </SendNoticeProvider>
+    </HostContext>
+  );
+}
