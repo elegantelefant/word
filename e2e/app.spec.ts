@@ -307,3 +307,11 @@ test.describe("Accessibility basics", () => {
     expect(focused).toBe("BUTTON");
   });
 });
+
+test.describe("Citations tab (#106)", () => {
+  test("opens to one quiet line for a signed-out user", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("nav").getByRole("button", { name: /Citations/ }).click();
+    await expect(page.getByText("Citation checking needs an Elefant account. Sign in from Settings.")).toBeVisible();
+  });
+});
