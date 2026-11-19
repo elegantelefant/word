@@ -1,4 +1,4 @@
-// ABOUTME: Citations tab — checks the selection (or the whole document) through Elefant's citation-check job.
+// ABOUTME: Citations tab — checks the selection (or the whole document or message) through Elefant's citation-check job.
 // ABOUTME: Labels each citation in plain words and can show it in the document; gated by the plan's citation limits.
 
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +7,8 @@ import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ApiError } from "@/api/client";
 import { checkCitations, type CitationFinding, type CitationStatus } from "@/api/citations";
-import { getDocumentBody, getSelectedText, isOfficeReady, selectText } from "@/lib/office";
+import { useHost } from "@/store/host";
+import { useSendNotice } from "@/components/SendNotice";
 import { isPlanLimit, planIncludes } from "@/lib/plan-features";
 
 // Plain words for the API's statuses; users never see "verified" or "certified" (owner's standing rule).
@@ -26,7 +27,6 @@ const STATUS_STYLES: Record<CitationStatus, string> = {
 };
 
 const OUTSIDE_WORD = "Checking citations needs Microsoft Word: open Elefant from the Word ribbon.";
-const NO_TEXT = "This document doesn't have any text to check.";
 const NOT_IN_DOCUMENT = "Couldn't find this citation in the document.";
 const NEEDS_ACCOUNT = "Citation checking needs an Elefant account. Sign in from Settings.";
 
@@ -50,6 +50,9 @@ function summarise(findings: CitationFinding[]): string {
 const isWebAddress = (url: string | null): url is string => !!url && /^https?:\/\//i.test(url);
 
 function CitationsContent({ token }: { token: string }) {
+  const host = useHost();
+  const { select } = host;
+  const announce = useSendNotice();
   const upsell = useUpsell();
   const [checking, setChecking] = useState(false);
   const [findings, setFindings] = useState<CitationFinding[] | null>(null);
@@ -62,7 +65,7 @@ function CitationsContent({ token }: { token: string }) {
   useEffect(() => () => inFlight.current?.abort(), []);
 
   async function handleCheck() {
-    if (!isOfficeReady()) {
+    if (!host.ready()) {
       setError(OUTSIDE_WORD);
       return;
     }
@@ -74,12 +77,13 @@ function CitationsContent({ token }: { token: string }) {
     setFindings(null);
     setMissing(null);
     try {
-      const selected = (await getSelectedText()).trim();
-      const text = selected || (await getDocumentBody()).trim();
+      const selected = (await host.selection()).trim();
+      const text = selected || (await host.body()).trim();
       if (!text) {
-        setError(NO_TEXT);
+        setError(`This ${host.noun} doesn't have any text to check.`);
         return;
       }
+      await announce("elefant");
       const found = await checkCitations(text, token, controller.signal);
       if (!controller.signal.aborted) setFindings(found);
     } catch (err) {
@@ -91,9 +95,9 @@ function CitationsContent({ token }: { token: string }) {
     }
   }
 
-  async function handleShow(citation: string) {
+  async function handleShow(select: (text: string) => Promise<boolean>, citation: string) {
     try {
-      setMissing((await selectText(citation)) ? null : citation);
+      setMissing((await select(citation)) ? null : citation);
     } catch {
       setMissing(citation);
     }
@@ -101,7 +105,7 @@ function CitationsContent({ token }: { token: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500">Checks the selected text, or the whole document when nothing is selected.</p>
+      <p className="text-xs text-gray-500">Checks the selected text, or the whole {host.noun} when nothing is selected.</p>
       <button
         type="button"
         onClick={() => void handleCheck()}
@@ -138,14 +142,16 @@ function CitationsContent({ token }: { token: string }) {
                   </span>
                 </div>
                 <div className="mt-1 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void handleShow(finding.citation)}
-                    aria-label={`Show ${finding.citation} in the document`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Show in document
-                  </button>
+                  {select && (
+                    <button
+                      type="button"
+                      onClick={() => void handleShow(select, finding.citation)}
+                      aria-label={`Show ${finding.citation} in the document`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Show in document
+                    </button>
+                  )}
                   {isWebAddress(finding.sourceUrl) && (
                     <a href={finding.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label={`Source for ${finding.citation}`} className="text-blue-600 hover:underline">
                       Source

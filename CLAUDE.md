@@ -10,6 +10,7 @@ A Microsoft Word task-pane add-in: a small React SPA that Word loads through Off
 |---|---|
 | `src/main.tsx`, `src/App.tsx` | Entry (mounts after `Office.onReady`), shell + tab routing |
 | `src/lib/office.ts` | The only Word boundary: selection, body, insert |
+| `src/lib/mailbox.ts`, `src/OutlookApp.tsx`, `src/components/panels/MailPanel.tsx` | The only Outlook boundary, and the Outlook pane; `main.tsx` picks the pane by `info.host`, `store/host.ts` points the shared panels at Word or the mail item |
 | `src/lib/agent.ts`, `src/lib/models.ts` | Free-tier ADK agent + Zod output schema; the one Gemini model list |
 | `src/api/*.ts` | Paid-tier HTTP clients; `client.ts` adds auth, maps 401/429 |
 | `src/lib/polling.ts`, `src/hooks/useJob.ts` | Paid work is a job: create → `poll_url` → `completed`/`failed` |
@@ -18,6 +19,7 @@ A Microsoft Word task-pane add-in: a small React SPA that Word loads through Off
 | `agent_tests/` | Vitest (jsdom) — the suite CI runs; `setup.ts` + the `@google/adk` shim alias |
 | `e2e/` | Playwright against the Vite dev server on `http://localhost:3001` (no dev certs needed) — a browser, not Word |
 | `manifest.xml` / `manifest.prod.xml` | Sideload manifests: localhost vs Cloud Run |
+| `manifest.outlook.xml` | Outlook sideload manifest (add-in only XML, its own id, localhost); no production twin yet |
 | `nginx.conf`, `Dockerfile`, `cloudbuild.yaml` | Serving + deploy; the Cloud Build trigger is not connected |
 | `agent_docs/` | Date-versioned plans, runbooks, reviews; newest wins |
 

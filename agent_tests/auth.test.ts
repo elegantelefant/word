@@ -145,6 +145,21 @@ describe("sign-in dialog", () => {
     expect(handlers.open).toBe(false);
   });
 
+  it("opens the Office dialog inside Outlook, where there is no Word API", async () => {
+    let opened = "";
+    const handlers = stubOfficeDialog((url) => {
+      opened = url;
+    });
+    vi.stubGlobal("Word", undefined);
+    (Office.context as unknown as { mailbox: unknown }).mailbox = { item: {} };
+
+    const login = openLoginDialog();
+    handlers.DialogMessageReceived({ origin: "https://elefant.legal", message: JSON.stringify({ token: "jwt-mail" }) });
+
+    await expect(login).resolves.toBe("jwt-mail");
+    expect(opened).toBe(`${window.location.origin}/sign-in.html`);
+  });
+
   it("rejects a dialog message from an origin other than Elefant's (#53)", async () => {
     const handlers = stubOfficeDialog();
 

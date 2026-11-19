@@ -8,6 +8,7 @@ import { runFullAnalysis } from "@/api/review";
 import type { FullAnalysisResult } from "@/api/review";
 import { getSelectedText, getDocumentBody, insertText, isOfficeReady } from "@/lib/office";
 import { ReviewResults } from "./ReviewPanel";
+import { useSendNotice } from "@/components/SendNotice";
 
 type AnalysisStatus = "idle" | "running" | "done" | "error";
 
@@ -27,6 +28,7 @@ function AnalysisContent({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FullAnalysisResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const announce = useSendNotice();
 
   async function handleAnalyze() {
     abortRef.current?.abort();
@@ -50,6 +52,7 @@ function AnalysisContent({ token }: { token: string }) {
         return;
       }
 
+      await announce("elefant");
       const analysisResult = await runFullAnalysis(text, token, controller.signal);
       setResult(analysisResult);
       setStatus("done");

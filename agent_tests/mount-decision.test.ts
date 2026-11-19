@@ -23,6 +23,10 @@ describe("chooseComponent", () => {
     expect(chooseComponent("Word", true)).toBe("app");
   });
 
+  it("renders the Outlook pane inside Outlook", () => {
+    expect(chooseComponent("Outlook", false)).toBe("outlook");
+  });
+
   it("treats an undefined host as no host", () => {
     expect(chooseComponent(undefined, false)).toBe("landing");
   });

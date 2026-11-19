@@ -1,8 +1,9 @@
-// ABOUTME: Draft one clause from a description: insert it at the cursor in Word, or show it to copy where there is no document.
+// ABOUTME: Draft one clause (Word) or one email reply (Outlook): insert it at the cursor, or show it to copy where there is no document (Teams).
 // ABOUTME: The caller supplies the drafter: Elefant's API when signed in, the user's own Gemini key otherwise.
 
 import { useState, type ReactNode } from "react";
-import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
+import { useHost } from "@/store/host";
+import { useSendNotice, type Destination } from "@/components/SendNotice";
 import { ApiError } from "@/api/client";
 import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
@@ -12,15 +13,27 @@ const OUTSIDE_WORD = "Drafting needs Microsoft Word: open Elefant from the Word 
 const COPIED_NOTICE = "Copied.";
 const COPY_FAILED = "Couldn't copy. Select the draft and copy it yourself.";
 
+// What is being drafted, in the box's own words.
+const WORDING = {
+  clause: { placeholder: "Describe the clause to draft...", label: "Draft a clause", action: "Draft clause" },
+  reply: { placeholder: "What should the reply say?", label: "Draft a reply", action: "Draft reply" },
+};
+
 interface DraftClauseProps {
   draft: (prompt: string, context: string) => Promise<string>;
+  kind?: keyof typeof WORDING;
+  // Where the drafter sends the text, for the send notice.
+  sendsTo: Destination;
   // Why drafting cannot run yet (for example, no Gemini key); disables the button.
   unavailable?: ReactNode;
   // No document to insert into (Teams): draft from the description alone and show the result to copy.
   copy?: boolean;
 }
 
-export function DraftClause({ draft, unavailable, copy = false }: DraftClauseProps) {
+export function DraftClause({ draft, kind = "clause", sendsTo, unavailable, copy = false }: DraftClauseProps) {
+  const host = useHost();
+  const announce = useSendNotice();
+  const wording = WORDING[kind];
   const [prompt, setPrompt] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,7 +45,7 @@ export function DraftClause({ draft, unavailable, copy = false }: DraftClausePro
   async function handleDraft() {
     const description = prompt.trim();
     if (!description) return;
-    if (!copy && !isOfficeReady()) {
+    if (!copy && !host.ready()) {
       setError(OUTSIDE_WORD);
       return;
     }
@@ -43,11 +56,13 @@ export function DraftClause({ draft, unavailable, copy = false }: DraftClausePro
     setDrafted(null);
     try {
       if (copy) {
+        await announce(sendsTo);
         setDrafted(await draft(description, ""));
         return;
       }
-      const selected = await getSelectedText();
-      await insertText(await draft(description, selected), "end");
+      const selected = await host.selection();
+      await announce(sendsTo);
+      await host.insert(await draft(description, selected));
       setNotice(DRAFT_INSERTED_NOTICE);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to draft clause");
@@ -78,8 +93,8 @@ export function DraftClause({ draft, unavailable, copy = false }: DraftClausePro
           setDrafted(null);
           setNotice(null);
         }}
-        placeholder="Describe the clause to draft..."
-        aria-label="Draft a clause"
+        placeholder={wording.placeholder}
+        aria-label={wording.label}
         rows={3}
         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
       />
@@ -89,7 +104,7 @@ export function DraftClause({ draft, unavailable, copy = false }: DraftClausePro
         disabled={!!unavailable || drafting || !prompt.trim()}
         className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {drafting ? "Drafting..." : "Draft clause"}
+        {drafting ? "Drafting..." : wording.action}
       </button>
       {unavailable && <p className="text-xs text-gray-500">{unavailable}</p>}
       {drafted && (

@@ -12,6 +12,7 @@ import { draftClause, listClauseDatabases, listClauses, suggestClause, type Clau
 import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
+import { useSendNotice } from "@/components/SendNotice";
 
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token, user } = useAuth();
@@ -38,7 +39,7 @@ export function ClauseDrafting({ copy }: { copy?: boolean }) {
 
   if (tier === "paid" && token) {
     return planIncludes(user, "draft")
-      ? <DraftClause copy={copy} draft={(prompt, context) => draftClause(prompt, context, token)} />
+      ? <DraftClause copy={copy} sendsTo="elefant" draft={(prompt, context) => draftClause(prompt, context, token)} />
       : <UpgradePrompt feature="Drafting" />;
   }
   return <OwnKeyDrafting copy={copy} />;
@@ -55,6 +56,7 @@ function OwnKeyDrafting({ copy }: { copy?: boolean }) {
   return (
     <DraftClause
       copy={copy}
+      sendsTo="google"
       draft={draftWithOwnKey}
       unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
     />
@@ -85,6 +87,7 @@ function ClausesContent({
   active: boolean;
 }) {
   const [databases, setDatabases] = useState<ClauseDatabase[]>([]);
+  const announce = useSendNotice();
   const [activeDb, setActiveDb] = useState<string | null>(null);
   const [clauses, setClauses] = useState<Clause[]>([]);
   const [search, setSearch] = useState("");
@@ -163,6 +166,7 @@ function ClausesContent({
     try {
       const selected = await getSelectedText();
       if (!isLatest()) return;
+      await announce("elefant");
       const suggestions = await suggestClause(activeDb, selected, token);
       if (!isLatest()) return;
       setClauses(suggestions);

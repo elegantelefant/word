@@ -2,6 +2,7 @@
 // ABOUTME: Uses BetterAuth flow via popup (Office.context.ui.displayDialogAsync); keeps the JWT in localStorage.
 
 import { isOfficeReady } from "@/lib/office";
+import { isMailboxReady } from "@/lib/mailbox";
 import { API_URL } from "./client";
 const TOKEN_KEY = "elefant_token";
 
@@ -68,7 +69,7 @@ export function openLoginDialog(): Promise<string> {
       return token;
     });
   }
-  if (isOfficeReady() && Office.context?.ui?.displayDialogAsync) {
+  if ((isOfficeReady() || isMailboxReady()) && Office.context?.ui?.displayDialogAsync) {
     return openOfficeDialog(`${window.location.origin}${DIALOG_START_PATH}`);
   }
 
