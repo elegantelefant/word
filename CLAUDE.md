@@ -19,7 +19,7 @@ A Microsoft Word task-pane add-in: a small React SPA that Word loads through Off
 | `agent_tests/` | Vitest (jsdom) — the suite CI runs; `setup.ts` + the `@google/adk` shim alias |
 | `e2e/` | Playwright against the Vite dev server on `http://localhost:3001` (no dev certs needed) — a browser, not Word |
 | `manifest.xml` / `manifest.prod.xml` | Sideload manifests: localhost vs Cloud Run |
-| `manifest.outlook.xml` | Outlook sideload manifest (add-in only XML, its own id, localhost); no production twin yet |
+| `manifest.outlook.xml` / `manifest.outlook.prod.xml` | Outlook manifests (add-in only XML, own ids): localhost vs Cloud Run, served at `/manifest-outlook.xml` |
 | `nginx.conf`, `Dockerfile`, `cloudbuild.yaml` | Serving + deploy; the Cloud Build trigger is not connected |
 | `agent_docs/` | Date-versioned plans, runbooks, reviews; newest wins |
 
