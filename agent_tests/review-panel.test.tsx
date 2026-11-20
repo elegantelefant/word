@@ -1,7 +1,8 @@
 // ABOUTME: Tests for ReviewPanel component — the core user-facing review flow.
 // ABOUTME: Covers rendering, scope toggle, review execution, results display, error states.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { webcrypto, createHash } from "node:crypto";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ReviewPanel } from "@/components/panels/ReviewPanel";
 import { SettingsContext, type SettingsContextValue } from "@/store/settings";
@@ -59,7 +60,13 @@ function renderPanel(
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  localStorage.clear();
+  // These flows start with an acknowledged key; google-notice.test.tsx covers first use.
+  vi.stubGlobal("crypto", webcrypto);
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("AIza-test").digest("hex")}`, "1");
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("ReviewPanel — rendering", () => {
   it("renders scope selector, instructions, and review button", () => {

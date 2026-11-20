@@ -16,6 +16,26 @@ export interface SettingsContextValue {
 
 const STORAGE_KEY = "elefant_settings";
 
+// Separate from the stored credentials: acknowledgement contains only a SHA-256 fingerprint.
+const GOOGLE_ACK_PREFIX = "elefant_google_notice_ack_";
+
+export async function googleKeyHash(apiKey: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(apiKey));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function hasGoogleAcknowledgement(hash: string): boolean {
+  try {
+    return localStorage.getItem(GOOGLE_ACK_PREFIX + hash) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function acknowledgeGoogleKey(hash: string): void {
+  localStorage.setItem(GOOGLE_ACK_PREFIX + hash, "1");
+}
+
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null);
 

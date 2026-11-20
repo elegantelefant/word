@@ -13,6 +13,7 @@ import { ApiError } from "@/api/client";
 import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { useSendNotice } from "@/components/SendNotice";
+import { useGoogleNotice } from "@/components/GoogleNotice";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
 export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
@@ -70,6 +71,7 @@ export function ReviewPanel() {
   const [planLimit, setPlanLimit] = useState(false);
   const upsell = useUpsell();
   const announce = useSendNotice();
+  const { confirmGoogleSend, googleNotice } = useGoogleNotice();
   const [result, setResult] = useState<ReviewView | null>(null);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
@@ -100,6 +102,7 @@ export function ReviewPanel() {
       }
 
       const paid = tier === "paid" && !!token;
+      if (!paid && !await confirmGoogleSend(settings.apiKey)) return;
       await announce(paid ? "elefant" : "google");
       const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions });
 
@@ -128,6 +131,7 @@ export function ReviewPanel() {
 
   return (
     <div className="space-y-3">
+      {googleNotice}
       {!canReview && !result && (
         <p className="text-xs leading-relaxed text-gray-500">
           AI-powered legal document review. Select text in Word and get instant analysis of risks, ambiguities, and missing clauses.

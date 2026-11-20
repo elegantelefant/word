@@ -22,6 +22,8 @@ const WORDING = {
 interface DraftClauseProps {
   draft: (prompt: string, context: string) => Promise<string>;
   kind?: keyof typeof WORDING;
+  // Optional acknowledgement before any destination notice or send; false cancels quietly.
+  beforeSend?: () => Promise<boolean>;
   // Where the drafter sends the text, for the send notice.
   sendsTo: Destination;
   // Why drafting cannot run yet (for example, no Gemini key); disables the button.
@@ -30,7 +32,7 @@ interface DraftClauseProps {
   copy?: boolean;
 }
 
-export function DraftClause({ draft, kind = "clause", sendsTo, unavailable, copy = false }: DraftClauseProps) {
+export function DraftClause({ draft, beforeSend, kind = "clause", sendsTo, unavailable, copy = false }: DraftClauseProps) {
   const host = useHost();
   const announce = useSendNotice();
   const wording = WORDING[kind];
@@ -55,6 +57,7 @@ export function DraftClause({ draft, kind = "clause", sendsTo, unavailable, copy
     setNotice(null);
     setDrafted(null);
     try {
+      if (beforeSend && !await beforeSend()) return;
       if (copy) {
         await announce(sendsTo);
         setDrafted(await draft(description, ""));

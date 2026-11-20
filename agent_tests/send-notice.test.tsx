@@ -1,6 +1,7 @@
 // ABOUTME: Tests the send notice: a one-time screen per destination before the first send, then a short toast on every send.
 // ABOUTME: Real provider and panels; only the mailbox, fetch and the BYOK agent call are replaced.
 
+import { webcrypto, createHash } from "node:crypto";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render, screen, fireEvent } from "@testing-library/react";
 import { SendNoticeProvider, SEND_TOAST_MS, useSendNotice } from "@/components/SendNotice";
@@ -44,6 +45,9 @@ beforeEach(() => {
   vi.mocked(runReview).mockClear();
   localStorage.clear();
   stubMailbox({ mode: "read", body: THREAD });
+  // These flows start with an acknowledged key; google-notice.test.tsx covers first use.
+  vi.stubGlobal("crypto", webcrypto);
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("key").digest("hex")}`, "1");
 });
 
 afterEach(() => {
@@ -170,7 +174,7 @@ describe("the one-time screen under pressure", () => {
 });
 
 describe("without the provider", () => {
-  it("sends straight away, so a pane that has not opted in is unchanged", async () => {
+  it("sends with an acknowledged key without the destination notice provider", async () => {
     render(
       <SettingsContext value={{ settings: { apiKey: "key", model: "m" }, updateSettings: () => {} }}>
         <AuthContext value={{ ...AUTH_INITIAL, login: async () => {}, logout: () => {} }}>
