@@ -1,7 +1,8 @@
 // ABOUTME: Tests for the Teams review panel, which reviews pasted text because Teams has no document.
 // ABOUTME: The review API is stubbed at its boundary; the panel's own decisions run for real.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { webcrypto, createHash } from "node:crypto";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { PastedReviewPanel } from "@/components/panels/PastedReviewPanel";
 import { SettingsContext, type SettingsContextValue } from "@/store/settings";
@@ -36,7 +37,13 @@ function renderPanel(apiKey = "AIza-test", authOverrides: Partial<AuthContextVal
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  // These flows start with an acknowledged key; google-notice.test.tsx covers first use.
+  vi.stubGlobal("crypto", webcrypto);
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("AIza-test").digest("hex")}`, "1");
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("PastedReviewPanel", () => {
   it("reviews the pasted text and shows the summary", async () => {

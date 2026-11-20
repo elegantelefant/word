@@ -1,8 +1,9 @@
 // ABOUTME: Tests that Word's pane tells people where their text goes, the same way Outlook's does.
 // ABOUTME: Real App, panels and provider; only lib/office (Word), /me and the BYOK agent call are replaced.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { webcrypto, createHash } from "node:crypto";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { App } from "@/App";
 import { FullAnalysisPanel } from "@/components/panels/FullAnalysisPanel";
 import { SendNoticeProvider } from "@/components/SendNotice";
@@ -24,10 +25,15 @@ vi.mock("@/lib/agent", () => ({
 }));
 
 beforeEach(() => {
+  vi.stubGlobal("crypto", webcrypto);
   localStorage.clear();
+  // Destination-notice tests start with an acknowledged key; first use has its own proof.
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("key").digest("hex")}`, "1");
   localStorage.setItem("elefant_settings", JSON.stringify({ apiKey: "key", model: "gemini-3.8-flash" }));
   vi.mocked(runReview).mockClear();
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("Word review send notice", () => {
   it("asks once before the first free review, naming Google, and sends after Continue", async () => {
@@ -46,7 +52,7 @@ describe("Word review send notice", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
 
-    expect(await screen.findByRole("status", {}, { timeout: 2000 })).toHaveTextContent("On its way to Google, with your key");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("On its way to Google, with your key"), { timeout: 2000 });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

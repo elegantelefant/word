@@ -1,7 +1,8 @@
 // ABOUTME: Tests the Clauses tab for a signed-out user: drafting with their own Gemini key (BYOK).
 // ABOUTME: The Word boundary (lib/office) and the BYOK agent call (runDraft) are replaced; the panel is real.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { webcrypto, createHash } from "node:crypto";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ClausesPanel } from "@/components/panels/ClausesPanel";
 import { AuthContext, AUTH_INITIAL } from "@/store/auth";
@@ -33,7 +34,13 @@ beforeEach(() => {
   vi.mocked(insertText).mockClear();
   vi.mocked(runDraft).mockReset();
   vi.mocked(isOfficeReady).mockReturnValue(true);
+  localStorage.clear();
+  // These flows start with an acknowledged key; google-notice.test.tsx covers first use.
+  vi.stubGlobal("crypto", webcrypto);
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("AIza-test").digest("hex")}`, "1");
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("ClausesPanel — signed out, own Gemini key", () => {
   it("drafts with the user's key and model and inserts the clause at the cursor", async () => {

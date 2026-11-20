@@ -13,6 +13,7 @@ import { getSelectedText, insertText, isOfficeReady } from "@/lib/office";
 import { useRefreshOnActive } from "@/hooks/useRefreshOnActive";
 import { useLatestRequest } from "@/hooks/useLatestRequest";
 import { useSendNotice } from "@/components/SendNotice";
+import { useGoogleNotice } from "@/components/GoogleNotice";
 
 export function ClausesPanel({ active = true }: { active?: boolean }) {
   const { tier, token, user } = useAuth();
@@ -47,6 +48,7 @@ export function ClauseDrafting({ copy }: { copy?: boolean }) {
 
 function OwnKeyDrafting({ copy }: { copy?: boolean }) {
   const { settings } = useSettings();
+  const { confirmGoogleSend, googleNotice } = useGoogleNotice();
 
   async function draftWithOwnKey(prompt: string, context: string) {
     const { runDraft } = await import("@/lib/agent");
@@ -54,12 +56,16 @@ function OwnKeyDrafting({ copy }: { copy?: boolean }) {
   }
 
   return (
-    <DraftClause
-      copy={copy}
-      sendsTo="google"
-      draft={draftWithOwnKey}
-      unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
-    />
+    <>
+      {googleNotice}
+      <DraftClause
+        copy={copy}
+        sendsTo="google"
+        beforeSend={() => confirmGoogleSend(settings.apiKey)}
+        draft={draftWithOwnKey}
+        unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
+      />
+    </>
   );
 }
 

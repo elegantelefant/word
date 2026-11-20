@@ -1,6 +1,7 @@
 // ABOUTME: Tests the Outlook pane: citations and a reply while writing, a thread summary while reading.
 // ABOUTME: Only Office.context.mailbox, fetch (the HTTP boundary) and the BYOK agent calls are replaced.
 
+import { webcrypto, createHash } from "node:crypto";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { MailPanel } from "@/components/panels/MailPanel";
@@ -54,6 +55,9 @@ const sentBody = (call: number) => JSON.parse(String(vi.mocked(fetch).mock.calls
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
+  // These flows start with an acknowledged key; google-notice.test.tsx covers first use.
+  vi.stubGlobal("crypto", webcrypto);
+  localStorage.setItem(`elefant_google_notice_ack_${createHash("sha256").update("key").digest("hex")}`, "1");
 });
 
 afterEach(() => {

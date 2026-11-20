@@ -7,6 +7,7 @@ import { useSettings } from "@/store/settings";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { useHost } from "@/store/host";
 import { useSendNotice } from "@/components/SendNotice";
+import { useGoogleNotice } from "@/components/GoogleNotice";
 import { CitationsPanel } from "./CitationsPanel";
 import { DraftClause } from "@/components/DraftClause";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -45,6 +46,7 @@ function Reply() {
   const { tier, token, user } = useAuth();
   const { settings } = useSettings();
   const host = useHost();
+  const { confirmGoogleSend, googleNotice } = useGoogleNotice();
 
   if (tier === "paid" && token) {
     if (!planIncludes(user, "draft")) return <UpgradePrompt feature="Drafting" />;
@@ -57,12 +59,16 @@ function Reply() {
   }
 
   return (
-    <DraftClause
-      kind="reply"
-      sendsTo="google"
-      draft={replyWithOwnKey}
-      unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
-    />
+    <>
+      {googleNotice}
+      <DraftClause
+        kind="reply"
+        sendsTo="google"
+        beforeSend={() => confirmGoogleSend(settings.apiKey)}
+        draft={replyWithOwnKey}
+        unavailable={settings.apiKey ? undefined : "Add your Gemini API key in Settings to draft."}
+      />
+    </>
   );
 }
 
@@ -72,6 +78,7 @@ function ThreadSummary() {
   const host = useHost();
   const upsell = useUpsell();
   const announce = useSendNotice();
+  const { confirmGoogleSend, googleNotice } = useGoogleNotice();
   const [summarising, setSummarising] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +93,7 @@ function ThreadSummary() {
     setError(null);
     setPlanLimit(false);
     try {
+      if (!signedIn && !await confirmGoogleSend(settings.apiKey)) return;
       const thread = await host.body();
       await announce(signedIn ? "elefant" : "google");
       const result = signedIn
@@ -104,6 +112,7 @@ function ThreadSummary() {
 
   return (
     <div className="space-y-1.5">
+      {googleNotice}
       <button
         type="button"
         onClick={() => void handleSummarise()}
