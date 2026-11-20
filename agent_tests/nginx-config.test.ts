@@ -108,7 +108,7 @@ describe("manifest download (#86)", () => {
     expect(block).not.toMatch(/add_header Content-Type/);
   });
 
-  it.each(["README.md", "agent_docs/2026-03-05-user-install-guide.md"])("points %s's user download links at the download path", (path) => {
+  it.each(["README.md", "docs/install.md", "agent_docs/2026-03-05-user-install-guide.md"])("points %s's user download links at the download path", (path) => {
     const doc = readFileSync(resolve(process.cwd(), path), "utf8");
     const install = path === "README.md" ? doc.slice(doc.indexOf("## User installation"), doc.indexOf("## Privacy")) : doc;
     expect(install).toContain("https://addin.elefant.legal/manifest-download.xml");

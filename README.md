@@ -49,41 +49,23 @@ Always review AI-generated legal output before relying on or inserting it.
 
 Elefant works in the Microsoft 365 commercial cloud. Government clouds (GCC High, DoD) and Microsoft 365 operated by 21Vianet in China are not supported.
 
+Download the manifest from https://addin.elefant.legal/manifest-download.xml, then follow the steps for your platform in [docs/install.md](docs/install.md).
+
+IT administrators deploying Elefant across an organisation: see the [admin deployment guide](docs/admin-deployment.md).
+
 ### Word on the web
 
-1. Download the [production manifest](https://addin.elefant.legal/manifest-download.xml).
-2. Open a document in Word on the web.
-3. Open **Add-ins** and select **More Add-ins**.
-4. Choose **My Add-ins** → **Upload My Add-in**.
-5. Select the downloaded `manifest.xml`.
+Follow the [Word on the web steps](docs/install.md#word-on-the-web) in the installation guide.
 
 ### Windows desktop
 
-Download and run:
-
-[Install Elefant for Windows](https://addin.elefant.legal/install-windows.bat)
-
-You can also sideload the production manifest manually through Microsoft Word.
+Follow the [Word for Windows steps](docs/install.md#word-for-windows) in the installation guide.
 
 ### macOS desktop
 
-In Terminal, run:
+Follow the [Word for Mac steps](docs/install.md#word-for-mac) in the installation guide.
 
-```bash
-mkdir -p ~/Library/Containers/com.microsoft.Word/Data/Documents/wef && curl -fsSL https://addin.elefant.legal/manifest-download.xml -o ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/manifest.xml
-```
-
-Then quit Word (**Cmd+Q**), open it again, open a document, and select **Home** → **Add-ins**, then **Elefant Legal Assistant** (listed under **My Add-ins** → **Developer Add-ins**).
-
-Without Terminal:
-
-1. Download the [production manifest](https://addin.elefant.legal/manifest-download.xml).
-2. In Finder, press **Cmd+Shift+G** and go to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef`. If the `wef` folder doesn't exist, create it.
-3. Copy `manifest.xml` into the `wef` folder.
-4. Quit Word (**Cmd+Q**) and open it again, then open a document.
-5. Select **Home** → **Add-ins**, then **Elefant Legal Assistant** (listed under **My Add-ins** → **Developer Add-ins**).
-
-For detailed platform-specific instructions, see the [user installation guide](agent_docs/2026-03-05-user-install-guide.md).
+For detailed platform-specific instructions, see the [user installation guide](docs/install.md).
 
 ## Privacy and data handling
 
