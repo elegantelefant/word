@@ -127,6 +127,7 @@ describe("manifest download (#86)", () => {
     const block = locationBlock("/manifest-outlook.xml");
     expect(block).toContain("alias /usr/share/nginx/html/manifest-outlook.xml;");
     expect(block).not.toContain("Content-Disposition");
+    expect(block).not.toMatch(/add_header Content-Type/);
   });
 
   it("leaves /manifest.xml without Content-Disposition for the admin centre's manifest URL", () => {
