@@ -62,7 +62,7 @@ After you open Elefant for the first time, an **Open Elefant** button appears on
 ### Quicker option: run the installer
 
 1. Download the installer: <https://addin.elefant.legal/install-windows.bat>.
-2. Run it.
+2. Double-click it. If Windows warns that the publisher could not be verified, choose **Run**.
 3. Restart Word, then open a document and select **Home → Add-ins → Elefant Legal Assistant** under **Developer Add-ins**.
 
 ### Alternative: use a shared folder
