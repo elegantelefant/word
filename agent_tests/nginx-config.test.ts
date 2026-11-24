@@ -115,6 +115,14 @@ describe("manifest download (#86)", () => {
     expect(install).not.toMatch(/https:\/\/[^)\s]+\/manifest\.xml/);
   });
 
+  it("sends /manifest.xml's type once, from the server-level types block (#93)", () => {
+    expect(locationBlock("/manifest.xml")).not.toMatch(/add_header Content-Type/);
+  });
+
+  it("types .xml as application/xml, so the production manifest is still served as XML (#93)", () => {
+    expect(activeConfig).toMatch(/types \{[^}]*application\/xml xml;[^}]*\}/);
+  });
+
   it("serves the Outlook manifest from a download path as an attachment named manifest-outlook.xml", () => {
     const block = locationBlock("/manifest-outlook-download.xml");
     expect(block).toContain("alias /usr/share/nginx/html/manifest-outlook.xml;");
