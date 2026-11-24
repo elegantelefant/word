@@ -12,6 +12,15 @@ export const GEMINI_MODELS = [
 
 export const DEFAULT_MODEL = GEMINI_MODELS[0].id;
 
+export function modelLabel(id: string): string {
+  return GEMINI_MODELS.find((model) => model.id === id)?.label ?? id;
+}
+
+/** Says which model answered when it was not the one chosen in Settings; null when it was. */
+export function fallbackNote(chosen: string, answeredBy: string | undefined): string | null {
+  return answeredBy && answeredBy !== chosen ? `${modelLabel(chosen)} was busy, so ${modelLabel(answeredBy)} answered.` : null;
+}
+
 export function isListedModel(id: string): boolean {
   return GEMINI_MODELS.some((model) => model.id === id);
 }

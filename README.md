@@ -83,9 +83,19 @@ Without Terminal:
 4. Quit Word (**Cmd+Q**) and open it again, then open a document.
 5. Select **Home** → **Add-ins**, then **Elefant Legal Assistant** (listed under **My Add-ins** → **Developer Add-ins**).
 
+### Outlook
+
+1. Download the [Outlook manifest](https://addin.elefant.legal/manifest-outlook-download.xml).
+2. In Outlook, open **Get Add-ins** → **My add-ins** → **Add a custom add-in** → **Add from file**.
+3. Select the downloaded `manifest-outlook.xml`.
+
+Administrators deploying through the Microsoft 365 admin centre can use the manifest URL `https://addin.elefant.legal/manifest-outlook.xml`.
+
 For detailed platform-specific instructions, see the [user installation guide](agent_docs/2026-03-05-user-install-guide.md).
 
 ## Privacy and data handling
+
+Elefant's [privacy policy](https://elefant.legal/privacy-policy) and [terms](https://elefant.legal/terms-and-condition) apply. The add-in links both from Settings.
 
 ### Free BYOK
 
@@ -217,6 +227,14 @@ curl -s \
   https://addin.elefant.legal/manifest.xml |
   head -5
 
+# Outlook manifest is served, and downloadable
+curl -s \
+  https://addin.elefant.legal/manifest-outlook.xml |
+  head -5
+curl -sI \
+  https://addin.elefant.legal/manifest-outlook-download.xml |
+  grep -i content-disposition
+
 # macOS installer is downloadable
 curl -s -o /dev/null -w "%{http_code}" \
   https://addin.elefant.legal/install-mac.command
@@ -253,8 +271,10 @@ GitHub Actions runs the repository’s automated test and build checks for pushe
 |---|---|---|
 | `manifest.xml` | Local development | `https://localhost:3000` |
 | `manifest.prod.xml` | Production | `https://addin.elefant.legal` |
+| `manifest.outlook.xml` | Outlook, local development | `https://localhost:3000` |
+| `manifest.outlook.prod.xml` | Outlook, production | `https://addin.elefant.legal` |
 
-The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml`. Production therefore serves the correct manifest from `/manifest.xml`.
+The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml`. Production therefore serves the correct manifest from `/manifest.xml`. It copies `manifest.outlook.prod.xml` to `manifest-outlook.xml`, served at `/manifest-outlook.xml`.
 
 ## nginx
 
@@ -263,7 +283,7 @@ The Dockerfile copies `manifest.prod.xml` to `/usr/share/nginx/html/manifest.xml
 - CORS headers required by the Office add-in.
 - The Content Security Policy for the Word task pane.
 - The `application/xml` content type for the manifest.
-- `Content-Disposition: attachment` for `.command` and `.bat` installers, and for `/manifest-download.xml` (the manifest as a file; `/manifest.xml` stays inline for the admin centre).
+- `Content-Disposition: attachment` for `.command` and `.bat` installers, and for `/manifest-download.xml` and `/manifest-outlook-download.xml` (the manifests as files; `/manifest.xml` and `/manifest-outlook.xml` stay inline for the admin centre).
 - SPA fallback through `try_files` and `index.html`.
 - One-year caching for Vite-hashed assets under `/assets/`.
 

@@ -381,3 +381,62 @@ describe("useAuthProvider in a host where sign-in needs a click (Teams)", () => 
     expect(result.current.token).toBe(saved);
   });
 });
+
+describe("useAuthProvider with overlapping account loads (#95)", () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+    return { promise, resolve, reject };
+  }
+
+  it("keeps a sign-in made while the saved token's slow /me was still pending and then failed", async () => {
+    const first = deferred<typeof PAID_ME>();
+    vi.mocked(getSavedToken).mockReturnValue("saved-token");
+    vi.mocked(getMe).mockImplementation((token) => token === "saved-token" ? first.promise : Promise.resolve(PAID_ME));
+    const { result } = renderHook(() => useAuthProvider());
+
+    await act(async () => { await result.current.login("fresh-token"); });
+    await act(async () => { first.reject(new Error("Network error")); });
+
+    expect({ token: result.current.token, tier: result.current.tier, error: result.current.error })
+      .toEqual({ token: "fresh-token", tier: "paid", error: undefined });
+  });
+
+  it("keeps a sign-in when the saved token's slow /me then answers 401", async () => {
+    const { ApiError } = await import("@/api/client");
+    const first = deferred<typeof PAID_ME>();
+    vi.mocked(getSavedToken).mockReturnValue("saved-token");
+    vi.mocked(getMe).mockImplementation((token) => token === "saved-token" ? first.promise : Promise.resolve(PAID_ME));
+    const { result } = renderHook(() => useAuthProvider());
+
+    await act(async () => { await result.current.login("fresh-token"); });
+    await act(async () => { first.reject(new ApiError(401, "Unauthorized")); });
+
+    expect({ token: result.current.token, cleared: vi.mocked(clearToken).mock.calls.length }).toEqual({ token: "fresh-token", cleared: 0 });
+  });
+
+  it("keeps a sign-in when the saved token's slow /me then succeeds for the earlier account", async () => {
+    const first = deferred<typeof PAID_ME>();
+    vi.mocked(getSavedToken).mockReturnValue("saved-token");
+    vi.mocked(getMe).mockImplementation((token) => token === "saved-token" ? first.promise : Promise.resolve(PAID_ME));
+    const { result } = renderHook(() => useAuthProvider());
+
+    await act(async () => { await result.current.login("fresh-token"); });
+    await act(async () => { first.resolve(GUEST_ME); });
+
+    expect({ token: result.current.token, tier: result.current.tier }).toEqual({ token: "fresh-token", tier: "paid" });
+  });
+
+  it("stays signed out when a /me pending at logout answers afterwards", async () => {
+    const first = deferred<typeof PAID_ME>();
+    vi.mocked(getSavedToken).mockReturnValue("saved-token");
+    vi.mocked(getMe).mockReturnValue(first.promise);
+    const { result } = renderHook(() => useAuthProvider());
+
+    act(() => result.current.logout());
+    await act(async () => { first.resolve(PAID_ME); });
+
+    expect(result.current.token).toBeNull();
+  });
+});

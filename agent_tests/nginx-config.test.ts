@@ -1,5 +1,5 @@
 // ABOUTME: Tests security headers in the production nginx configuration.
-// ABOUTME: Verifies the CSP (including which hosts may frame the pages, #85) and the manifest download (#86).
+// ABOUTME: Verifies the CSP (including which hosts may frame the pages, #85) and the Word and Outlook manifest downloads (#86).
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -123,6 +123,21 @@ describe("manifest download (#86)", () => {
     expect(activeConfig).toMatch(/types \{[^}]*application\/xml xml;[^}]*\}/);
   });
 
+  it("serves the Outlook manifest from a download path as an attachment named manifest-outlook.xml", () => {
+    const block = locationBlock("/manifest-outlook-download.xml");
+    expect(block).toContain("alias /usr/share/nginx/html/manifest-outlook.xml;");
+    expect(block).toMatch(/add_header Content-Disposition 'attachment; filename="manifest-outlook\.xml"' always;/);
+    expect(block).toContain('add_header Access-Control-Allow-Origin "*" always;');
+    expect(block).not.toMatch(/add_header Content-Type/);
+  });
+
+  it("serves the Outlook manifest inline at /manifest-outlook.xml for the admin centre's manifest URL", () => {
+    const block = locationBlock("/manifest-outlook.xml");
+    expect(block).toContain("alias /usr/share/nginx/html/manifest-outlook.xml;");
+    expect(block).not.toContain("Content-Disposition");
+    expect(block).not.toMatch(/add_header Content-Type/);
+  });
+
   it("leaves /manifest.xml without Content-Disposition for the admin centre's manifest URL", () => {
     const block = locationBlock("/manifest.xml");
     expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
@@ -155,7 +170,7 @@ describe("frame-ancestors (#85)", () => {
     const locationsWithHeaders = [...activeConfig.matchAll(/^ {4}location ([^{]+)\{\r?\n([\s\S]*?)^ {4}\}/gm)]
       .filter((m) => /^\s+add_header\b/m.test(m[2]!))
       .map((m) => m[1]!.trim());
-    const nonHtml = ["= /manifest.xml", "= /manifest-download.xml", "~ \\.(command|bat)$", "/assets/"];
+    const nonHtml = ["= /manifest.xml", "= /manifest-download.xml", "= /manifest-outlook.xml", "= /manifest-outlook-download.xml", "~ \\.(command|bat)$", "/assets/"];
     expect(locationsWithHeaders.filter((location) => !nonHtml.includes(location))).toEqual([]);
   });
 });

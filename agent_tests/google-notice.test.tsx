@@ -167,7 +167,7 @@ describe.each([
   flows[3],
   { ...flows[2], name: "copy clause draft", Panel: () => <ClauseDrafting copy /> },
 ])("$name destination ordering", (flow) => {
-  it("shows the destination notice only after I understand and leaves no send notice after Cancel", async () => {
+  it("sends after I understand with only the toast, and leaves no send notice after Cancel", async () => {
     host.composing = flow.name === "mail reply";
     localStorage.removeItem("elefant_send_ack_google");
     render(pane(flow));
@@ -187,10 +187,9 @@ describe.each([
 
     send(flow);
     fireEvent.click(await screen.findByRole("button", { name: "I understand" }));
-    expect(await screen.findByRole("dialog", { name: "Where your text goes" })).toBeInTheDocument();
-    expect(flow.request).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => expect(flow.request).toHaveBeenCalledTimes(1));
+    // One screen per destination: the Google notice is the only one before a BYOK send (#116).
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByText("On its way to Google, with your key")).toBeInTheDocument();
   });
 });

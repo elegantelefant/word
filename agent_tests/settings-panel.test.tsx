@@ -204,3 +204,27 @@ describe("SettingsPanel", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("privacy policy and terms (#94)", () => {
+  const LINKS = [
+    ["Privacy policy", "https://elefant.legal/privacy-policy"],
+    ["Terms", "https://elefant.legal/terms-and-condition"],
+  ] as const;
+
+  it.each(["free", "paid"] as const)("links both from Settings on the %s tier, opening in a new tab", (tier) => {
+    renderSettings({}, tier === "paid" ? { tier, token: "tok" } : {});
+    for (const [name, href] of LINKS) {
+      const link = screen.getByRole("link", { name: new RegExp(`^${name}`) });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+  });
+
+  it("links both from the README's privacy section", async () => {
+    const { readFileSync } = await import("node:fs");
+    const readme = readFileSync("README.md", "utf8");
+    const privacy = readme.slice(readme.indexOf("## Privacy and data handling"));
+    for (const [, href] of LINKS) expect(privacy).toContain(href);
+  });
+});

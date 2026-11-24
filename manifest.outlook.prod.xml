@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ABOUTME: Production Outlook add-in manifest (add-in only XML), served from https://addin.elefant.legal/manifest-outlook.xml. -->
+<!-- ABOUTME: Its own id, separate from the Word add-in; the same pane URL, which shows the mail actions inside Outlook. -->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xsi:type="MailApp">
+
+  <Id>abcf232a-dbba-4f6e-a611-a174315b3dcb</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Elegant Elephant Pte Ltd</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Elefant for Outlook"/>
+  <Description DefaultValue="Check citations, draft replies and summarise threads with Elefant."/>
+
+  <IconUrl DefaultValue="https://addin.elefant.legal/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://addin.elefant.legal/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://elefant.legal/resources/support"/>
+
+  <AppDomains>
+    <AppDomain>https://elefant.legal</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.4"/>
+    </Sets>
+  </Requirements>
+
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://addin.elefant.legal/"/>
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://addin.elefant.legal/"/>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteItem</Permissions>
+
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+  </Rule>
+
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.4">
+        <bt:Set Name="Mailbox"/>
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ElefantReadGroup">
+                <Label resid="CommandsGroup.Label"/>
+                <Control xsi:type="Button" id="ReadTaskpaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="ReadButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ElefantComposeGroup">
+                <Label resid="CommandsGroup.Label"/>
+                <Control xsi:type="Button" id="ComposeTaskpaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="ComposeButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://addin.elefant.legal/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://addin.elefant.legal/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://addin.elefant.legal/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://addin.elefant.legal/"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Elefant"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Open Elefant"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="ReadButton.Tooltip" DefaultValue="Summarise this thread with Elefant."/>
+        <bt:String id="ComposeButton.Tooltip" DefaultValue="Check citations or draft a reply with Elefant."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
