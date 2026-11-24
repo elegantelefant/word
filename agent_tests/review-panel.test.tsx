@@ -215,7 +215,7 @@ describe("ReviewPanel — free-tier review", () => {
     fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
-      expect(vi.mocked(reviewFree).mock.lastCall?.[0]).toBe("Full document body text here");
+      expect(vi.mocked(reviewFree).mock.lastCall?.slice(0, 4)).toEqual(["Full document body text here", "AIza-test", "gemini-2.5-flash", undefined]);
     });
   });
 });

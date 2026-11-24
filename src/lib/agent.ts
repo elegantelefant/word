@@ -91,12 +91,17 @@ async function firstAnswer<T>(
   try {
     const tries = [chosen, chosen, ...fallbacks];
     for (const [i, model] of tries.entries()) {
+      // An aborted signal set before the fetch starts never fires its abort event, so check it here.
+      if (stop.signal.aborted) throw stop.signal.reason;
       try {
-        return { value: await attempt(model, stop.signal), model };
+        const value = await attempt(model, stop.signal);
+        if (stop.signal.aborted) throw stop.signal.reason;
+        return { value, model };
       } catch (err) {
         if (stop.signal.aborted) throw stop.signal.reason;
-        if (!(err instanceof GeminiBusy)) throw err;
-        if (i === tries.length - 1) throw new Error(fallbacks.length ? ALL_BUSY : err.message);
+        // The chosen model's own errors (bad key, quota) are the user's to see; a fallback's just moves on.
+        if (i < 2 && !(err instanceof GeminiBusy)) throw err;
+        if (i === tries.length - 1) throw fallbacks.length ? new Error(ALL_BUSY) : err;
         if (i === 0) await pause(GEMINI_RETRY_DELAY_MS, stop.signal);
       }
     }

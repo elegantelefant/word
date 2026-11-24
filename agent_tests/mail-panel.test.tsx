@@ -159,6 +159,19 @@ describe("Outlook pane while reading", () => {
     expect(vi.mocked(runReview).mock.calls[0]![2]).toBe(THREAD);
   });
 
+  it("offers Cancel while a free summary runs, which stops it and shows no error (#111)", async () => {
+    stubMailbox({ mode: "read", body: THREAD });
+    vi.mocked(runReview).mockImplementationOnce((_key, _model, _text, _instructions, signal) =>
+      new Promise((_, reject) => signal?.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+    renderPanel({ apiKey: "key" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Summarise this thread" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Summarise this thread" })).toBeEnabled());
+    expect(screen.queryByText("Cancelled")).toBeNull();
+  });
+
   it("says which model answered when the chosen one was busy (#115)", async () => {
     stubMailbox({ mode: "read", body: THREAD });
     vi.mocked(runReview).mockResolvedValueOnce({ summary: "Acme asks for signature by Friday.", issues: [], answeredBy: "gemini-3.5-flash-lite" });

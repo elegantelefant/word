@@ -18,7 +18,7 @@ vi.mock("@google/adk", async () => ({
 const [HYDROGEN, FLASH, FLASH_LITE] = GEMINI_MODELS.map((model) => model.id);
 const REVIEW = { summary: "Delivery is unconditional.", issues: [] };
 
-type Reply = "ok" | 503 | "hang";
+type Reply = "ok" | 503 | 404 | "hang";
 
 /** Google's generateContent, answering per model from a script; records which model each call asked for. */
 function stubGoogle(script: Record<string, Reply[]>) {
@@ -34,6 +34,9 @@ function stubGoogle(script: Record<string, Reply[]>) {
     }
     if (reply === 503) {
       return new Response(JSON.stringify({ error: { code: 503, message: "The model is overloaded.", status: "UNAVAILABLE" } }), { status: 503 });
+    }
+    if (reply === 404) {
+      return new Response(JSON.stringify({ error: { code: 404, message: `models/${model} is not found.`, status: "NOT_FOUND" } }), { status: 404 });
     }
     return new Response(JSON.stringify({
       candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(REVIEW) }] }, finishReason: "STOP" }],
@@ -72,6 +75,12 @@ describe("free review against a busy Gemini", () => {
     expect({ asked, answeredBy: result.answeredBy }).toEqual({ asked: [FLASH_LITE, FLASH_LITE, HYDROGEN, FLASH], answeredBy: FLASH });
   });
 
+  it("moves past a fallback model that fails some other way", async () => {
+    const asked = stubGoogle({ [HYDROGEN]: [503, 503], [FLASH]: [404] });
+    const result = await review(HYDROGEN);
+    expect({ asked, answeredBy: result.answeredBy }).toEqual({ asked: [HYDROGEN, HYDROGEN, FLASH, FLASH_LITE], answeredBy: FLASH_LITE });
+  });
+
   it("says Google's free tier is busy when every listed model returns 503", async () => {
     stubGoogle({ [HYDROGEN]: [503, 503], [FLASH]: [503], [FLASH_LITE]: [503] });
     await expect(review(HYDROGEN)).rejects.toThrow("Google's free tier is busy right now. Try again in a minute, or use a paid-tier key.");
@@ -86,6 +95,14 @@ describe("free review that never answers", () => {
     const settled = expect(pending).rejects.toThrow("Gemini didn't respond. Try again, or choose another model in Settings.");
     await vi.advanceTimersByTimeAsync(GEMINI_DEADLINE_MS);
     await settled;
+  });
+
+  it("sends nothing when cancelled before it starts", async () => {
+    stubGoogle({});
+    const cancel = new AbortController();
+    cancel.abort();
+    await expect(review(HYDROGEN, cancel.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("stops when cancelled, as an abort rather than an error to show", async () => {

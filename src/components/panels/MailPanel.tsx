@@ -1,7 +1,7 @@
 // ABOUTME: Outlook pane — writing: check citations and draft a reply; reading: summarise the thread.
 // ABOUTME: Elefant mode when signed in, the user's own Gemini key otherwise; the panels are Word's, on the mail host.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/store/auth";
 import { useSettings } from "@/store/settings";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
@@ -83,6 +83,9 @@ function ThreadSummary() {
   const [summarising, setSummarising] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Set while a free summary runs: Cancel aborts it (#111).
+  const cancel = useRef<AbortController | null>(null);
+  const [cancellable, setCancellable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [planLimit, setPlanLimit] = useState(false);
 
@@ -99,17 +102,24 @@ function ThreadSummary() {
       if (!signedIn && !await confirmGoogleSend(settings.apiKey)) return;
       const thread = await host.body();
       await announce(signedIn ? "elefant" : "google");
+      if (!signedIn) {
+        cancel.current = new AbortController();
+        setCancellable(true);
+      }
       const result = signedIn
         ? await reviewPaid(thread, token, SUMMARY_INSTRUCTIONS)
-        : await reviewFree(thread, settings.apiKey, settings.model, SUMMARY_INSTRUCTIONS);
+        : await reviewFree(thread, settings.apiKey, settings.model, SUMMARY_INSTRUCTIONS, cancel.current?.signal);
       const text = result.summary?.trim();
       if (!text) throw new Error("The summary came back empty.");
       setSummary(text);
       if ("answeredBy" in result) setNote(fallbackNote(settings.model, result.answeredBy));
     } catch (err) {
+      if (cancel.current?.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Summary failed");
       setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
+      cancel.current = null;
+      setCancellable(false);
       setSummarising(false);
     }
   }
@@ -125,6 +135,15 @@ function ThreadSummary() {
       >
         {summarising ? "Summarising..." : "Summarise this thread"}
       </button>
+      {cancellable && (
+        <button
+          type="button"
+          onClick={() => cancel.current?.abort()}
+          className="ml-1.5 rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+      )}
       {unavailable && <p className="text-xs text-gray-500">Add your Gemini API key in Settings to summarise.</p>}
       {note && <p className="text-xs text-gray-500">{note}</p>}
       {summary !== null && <p role="status" className="whitespace-pre-wrap text-xs text-gray-700">{summary}</p>}
