@@ -12,6 +12,7 @@ import { UpsellContext } from "./store/upsell";
 import { useAuthProvider } from "./hooks/useAuth";
 import { API_URL } from "./api/client";
 import { PopOutLink } from "./components/PopOutLink";
+import { SendNoticeProvider } from "./components/SendNotice";
 
 const SIGN_UP_URL = `${new URL(API_URL).origin}/sign-up`;
 
@@ -34,6 +35,8 @@ export function TeamsApp({ upsell = true }: { upsell?: boolean }) {
   const uiValue = useMemo(() => ({ openSettings }), [openSettings]);
 
   return (
+    // Outside the Settings switch, so opening Settings never strands a send waiting on Continue.
+    <SendNoticeProvider>
     <SettingsContext value={settingsValue}>
       <AuthContext value={auth}>
         <UIContext value={uiValue}>
@@ -71,5 +74,6 @@ export function TeamsApp({ upsell = true }: { upsell?: boolean }) {
         </UIContext>
       </AuthContext>
     </SettingsContext>
+    </SendNoticeProvider>
   );
 }
