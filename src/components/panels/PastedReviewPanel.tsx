@@ -9,6 +9,7 @@ import { addToLocalHistory } from "@/lib/history";
 import { API_URL } from "@/api/client";
 import { PopOutLink } from "@/components/PopOutLink";
 import { useGoogleNotice } from "@/components/GoogleNotice";
+import { useSendNotice } from "@/components/SendNotice";
 import { reviewText, ReviewResults, type ReviewView } from "./ReviewPanel";
 
 const MIN_REVIEW_CHARS = 10;
@@ -19,6 +20,7 @@ export function PastedReviewPanel() {
   const { settings } = useSettings();
   const { tier, token } = useAuth();
   const { openSettings } = useUI();
+  const announce = useSendNotice();
   const { confirmGoogleSend, googleNotice } = useGoogleNotice();
   const [text, setText] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -37,7 +39,9 @@ export function PastedReviewPanel() {
     }
     setLoading(true);
     try {
-      if (!(tier === "paid" && token) && !await confirmGoogleSend(settings.apiKey)) return;
+      const paid = tier === "paid" && !!token;
+      if (!paid && !await confirmGoogleSend(settings.apiKey)) return;
+      await announce(paid ? "elefant" : "google");
       const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions });
       setResult(response);
       if (tier === "free") addToLocalHistory({ type: "review", summary: response.summary });

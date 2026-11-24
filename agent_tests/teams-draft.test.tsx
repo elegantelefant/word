@@ -28,6 +28,8 @@ function stubElefant(me: object, draftBodies: unknown[] = []) {
     return new Response("{}");
   });
   localStorage.setItem("elefant_token", "saved.jwt.token");
+  // The send notice has its own proof (teams-send-notice.test.tsx); these start past its one-time screen.
+  localStorage.setItem("elefant_send_ack_elefant", "1");
 }
 
 async function draftInTeams() {
