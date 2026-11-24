@@ -115,6 +115,14 @@ describe("manifest download (#86)", () => {
     expect(install).not.toMatch(/https:\/\/[^)\s]+\/manifest\.xml/);
   });
 
+  it("sends /manifest.xml's type once, from the server-level types block (#93)", () => {
+    expect(locationBlock("/manifest.xml")).not.toMatch(/add_header Content-Type/);
+  });
+
+  it("types .xml as application/xml, so the production manifest is still served as XML (#93)", () => {
+    expect(activeConfig).toMatch(/types \{[^}]*application\/xml xml;[^}]*\}/);
+  });
+
   it("leaves /manifest.xml without Content-Disposition for the admin centre's manifest URL", () => {
     const block = locationBlock("/manifest.xml");
     expect(block).toContain("alias /usr/share/nginx/html/manifest.xml;");
