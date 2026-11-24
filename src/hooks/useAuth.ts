@@ -8,6 +8,7 @@ import type { MeResponse, Tier } from "@/types/api";
 import { getMe } from "@/api/account";
 import { ApiError } from "@/api/client";
 import { getSavedToken, clearToken, openLoginDialog, saveToken, signInNeedsClick, tokenExpiresAt } from "@/api/auth";
+import { useLatestRequest } from "@/hooks/useLatestRequest";
 
 const REFRESH_LEAD_MS = 60_000;
 const ACCOUNT_LOAD_FAILED = "Couldn't load your Elefant account. Check your connection and try again.";
@@ -27,12 +28,18 @@ export function useAuthProvider(): AuthContextValue {
     loading: !!getSavedToken(),
   }));
 
+  // Only the latest loadUser, or a logout since, may set state: a slow stale /me must not undo a later sign-in (#95).
+  const begin = useLatestRequest();
+
   const logout = useCallback(() => {
+    begin();
     clearToken();
     setState(AUTH_INITIAL);
-  }, []);
+  }, [begin]);
 
-  const loadUser = useCallback(async (token: string, isCurrent: () => boolean = () => true) => {
+  const loadUser = useCallback(async (token: string, isCaller: () => boolean = () => true) => {
+    const isLatest = begin();
+    const isCurrent = () => isCaller() && isLatest();
     const expiresAt = tokenExpiresAt(token);
     if (expiresAt !== null && expiresAt <= Date.now()) {
       logout();
@@ -53,7 +60,7 @@ export function useAuthProvider(): AuthContextValue {
       }
       setState({ ...AUTH_INITIAL, error: ACCOUNT_LOAD_FAILED });
     }
-  }, [logout]);
+  }, [begin, logout]);
 
   // Check for saved token on mount
   useEffect(() => {
