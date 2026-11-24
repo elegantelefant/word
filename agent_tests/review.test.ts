@@ -29,7 +29,7 @@ describe("reviewFree", () => {
 
     const result = await reviewFree("test text", "AIza-test", "gemini-2.5-flash");
 
-    expect(runReview).toHaveBeenCalledWith("AIza-test", "gemini-2.5-flash", "test text", undefined);
+    expect(runReview).toHaveBeenCalledWith("AIza-test", "gemini-2.5-flash", "test text", undefined, undefined);
     expect(result.summary).toBe("Contract looks solid.");
     expect(result.issues).toHaveLength(2);
     expect(result.issues[0]).toEqual({
@@ -46,13 +46,23 @@ describe("reviewFree", () => {
     });
   });
 
+  it("passes the cancel signal to runReview and reports which model answered", async () => {
+    const { runReview } = await import("@/lib/agent");
+    vi.mocked(runReview).mockResolvedValueOnce({ summary: "ok", issues: [], answeredBy: "gemini-3.8-flash" });
+    const cancel = new AbortController();
+
+    const result = await reviewFree("text", "key", "gemini-4-hydrogen", undefined, cancel.signal);
+
+    expect({ signal: vi.mocked(runReview).mock.lastCall?.[4], answeredBy: result.answeredBy }).toEqual({ signal: cancel.signal, answeredBy: "gemini-3.8-flash" });
+  });
+
   it("passes custom instructions to runReview", async () => {
     const { runReview } = await import("@/lib/agent");
     vi.mocked(runReview).mockResolvedValueOnce({ summary: "ok", issues: [] });
 
     await reviewFree("text", "key", "model", "Focus on IP");
 
-    expect(runReview).toHaveBeenCalledWith("key", "model", "text", "Focus on IP");
+    expect(runReview).toHaveBeenCalledWith("key", "model", "text", "Focus on IP", undefined);
   });
 
   it("propagates agent errors", async () => {
