@@ -2,7 +2,7 @@
 // ABOUTME: Renders the real TeamsApp signed in to Elefant; only fetch (the HTTP boundary) is replaced.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TeamsApp } from "@/TeamsApp";
 
 const ME = {
@@ -43,6 +43,15 @@ describe("Teams review send notice", () => {
 
     expect(await screen.findByRole("dialog")).toHaveTextContent(/Elefant/);
     expect(sends).toEqual([]);
+  });
+
+  it("sends the pasted text once Continue is pressed", async () => {
+    await signedIn();
+    fireEvent.change(screen.getByPlaceholderText("Paste the text to review..."), { target: { value: "The Supplier shall deliver the Goods." } });
+    fireEvent.click(screen.getByRole("button", { name: "Review Text" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(sends).not.toEqual([]));
   });
 
   it("shows the Elefant toast once the screen is accepted", async () => {
