@@ -413,7 +413,19 @@ describe("useAuthProvider with overlapping account loads (#95)", () => {
     await act(async () => { await result.current.login("fresh-token"); });
     await act(async () => { first.reject(new ApiError(401, "Unauthorized")); });
 
-    expect(result.current.token).toBe("fresh-token");
+    expect({ token: result.current.token, cleared: vi.mocked(clearToken).mock.calls.length }).toEqual({ token: "fresh-token", cleared: 0 });
+  });
+
+  it("keeps a sign-in when the saved token's slow /me then succeeds for the earlier account", async () => {
+    const first = deferred<typeof PAID_ME>();
+    vi.mocked(getSavedToken).mockReturnValue("saved-token");
+    vi.mocked(getMe).mockImplementation((token) => token === "saved-token" ? first.promise : Promise.resolve(PAID_ME));
+    const { result } = renderHook(() => useAuthProvider());
+
+    await act(async () => { await result.current.login("fresh-token"); });
+    await act(async () => { first.resolve(GUEST_ME); });
+
+    expect({ token: result.current.token, tier: result.current.tier }).toEqual({ token: "fresh-token", tier: "paid" });
   });
 
   it("stays signed out when a /me pending at logout answers afterwards", async () => {
