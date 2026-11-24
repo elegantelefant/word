@@ -16,6 +16,7 @@ import { draftClause } from "@/api/clauses";
 import { reviewFree, reviewPaid } from "@/api/review";
 import { isComposing, isMailboxReady } from "@/lib/mailbox";
 import { isPlanLimit, planIncludes } from "@/lib/plan-features";
+import { fallbackNote } from "@/lib/models";
 
 // /draft takes one prompt; this frames it as a reply, with the thread as its context.
 const REPLY_PROMPT = "Draft the body of a reply to this email thread. The reply should:";
@@ -81,6 +82,7 @@ function ThreadSummary() {
   const { confirmGoogleSend, googleNotice } = useGoogleNotice();
   const [summarising, setSummarising] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [planLimit, setPlanLimit] = useState(false);
 
@@ -90,6 +92,7 @@ function ThreadSummary() {
   async function handleSummarise() {
     setSummarising(true);
     setSummary(null);
+    setNote(null);
     setError(null);
     setPlanLimit(false);
     try {
@@ -102,6 +105,7 @@ function ThreadSummary() {
       const text = result.summary?.trim();
       if (!text) throw new Error("The summary came back empty.");
       setSummary(text);
+      if ("answeredBy" in result) setNote(fallbackNote(settings.model, result.answeredBy));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Summary failed");
       setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
@@ -122,6 +126,7 @@ function ThreadSummary() {
         {summarising ? "Summarising..." : "Summarise this thread"}
       </button>
       {unavailable && <p className="text-xs text-gray-500">Add your Gemini API key in Settings to summarise.</p>}
+      {note && <p className="text-xs text-gray-500">{note}</p>}
       {summary !== null && <p role="status" className="whitespace-pre-wrap text-xs text-gray-700">{summary}</p>}
       {error && (
         <p className="text-xs text-red-600">

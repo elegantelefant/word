@@ -33,6 +33,8 @@ export interface FreeReviewResponse {
     location?: string | null;
     suggestion?: string | null;
   }[];
+  // The model that answered: another listed one when the chosen model was busy (#115).
+  answeredBy: string;
 }
 
 export interface FullAnalysisResult {
@@ -46,10 +48,12 @@ export async function reviewFree(
   apiKey: string,
   model: string,
   instructions?: string,
+  signal?: AbortSignal,
 ): Promise<FreeReviewResponse> {
   const { runReview } = await import("@/lib/agent");
-  const result = await runReview(apiKey, model, text, instructions);
+  const result = await runReview(apiKey, model, text, instructions, signal);
   return {
+    answeredBy: result.answeredBy,
     summary: result.summary,
     issues: result.issues.map((issue) => ({
       message: issue.message,

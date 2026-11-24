@@ -215,8 +215,52 @@ describe("ReviewPanel — free-tier review", () => {
     fireEvent.click(screen.getByText("Review Document"));
 
     await waitFor(() => {
-      expect(reviewFree).toHaveBeenCalledWith("Full document body text here", "AIza-test", "gemini-2.5-flash", undefined);
+      expect(vi.mocked(reviewFree).mock.lastCall?.[0]).toBe("Full document body text here");
     });
+  });
+});
+
+describe("ReviewPanel — a slow or busy Gemini (#111, #115)", () => {
+  async function selectText() {
+    const { isOfficeReady, getSelectedText } = await import("@/lib/office");
+    vi.mocked(isOfficeReady).mockReturnValue(true);
+    vi.mocked(getSelectedText).mockResolvedValue("The Supplier shall deliver the Goods.");
+    return (await import("@/api/review")).reviewFree;
+  }
+
+  it("offers Cancel while a free review runs, which stops it and shows no error", async () => {
+    const reviewFree = await selectText();
+    vi.mocked(reviewFree).mockImplementation((_text, _key, _model, _instructions, signal) =>
+      new Promise((_, reject) => signal?.addEventListener("abort", () => reject(new DOMException("Cancelled", "AbortError")))));
+
+    renderPanel();
+    fireEvent.click(screen.getByText("Review Document"));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Review Document" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(screen.queryByText("Cancelled")).toBeNull();
+  });
+
+  it("says calmly which model answered when the chosen one was busy", async () => {
+    const reviewFree = await selectText();
+    vi.mocked(reviewFree).mockResolvedValue({ summary: "Delivery is unconditional.", issues: [], answeredBy: "gemini-3.8-flash" });
+
+    renderPanel({ settings: { apiKey: "AIza-test", model: "gemini-4-hydrogen" } });
+    fireEvent.click(screen.getByText("Review Document"));
+
+    expect(await screen.findByText("Gemini 4 Hydrogen was busy, so Gemini 3.8 Flash answered.")).toBeInTheDocument();
+  });
+
+  it("names no model when the chosen one answered", async () => {
+    const reviewFree = await selectText();
+    vi.mocked(reviewFree).mockResolvedValue({ summary: "Delivery is unconditional.", issues: [], answeredBy: "gemini-4-hydrogen" });
+
+    renderPanel({ settings: { apiKey: "AIza-test", model: "gemini-4-hydrogen" } });
+    fireEvent.click(screen.getByText("Review Document"));
+
+    await screen.findByText("Delivery is unconditional.");
+    expect(screen.queryByText(/was busy/)).toBeNull();
   });
 });
 

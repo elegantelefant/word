@@ -1,7 +1,7 @@
 // ABOUTME: Review panel — select text in Word, send for AI review, display results.
 // ABOUTME: Free tier uses ADK-JS + Gemini in-browser; paid tier uses Elefant API with job polling.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSettings } from "@/store/settings";
 import { useAuth } from "@/store/auth";
 import { useUI } from "@/store/ui";
@@ -14,12 +14,15 @@ import { isPlanLimit } from "@/lib/plan-features";
 import { PRICING_URL, useUpsell } from "@/store/upsell";
 import { useSendNotice } from "@/components/SendNotice";
 import { useGoogleNotice } from "@/components/GoogleNotice";
+import { fallbackNote } from "@/lib/models";
 
 type ReviewIssueView = ReviewIssue & { suggestion?: string };
-export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[] };
+// `note` says which model answered when the chosen one was busy (free tier only).
+export type ReviewView = Omit<ReviewResponse, "issues"> & { issues?: ReviewIssueView[]; note?: string | null };
 
-function freeReviewView(result: FreeReviewResponse): ReviewView {
+function freeReviewView(result: FreeReviewResponse, model: string): ReviewView {
   return {
+    note: fallbackNote(model, result.answeredBy),
     summary: result.summary,
     issues: result.issues.map((issue) => ({
       category: issue.kind ?? "other",
@@ -38,10 +41,11 @@ function freeReviewView(result: FreeReviewResponse): ReviewView {
 export async function reviewText(
   text: string,
   { tier, token, apiKey, model, instructions }: { tier: Tier; token: string | null; apiKey: string; model: string; instructions: string },
+  signal?: AbortSignal,
 ): Promise<ReviewView> {
   return tier === "paid" && token
     ? reviewPaid(text, token, instructions || undefined)
-    : freeReviewView(await reviewFree(text, apiKey, model, instructions || undefined));
+    : freeReviewView(await reviewFree(text, apiKey, model, instructions || undefined, signal), model);
 }
 
 type Scope = "selection" | "document";
@@ -73,6 +77,9 @@ export function ReviewPanel() {
   const announce = useSendNotice();
   const { confirmGoogleSend, googleNotice } = useGoogleNotice();
   const [result, setResult] = useState<ReviewView | null>(null);
+  // Set while a free review runs: Cancel aborts it (#111).
+  const cancel = useRef<AbortController | null>(null);
+  const [cancellable, setCancellable] = useState(false);
 
   const canReview = tier === "paid" ? !!token : !!settings.apiKey;
   const inOffice = isOfficeReady();
@@ -104,7 +111,11 @@ export function ReviewPanel() {
       const paid = tier === "paid" && !!token;
       if (!paid && !await confirmGoogleSend(settings.apiKey)) return;
       await announce(paid ? "elefant" : "google");
-      const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions });
+      if (!paid) {
+        cancel.current = new AbortController();
+        setCancellable(true);
+      }
+      const response = await reviewText(text, { tier, token, apiKey: settings.apiKey, model: settings.model, instructions }, cancel.current?.signal);
 
       setResult(response);
 
@@ -112,10 +123,13 @@ export function ReviewPanel() {
         addToLocalHistory({ type: "review", summary: response.summary });
       }
     } catch (err) {
+      if (cancel.current?.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Review failed");
       // Out of allowance or credits, or not in the plan: the one place a plans link is useful (#98).
       setPlanLimit(err instanceof ApiError && isPlanLimit(err.reason));
     } finally {
+      cancel.current = null;
+      setCancellable(false);
       setLoading(false);
     }
   }
@@ -166,6 +180,15 @@ export function ReviewPanel() {
         {loading ? "Reviewing..." : "Review Document"}
       </button>
 
+      {cancellable && (
+        <button
+          onClick={() => cancel.current?.abort()}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs text-gray-700 transition-colors hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+      )}
+
       {!canReview && (
         <button
           onClick={openSettings}
@@ -211,6 +234,7 @@ export function ReviewPanel() {
 export function ReviewResults({ result, onInsert }: { result: ReviewView; onInsert?: (text: string) => void }) {
   return (
     <div className="space-y-3">
+      {result.note && <p className="text-xs text-gray-500">{result.note}</p>}
       <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5">
         <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Summary</h4>
         <p className="text-xs leading-relaxed text-gray-700">{result.summary}</p>

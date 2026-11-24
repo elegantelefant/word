@@ -159,6 +159,16 @@ describe("Outlook pane while reading", () => {
     expect(vi.mocked(runReview).mock.calls[0]![2]).toBe(THREAD);
   });
 
+  it("says which model answered when the chosen one was busy (#115)", async () => {
+    stubMailbox({ mode: "read", body: THREAD });
+    vi.mocked(runReview).mockResolvedValueOnce({ summary: "Acme asks for signature by Friday.", issues: [], answeredBy: "gemini-3.5-flash-lite" });
+    renderPanel({ apiKey: "key" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Summarise this thread" }));
+
+    expect(await screen.findByText(/was busy, so Gemini 3.5 Flash-Lite answered\.$/)).toBeInTheDocument();
+  });
+
   it("summarises the thread through Elefant when signed in", async () => {
     stubMailbox({ mode: "read", body: THREAD });
     jobFlow({ jobType: "review", summary: "Acme wants the NDA signed by Friday.", issues: [] });
