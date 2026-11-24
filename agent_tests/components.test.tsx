@@ -124,6 +124,16 @@ describe("Layout", () => {
     fireEvent.click(screen.getByLabelText("Settings"));
     expect(onSettings).toHaveBeenCalled();
   });
+
+  it("keeps Settings out of the header, whose top-right corner Office for Mac covers with its info button (#116)", () => {
+    renderLayout(
+      <Layout activeTab="review" onTabChange={() => {}} onSettingsClick={() => {}}>
+        <div />
+      </Layout>,
+    );
+
+    expect(screen.getByRole("contentinfo")).toContainElement(screen.getByRole("button", { name: "Settings" }));
+  });
 });
 
 describe("ErrorBoundary", () => {

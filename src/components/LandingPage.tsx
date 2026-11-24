@@ -30,7 +30,7 @@ export function LandingPage() {
             </a>
           </li>
           <li>
-            Go to <strong>Home &rarr; Add-ins &rarr; Upload My Add-in</strong>, and select
+            Go to <strong>Home &rarr; Add-ins &rarr; More Add-ins &rarr; My Add-ins &rarr; Manage My Add-ins &rarr; Upload My Add-in</strong>, and select
             the file you downloaded
           </li>
         </ol>

@@ -1,4 +1,4 @@
-// ABOUTME: Tells people where their text goes: a one-time screen per destination, then a short toast on every send.
+// ABOUTME: Tells people where their text goes: a one-time Elefant screen, then a short toast on every send.
 // ABOUTME: Panels await useSendNotice()(destination) before sending; without the provider it resolves at once.
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
@@ -10,8 +10,8 @@ export const SEND_TOAST_MS = 2500;
 
 const ACCEPTED_KEY = (to: Destination) => `elefant_send_ack_${to}`;
 
-const SCREEN: Record<Destination, string> = {
-  google: "When you use your own Gemini key, the text you send goes from this device to Google, using your own key.",
+// One screen per destination: Google's is the GoogleNotice every BYOK send passes first (#116).
+const SCREEN: Partial<Record<Destination, string>> = {
   elefant: "When you're signed in, the text you send goes from this device to Elefant, under your Elefant account.",
 };
 const TOAST: Record<Destination, string> = {
@@ -47,7 +47,7 @@ export function SendNoticeProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const announce = useCallback<Announce>(async (to) => {
-    if (!acceptedNow.current.has(to) && !storedAcceptance(to)) {
+    if (SCREEN[to] && !acceptedNow.current.has(to) && !storedAcceptance(to)) {
       if (!waiting.current[to]) {
         let resolve = () => {};
         const promise = new Promise<void>((done) => { resolve = done; });
