@@ -36,15 +36,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Word review send notice", () => {
-  it("asks once before the first free review, naming Google, and sends after Continue", async () => {
+  it("sends the first free review with an acknowledged key without a second screen (#116)", async () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Review Document" }));
 
-    expect(await screen.findByRole("dialog")).toHaveTextContent(/Google/);
-    expect(vi.mocked(runReview)).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("Delivery is unconditional.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("On its way to Google, with your key");
   });
 
   it("shows the toast on a later review without asking again", async () => {

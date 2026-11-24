@@ -26,6 +26,11 @@ describe("LandingPage", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("gives Word on the web's current path to Upload My Add-in (#116)", () => {
+    const { container } = render(<LandingPage />);
+    expect(container.textContent).toContain("Home → Add-ins → More Add-ins → My Add-ins → Manage My Add-ins → Upload My Add-in");
+  });
+
   it("sends macOS users to the folder steps, not a script macOS will not run (#74)", () => {
     render(<LandingPage />);
     expect(screen.getByText("macOS").closest("a")).toHaveAttribute(

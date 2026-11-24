@@ -43,18 +43,11 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
+      <header className="flex items-center border-b border-gray-200 px-3 py-2.5">
         <div className="flex items-center gap-1.5">
           <ElefantLogo />
           <span className="text-sm font-semibold text-gray-800">Elefant</span>
         </div>
-        <button
-          onClick={onSettingsClick}
-          className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Settings"
-        >
-          <SettingsIcon />
-        </button>
       </header>
 
       {onTabChange && <nav className="flex border-b border-gray-200">
@@ -94,6 +87,14 @@ export function Layout({ activeTab, onTabChange, onSettingsClick, children }: La
 
       <footer className="flex items-center justify-between border-t border-gray-100 px-3 py-1.5">
         <span className="text-[10px] text-gray-400">v{__APP_VERSION__}</span>
+        {/* Down here, not top right: Office for Mac draws its own info button over that corner (#116). */}
+        <button
+          onClick={onSettingsClick}
+          className="ml-auto mr-2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          aria-label="Settings"
+        >
+          <SettingsIcon />
+        </button>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
           tier === "paid" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
         }`}>

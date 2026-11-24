@@ -1,4 +1,4 @@
-// ABOUTME: Tests the send notice: a one-time screen per destination before the first send, then a short toast on every send.
+// ABOUTME: Tests the send notice: a one-time Elefant screen before the first send, then a short toast on every send.
 // ABOUTME: Real provider and panels; only the mailbox, fetch and the BYOK agent call are replaced.
 
 import { webcrypto, createHash } from "node:crypto";
@@ -38,7 +38,6 @@ function renderPane({ signedIn = false } = {}) {
 }
 
 const summarise = () => fireEvent.click(screen.getByRole("button", { name: "Summarise this thread" }));
-const continueButton = () => screen.getByRole("button", { name: "Continue" });
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -56,40 +55,37 @@ afterEach(() => {
 });
 
 describe("first send on this device", () => {
-  it("says the text goes to Google with the user's key, and sends nothing until Continue", async () => {
+  it("adds no screen of its own before a Google send: the Google notice covers it (#116)", async () => {
     renderPane();
     summarise();
 
-    expect(await screen.findByRole("dialog")).toHaveTextContent("When you use your own Gemini key, the text you send goes from this device to Google, using your own key.");
-    expect(vi.mocked(runReview)).not.toHaveBeenCalled();
-
-    fireEvent.click(continueButton());
     expect(await screen.findByText("Acme asks for signature by Friday.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("On its way to Google, with your key")).toBeInTheDocument();
+  });
+
+  it("says the text goes to Elefant, and sends nothing until Continue", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderPane({ signedIn: true });
+    summarise();
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent("When you're signed in, the text you send goes from this device to Elefant, under your Elefant account.");
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(/Google/);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("does not ask again once accepted", async () => {
-    renderPane();
-    summarise();
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
-    await screen.findByText("Acme asks for signature by Friday.");
+    function Sender() {
+      const announce = useSendNotice();
+      return <button onClick={() => void announce("elefant")}>send</button>;
+    }
+    render(<SendNoticeProvider><Sender /></SendNoticeProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "send" }));
+    await act(async () => fireEvent.click(await screen.findByRole("button", { name: "Continue" })));
 
-    summarise();
-    expect(await screen.findByText("Acme asks for signature by Friday.")).toBeInTheDocument();
-    expect(vi.mocked(runReview)).toHaveBeenCalledTimes(2);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "send" })));
     expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("asks again for Elefant after accepting Google, because the destination changed", async () => {
-    renderPane();
-    summarise();
-    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
-    await screen.findByText("Acme asks for signature by Friday.");
-
-    const signedIn = renderPane({ signedIn: true });
-    fireEvent.click(signedIn.getAllByRole("button", { name: "Summarise this thread" }).at(-1)!);
-
-    expect(await screen.findByRole("dialog")).toHaveTextContent(/Elefant/);
-    expect(screen.getByRole("dialog")).not.toHaveTextContent(/Google/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^On its way to Elefant$/);
   });
 
   it("replaces the old footnote rather than adding to it", () => {
@@ -141,7 +137,7 @@ describe("the one-time screen under pressure", () => {
 
   it("lets every waiting send through on one Continue", async () => {
     const sent = vi.fn();
-    render(<SendNoticeProvider><Sender to="google" onSent={sent} /><Sender to="google" onSent={sent} /></SendNoticeProvider>);
+    render(<SendNoticeProvider><Sender to="elefant" onSent={sent} /><Sender to="elefant" onSent={sent} /></SendNoticeProvider>);
 
     for (const button of screen.getAllByRole("button", { name: "send" })) fireEvent.click(button);
     const go = await screen.findByRole("button", { name: "Continue" });
@@ -167,7 +163,7 @@ describe("the one-time screen under pressure", () => {
   });
 
   it("puts the keyboard on Continue", async () => {
-    render(<SendNoticeProvider><Sender to="google" onSent={() => {}} /></SendNoticeProvider>);
+    render(<SendNoticeProvider><Sender to="elefant" onSent={() => {}} /></SendNoticeProvider>);
     fireEvent.click(screen.getByRole("button", { name: "send" }));
     expect(await screen.findByRole("button", { name: "Continue" })).toHaveFocus();
   });
