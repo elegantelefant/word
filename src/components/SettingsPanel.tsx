@@ -7,6 +7,10 @@ import { useAuth } from "@/store/auth";
 import { GEMINI_MODELS } from "@/lib/models";
 import { getSavedToken } from "@/api/auth";
 
+// Elefant's own policies, which cover what the add-in sends to Elefant (#94).
+const PRIVACY_POLICY_URL = "https://elefant.legal/privacy-policy";
+const TERMS_URL = "https://elefant.legal/terms-and-condition";
+
 interface SettingsPanelProps {
   onClose: () => void;
 }
@@ -121,8 +125,22 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             {signInFailed && <p role="alert" className="mt-2 text-xs text-red-600">Sign-in didn't finish. Try again.</p>}
           </section>
         )}
+
+        <p className="flex gap-3 border-t border-gray-100 pt-3 text-[11px]">
+          <PolicyLink href={PRIVACY_POLICY_URL}>Privacy policy</PolicyLink>
+          <PolicyLink href={TERMS_URL}>Terms</PolicyLink>
+        </p>
       </div>
     </div>
+  );
+}
+
+function PolicyLink({ href, children }: { href: string; children: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-gray-500 underline hover:text-gray-700">
+      {children}
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
   );
 }
 

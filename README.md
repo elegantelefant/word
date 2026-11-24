@@ -87,6 +87,8 @@ For detailed platform-specific instructions, see the [user installation guide](a
 
 ## Privacy and data handling
 
+Elefant's [privacy policy](https://elefant.legal/privacy-policy) and [terms](https://elefant.legal/terms-and-condition) apply. The add-in links both from Settings.
+
 ### Free BYOK
 
 - The Gemini API key is stored locally in browser storage.
